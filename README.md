@@ -1,4 +1,25 @@
-# Source SDK 2013
+# TF2 RadialMenu 
+
+This is an attempt to port the Radial Menu system used in ASW/L4D/PORTAL2 to Team Fortress 2
+It works fine for the most part aside from a couple of small bugs I'm working on fixing. 
+However in it's current state it's usable via the "+mouse_menu" command
+so if you want to use it in game you can do "bind z +mouse_menu". this will tie the menu to the button you bound 
+I know it's called mouse_menu yet its on a keyboard button but this is how it is in Valve games
+
+All the files needed to make this work are included in this repo. 
+However for use in any other mod you need:
+- The fonts and defaultsettings to clientscheme.res
+- RadialMenu.res and .txt files in resource/ui and scripts folders
+- Hudlayout.res entry
+
+This project and it's code were made for Fortress Connected 
+Only default menu was tested. additional menus yet to be added/tested.
+
+All I ask is if any of this code is used in your mod that I Vvis (or the Fortress Connected mod) are credited in some way that is publicly visible.
+
+Please report any issues or fixes via the github issue/PR systems 
+
+# Source SDK 2013 (original description)
 
 Source code for Source SDK 2013.
 

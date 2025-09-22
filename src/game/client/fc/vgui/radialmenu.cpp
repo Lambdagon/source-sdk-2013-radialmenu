@@ -1,6 +1,8 @@
 // RadialMenu.cpp
 // From alien swarm
-// Edited for TF2 by Vvis
+// Edited for TF2 by Vvis 
+// (http://steamcommunity.com/profiles/76561199004586557 ) 
+// (https://github.com/Lambdagon/source-sdk-2013-radialmenu)
 // Codes a bit of a hot mess and was done in an afternoon. 
 // Might have some issues and the code is a bit of a mess but I am working on fixing this up
 // Will be cleaned up a bit more later on
@@ -1262,7 +1264,7 @@ void CRadialMenu::Update( void )
 			const char *commandStr = command->GetString( "command", NULL );
 			if ( commandStr )
 			{
-				engine->ClientCmd( commandStr );
+				engine->ClientCmd_Unrestricted( commandStr );
 			}
 		}
 	}
@@ -1469,11 +1471,16 @@ void OpenRadialMenu( const char *menuName )
 
 
 //--------------------------------------------------------------------------------------------------------
+// there is a small issue that isn't present with the mouse_menu. 
+// also l4d2 uses +mouse_menu command for all the radial menus anyways. 
+// If you use a menu with the command "radialmenu" it works but you just cant open a new one using the same command
+// unless you change the arg. really fucky and i really should look into fixing this properly but oh well
+// mouse_menu works for now... - Vvis :3 
 CON_COMMAND( radialmenu, "Opens a radial menu" )
 {
 	if ( args.ArgC() < 2 )
 	{
-		OpenRadialMenu("Default");
+		OpenRadialMenu(NULL);
 	}
 	else
 	{
