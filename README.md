@@ -8,7 +8,7 @@ I know it's called mouse_menu yet its on a keyboard button but this is how it is
 
 All the files needed to make this work are included in this repo. 
 However for use in any other mod you need:
-- The fonts and defaultsettings to clientscheme.res
+- The fonts and defaultsettings in clientscheme.res
 - RadialMenu.res and .txt files in resource/ui and scripts folders
 - Hudlayout.res entry
 
