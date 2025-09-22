@@ -126,6 +126,9 @@ public:
 	virtual bool IsTopmostPopup( VPANEL vguiPanel) = 0;
 	virtual void SetTopmostPopup( VPANEL vguiPanel, bool state ) = 0;
 
+	virtual void SetMessageContextId(VPANEL vguiPanel,int nContextId) = 0;
+	virtual int GetMessageContextId(VPANEL vguiPanel) = 0;
+
 	// sibling pins
 	virtual void SetSiblingPin(VPANEL vguiPanel, VPANEL newSibling, byte iMyCornerToPin = 0, byte iSiblingCornerToPinTo = 0 ) = 0;
 

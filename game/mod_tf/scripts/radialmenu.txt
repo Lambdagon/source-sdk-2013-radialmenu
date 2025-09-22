@@ -1,0 +1,101 @@
+"RadialMenu"
+{
+	//--------------------------------------------------------------
+	"Default"
+	{
+		"Center"
+		{
+			"command"	"voicemenu 0 0"
+			"text"		"#Voice_Menu_Medic"
+		}
+		"North"
+		{
+			"command"	"voicemenu 0 1"
+			"text"		"#Voice_Menu_Thanks"
+		}
+		"NorthEast"
+		{
+			"command"	"voicemenu 0 2"
+			"text"		"#Voice_Menu_Go"
+		}	
+		"East"
+		{
+			"command"	"voicemenu 0 3"
+			"text"		"#Voice_Menu_MoveUp"
+		}	
+		"SouthEast"
+		{
+			"command"	"voicemenu 0 4"
+			"text"		"#Voice_Menu_Left"
+		}	
+		"South"
+		{
+			"command"	"voicemenu 0 5"
+			"text"		"#Voice_Menu_Right"
+		}
+		"SouthWest"
+		{
+			"command"	"voicemenu 0 6"
+			"text"		"#Voice_Menu_Yes"
+		}
+		"West"
+		{
+			"command"	"voicemenu 0 7"
+			"text"		"#Voice_Menu_No"
+		}
+		"NorthWest"
+		{
+			"command"	"impulse 198"
+			"text"		"#Voice_Menu_Ping"	
+		}	
+	}
+	//--------------------------------------------------------------
+	"voice2"
+	{
+		"Center"
+		{
+			"command"	"voicemenu 1 0"
+			"text"		"#Voice_Menu_Incoming"
+		}
+		"North"
+		{
+			"command"	"voicemenu 1 1"
+			"text"		"#Voice_Menu_CloakedSpy"
+		}
+		"NorthEast"
+		{
+			"command"	"voicemenu 1 2"
+			"text"		"#Voice_Menu_SentryAhead"
+		}	
+		"East"
+		{
+			"command"	"voicemenu 1 3"
+			"text"		"#Voice_Menu_TeleporterHere"
+		}	
+		"SouthEast"
+		{
+			"command"	"voicemenu 1 4"
+			"text"		"#Voice_Menu_DispenserHere"
+		}	
+		"South"
+		{
+			"command"	"voicemenu 1 5"
+			"text"		"#Voice_Menu_SentryHere"
+		}
+		"SouthWest"
+		{
+			"command"	"voicemenu 1 6"
+			"text"		"#Voice_Menu_ActivateCharge"
+		}
+		"West"
+		{
+			"command"	"voicemenu 1 7"
+			"text"		"#Voice_Menu_ChargeReady"
+		}
+		"NorthWest"
+		{
+			"command"	"voicemenu 1 8"
+			"text"		"#Voice_Menu_AskForBall"
+		}	
+	}
+}
