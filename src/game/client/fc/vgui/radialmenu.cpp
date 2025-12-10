@@ -712,17 +712,19 @@ void CRadialMenu::ShowPanel(bool show)
 			m_cursorY = -1;
 			SetVisible(true);
 			SetKeyBoardInputEnabled(false);
-		} 
-		else
-		{
-			SetVisible(false);
-			SetMouseInputEnabled(false);
-			m_bMouseActivated = false;
-			SetKeyBoardInputEnabled(true);
-		}
+	} 
+	else
+	{
+		SetVisible(false);
+		SetMouseInputEnabled(false);
+		m_bMouseActivated = false;
+		SetKeyBoardInputEnabled(true);
+		
+		// Clear the menu name so it can be reopened
+		int nSlot = 0;
+		s_radialMenuName[ nSlot ][0] = 0;
+	}
 }
-
-
 
 //--------------------------------------------------------------------------------------------------------
 void CRadialMenu::Paint( void )
@@ -739,6 +741,10 @@ void CRadialMenu::Paint( void )
 			m_fading = false;
 			SetVisible( false );
 			//SetCameraFixed( false );
+			
+			// Clear the menu name so it can be reopened
+			int nSlot = 0;
+			s_radialMenuName[ nSlot ][0] = 0;
 			return;
 		}
 	}
@@ -1421,7 +1427,7 @@ void OpenRadialMenu( const char *menuName )
 		FlushClientMenus(); // for now, reload every time
 	}
 
-	KeyValues *menuKey = TheClientMenuManager.FindMenu( NULL );
+	KeyValues *menuKey = TheClientMenuManager.FindMenu( menuName );
 	if ( !menuKey )
 	{
 		//DevMsg( "No client menu currently matches %s\n", menuName );
