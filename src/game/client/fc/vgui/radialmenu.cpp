@@ -38,7 +38,7 @@ ConVar cl_rosetta_line_outer_radius( "cl_rosetta_line_outer_radius", "45" );
 
 
 void FlushClientMenus( void );
-#define MAX_SPLITSCREEN_PLAYERS 2
+
 //--------------------------------------------------------------------------------------------------------
 static char s_radialMenuName[ MAX_SPLITSCREEN_PLAYERS ][ 64 ];
 static bool s_mouseMenuKeyHeld[ MAX_SPLITSCREEN_PLAYERS ];
@@ -105,7 +105,7 @@ public:
 	}
 
 	//----------------------------------------------------------------------------------------------------
-	void UpdateHotspots( KeyValues *data )
+	void CRadialButton::UpdateHotspots( KeyValues *data )
 	{
 		BaseClass::UpdateHotspots( data );
 
@@ -141,7 +141,7 @@ public:
 	}
 
 	//----------------------------------------------------------------------------------------------------
-	void PerformLayout( void )
+	void CRadialButton::PerformLayout( void )
 	{
 		int wide, tall;
 		GetSize( wide, tall );
@@ -404,7 +404,7 @@ public:
 	 */
 	virtual void OnCursorEntered( void )
 	{
-		int nSlot = vgui::ipanel()->GetMessageContextId( GetVPanel() );
+		//int nSlot = vgui::ipanel()->GetMessageContextId( GetVPanel() );
 		//ACTIVE_SPLITSCREEN_PLAYER_GUARD( nSlot );
 
 		int wide, tall;
@@ -537,8 +537,6 @@ CHudElement( pElementName ), BaseClass( NULL, PANEL_RADIAL_MENU )
 	m_minButtonY = 0;
 	m_maxButtonX = 0;
 	m_maxButtonY = 0;
-
-	m_bMouseActivated = true;
 }
 
 
@@ -601,13 +599,18 @@ CRadialMenu::ButtonDir CRadialMenu::DirFromButtonName( const char * name )
 /**
  * Created controls from the resource file.  We know how to make a special PolygonButton :)
  */
-vgui::Panel *CRadialMenu::CreateControlByName(const char *controlName)
+vgui::Panel *CRadialMenu::CreateControlByName( const char *controlName )
 {
-    if (!Q_stricmp("PolygonButton", controlName))
-        return new CRadialButton(this, NULL);
-    return BaseClass::CreateControlByName(controlName);
+	if( !Q_stricmp( "PolygonButton", controlName ) )
+	{
+		vgui::Button *newButton = new CRadialButton( this, NULL );
+		return newButton;
+	}
+	else
+	{
+		return BaseClass::CreateControlByName( controlName );
+	}
 }
-
 
 
 //--------------------------------------------------------------------------------------------------------
@@ -681,50 +684,49 @@ void CRadialMenu::InitializeInputScheme()
 	if(!IsVisible())
 		return;
 
-	MakePopup(false,UseMouseMode());
+	MakePopup(false);
 	SetKeyBoardInputEnabled(false);
-	SetMouseInputEnabled(UseMouseMode());
+	SetMouseInputEnabled(true);
 
 	for(int i=0; i<NUM_BUTTON_DIRS; ++i)
 	{
 		if(m_buttons[i])
-			m_buttons[i]->SetMouseInputEnabled(UseMouseMode());
+			m_buttons[i]->SetMouseInputEnabled(true);
 	}
 }
 //--------------------------------------------------------------------------------------------------------
-void CRadialMenu::ShowPanel(bool show)
+void CRadialMenu::ShowPanel( bool show )
 {
-		if(show)
+	//m_pViewPort->ShowBackGround( show );
+
+	if ( show )
+	{
+		for ( int i=0; i<NUM_BUTTON_DIRS; ++i )
 		{
-			for(int i=0; i<NUM_BUTTON_DIRS; ++i)
-			{
-				if(!m_buttons[i])
-					continue;
+			if ( !m_buttons[i] )
+				continue;
 
-				m_buttons[i]->SetArmed(false);
-				m_buttons[i]->SetFakeArmed(false);
-				m_buttons[i]->SetChosen(false);
-			}
+			m_buttons[i]->SetArmed( false );
+			m_buttons[i]->SetFakeArmed( false );
+			m_buttons[i]->SetChosen( false );
+		}
 
-			m_bMouseActivated = true; // unlock mouse immediately
-			InitializeInputScheme();
-			m_cursorX = -1;
-			m_cursorY = -1;
-			SetVisible(true);
-			SetKeyBoardInputEnabled(false);
-	} 
+		SetMouseInputEnabled( true );
+		InitializeInputScheme();
+		m_cursorX = -1;
+		m_cursorY = -1;
+	}
 	else
 	{
-		SetVisible(false);
-		SetMouseInputEnabled(false);
-		m_bMouseActivated = false;
-		SetKeyBoardInputEnabled(true);
-		
 		// Clear the menu name so it can be reopened
 		int nSlot = 0;
 		s_radialMenuName[ nSlot ][0] = 0;
+		SetVisible( false );
+		SetMouseInputEnabled( false );
 	}
+	SetKeyBoardInputEnabled( false );
 }
+
 
 //--------------------------------------------------------------------------------------------------------
 void CRadialMenu::Paint( void )
@@ -979,7 +981,7 @@ void CRadialMenu::OnThink( void )
 	input->GetFullscreenMousePos( &m_cursorX, &m_cursorY );
 	ScreenToLocal( m_cursorX, m_cursorY );
 
-	int nSlot = vgui::ipanel()->GetMessageContextId( GetVPanel() );
+	//int nSlot = vgui::ipanel()->GetMessageContextId( GetVPanel() );
 	//ACTIVE_SPLITSCREEN_PLAYER_GUARD( nSlot );
 
 	int wide, tall;
@@ -1453,16 +1455,11 @@ void OpenRadialMenu( const char *menuName )
 
 
 //--------------------------------------------------------------------------------------------------------
-// there is a small issue that isn't present with the mouse_menu. 
-// also l4d2 uses +mouse_menu command for all the radial menus anyways. 
-// If you use a menu with the command "radialmenu" it works but you just cant open a new one using the same command
-// unless you change the arg. really fucky and i really should look into fixing this properly but oh well
-// mouse_menu works for now... - Vvis :3 
-CON_COMMAND( radialmenu, "Opens a radial menu" )
+CON_COMMAND_F( radialmenu, "Opens a radial menu", FCVAR_CLIENTCMD_CAN_EXECUTE )
 {
 	if ( args.ArgC() < 2 )
 	{
-		OpenRadialMenu(NULL);
+		OpenRadialMenu( NULL );
 	}
 	else
 	{

@@ -7,7 +7,8 @@
 #pragma once
 #endif
 
-#include <vgui_controls/EditablePanel.h>
+#include <vgui_controls/editablepanel.h>
+#include "KeyValues.h"
 
 #define PANEL_RADIAL_MENU			"RadialMenu"
 
@@ -43,22 +44,11 @@ public:
 	virtual void PerformLayout( void );
 	void InitializeInputScheme();
 	virtual void Paint( void );
-	void OpenMenuByName(const char * menuName);
 	virtual void OnCommand( const char *command );
 	virtual vgui::Panel *CreateControlByName( const char *controlName );
 	virtual void OnThink( void );
 
 	void OnCursorEnteredButton( int x, int y, CRadialButton *button );
-	KeyValues *g_pAllRadialMenus = nullptr;
-
-	void LoadAllRadialMenus()
-	{
-		if(g_pAllRadialMenus)
-			g_pAllRadialMenus->deleteThis();
-
-		g_pAllRadialMenus = new KeyValues("RadialMenu");
-		g_pAllRadialMenus->LoadFromFile(filesystem,"resource/UI/RadialMenu.res");
-	}
 
 	enum ButtonDir
 	{
@@ -73,12 +63,6 @@ public:
 		NORTH_WEST,
 		NUM_BUTTON_DIRS
 	};
-	bool						m_bMouseActivated;
-
-	bool UseMouseMode()
-    {
-        return true;
-    }
 
 protected:
 
