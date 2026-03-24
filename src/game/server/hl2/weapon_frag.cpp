@@ -34,7 +34,7 @@ class CWeaponFrag: public CBaseHLCombatWeapon
 {
 	DECLARE_CLASS( CWeaponFrag, CBaseHLCombatWeapon );
 public:
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 public:
 	CWeaponFrag();

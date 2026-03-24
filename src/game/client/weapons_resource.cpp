@@ -164,13 +164,9 @@ void WeaponsResource::LoadWeaponSprites( WEAPON_FILE_INFO_HANDLE hWeaponFileInfo
 				pWeaponInfo->iconInactive->Precache();
 				pHudHR->SetHistoryGap( pWeaponInfo->iconInactive->Height() );
 			}
-		}
 
-		p = FindHudTextureInDict( tempList, "weapon_s" );
-		if ( p )
-		{
-			pWeaponInfo->iconActive = gHUD.AddUnsearchableHudIconToList( *p );
-			if ( pWeaponInfo->iconActive )
+			pWeaponInfo->iconActive = gHUD.AddUnsearchableHudIconToList(*p);
+			if (pWeaponInfo->iconActive)
 			{
 				pWeaponInfo->iconActive->Precache();
 			}

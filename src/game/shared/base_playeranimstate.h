@@ -219,6 +219,14 @@ protected:
 
 	QAngle				m_angRender;
 
+	void UpdateAimSequenceLayers(
+		float flCycle,
+		int iFirstLayer,
+		bool bForceIdle,
+		CSequenceTransitioner* pTransitioner,
+		float flWeightScale
+	);
+
 private:
 
 	// Update the prone state machine.
@@ -260,14 +268,6 @@ private:
 	float				m_flStoredCycle;
 
 	Vector2D			m_vLastMovePose;
-
-	void UpdateAimSequenceLayers(
-		float flCycle,
-		int iFirstLayer,
-		bool bForceIdle,
-		CSequenceTransitioner *pTransitioner,
-		float flWeightScale
-		);
 
 	void OptimizeLayerWeights( int iFirstLayer, int nLayers );
 

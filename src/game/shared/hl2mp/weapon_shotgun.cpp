@@ -305,7 +305,7 @@ void CWeaponShotgun::PrimaryAttack( void )
 
 	pPlayer->DoMuzzleFlash();
 
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 
 	// Don't fire again until fire animation has completed
 	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
@@ -357,7 +357,7 @@ void CWeaponShotgun::SecondaryAttack( void )
 
 	pPlayer->DoMuzzleFlash();
 
-	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+	SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 
 	// Don't fire again until fire animation has completed
 	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();

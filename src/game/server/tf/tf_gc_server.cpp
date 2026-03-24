@@ -729,7 +729,7 @@ int CMatchInfo::GetNumActiveMatchPlayers() const
 	{
 		nActivePlayers += !m_vMatchRankData[idx]->bDropped;
 	}
-	return 12;
+	return nActivePlayers;
 }
 
 //-----------------------------------------------------------------------------
@@ -4022,7 +4022,7 @@ ConVar tf_mm_strict( "tf_mm_strict", "0", FCVAR_NOTIFY,
 	"   2 = Hide from server browser, but allow ad-hoc joins\n",
 	OnMMServerModeChanged );
 
-ConVar tf_mm_trusted( "tf_mm_trusted", "1", FCVAR_NOTIFY | FCVAR_HIDDEN,
+ConVar tf_mm_trusted( "tf_mm_trusted", "0", FCVAR_NOTIFY | FCVAR_HIDDEN,
 	"Set to 1 on Valve servers to requested trusted status.  (Yes, it is authenticated on the backend, and attempts by non-valve servers are logged.)\n",
 	OnMMServerModeTrustedChanged );
 

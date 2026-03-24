@@ -113,7 +113,6 @@
 #include "tf_player_resource.h"
 #include "gcsdk/gcclient_sharedobjectcache.h"
 #include "tf_party.h"
-#include "tf_shareddefs.h"
 
 #ifdef TF_RAID_MODE
 #include "bot_npc/bot_npc_decoy.h"
@@ -140,7 +139,6 @@
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
 
 #pragma warning( disable: 4355 ) // disables ' 'this' : used in base member initializer list'
 
@@ -171,7 +169,6 @@ extern ConVar	tf_bot_quota;
 extern ConVar	halloween_starting_souls;
 
 extern ConVar tf_powerup_mode_killcount_timer_length;
-extern ConVar tf_mvm_versus_enabled;
 
 float GetCurrentGravity( void );
 
@@ -204,7 +201,7 @@ ConVar tf_damage_multiplier_red( "tf_damage_multiplier_red", "1.0", FCVAR_CHEAT,
 
 ConVar tf_max_voice_speak_delay( "tf_max_voice_speak_delay", "1.5", FCVAR_DEVELOPMENTONLY, "Max time after a voice command until player can do another one", true, 0.1f, false, 0.f );
 
-ConVar tf_allow_player_use( "tf_allow_player_use", "1", FCVAR_NOTIFY, "Allow players to execute +use while playing." );
+ConVar tf_allow_player_use( "tf_allow_player_use", "0", FCVAR_NOTIFY, "Allow players to execute +use while playing." );
 
 ConVar tf_deploying_bomb_time( "tf_deploying_bomb_time", "1.90", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Time to deploy bomb before the point of no return." );
 ConVar tf_deploying_bomb_delay_time( "tf_deploying_bomb_delay_time", "0.0", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY, "Time to delay before deploying bomb." );
@@ -818,6 +815,7 @@ IMPLEMENT_SERVERCLASS_ST( CTFPlayer, DT_TFPlayer )
 
 	SendPropFloat( SENDINFO( m_flMvMLastDamageTime ), 16, SPROP_ROUNDUP ),
 	SendPropInt( SENDINFO( m_iSpawnCounter ) ),
+	SendPropBool( SENDINFO( m_bFlipViewModels ) ),
 	SendPropBool( SENDINFO( m_bArenaSpectator ) ),
 	SendPropFloat( SENDINFO( m_flHeadScale ) ),
 	SendPropFloat( SENDINFO( m_flTorsoScale ) ),
@@ -3143,7 +3141,7 @@ void CTFPlayer::Precache()
 		  If you have any question, come talk to me (Bank)
 	*/
 	PrecacheTFPlayer();
-	PrecacheScriptSound("Weapon_BoxingGloves.CritEnabled");
+
 	BaseClass::Precache();
 }
 
@@ -3941,29 +3939,7 @@ void CTFPlayer::Spawn()
 		ResetMaxHealthDrain();
 		SetHealth( GetMaxHealth() );
 	}
-	if (TFGameRules()->IsMannVsMachineMode() && tf_mvm_versus_enabled.GetBool()) {
-		if (GetTeamNumber() == TF_TEAM_PVE_INVADERS && !IsBot()) {	
-			int nClassIndex = (GetPlayerClass() ? GetPlayerClass()->GetClassIndex() : TF_CLASS_UNDEFINED);
-			if (g_pFullFileSystem->FileExists(g_szPlayerRobotModels[nClassIndex]) && TFObjectiveResource()->GetMvMEventPopfileType() != MVM_EVENT_POPFILE_HALLOWEEN)
-			{
-				GetPlayerClass()->SetCustomModel(g_szPlayerRobotModels[nClassIndex], USE_CLASS_ANIMATIONS);
-				UpdateModel();
-				SetBloodColor(DONT_BLEED);
-				AddItem(g_szRomePromoItems_Hat[nClassIndex]);
-				AddItem(g_szRomePromoItems_Misc[nClassIndex]);
-			}
-			else {
 
-				// zombies use the original player models
-				m_nSkin = 4;
-
-				const char* name = g_aRawPlayerClassNamesShort[nClassIndex];
-
-				AddItem(CFmtStr("Zombie %s", name));
-
-			}
-		}
-	}
 	SetContextThink( &CTFPlayer::PostSpawnThink, gpGlobals->curtime + 0.1f, "PostSpawnThink" );
 }
 
@@ -4239,7 +4215,7 @@ void CTFPlayer::SendOffHandViewModelActivity( Activity activity )
 	CBaseViewModel *pViewModel = GetOffHandViewModel();
 	if ( pViewModel )
 	{
-		int sequence = pViewModel->SelectWeightedSequence( activity );
+		int sequence = SelectWeightedSequenceForViewModel( pViewModel, activity );
 		pViewModel->SendViewModelMatchingSequence( sequence );
 	}
 }
@@ -4250,16 +4226,6 @@ void CTFPlayer::SendOffHandViewModelActivity( Activity activity )
 void CTFPlayer::GiveDefaultItems()
 {
 	// Get the player class data.
-	if (IsBot()) {
-		if (!TFGameRules()->IsMannVsMachineMode() || TFGameRules()->IsMannVsMachineMode() && GetTeamNumber() == TF_TEAM_PVE_DEFENDERS) {
-			// Weapons that added greater ammo than base require us to now fill the player up to max ammo
-			for (int iAmmo = 0; iAmmo < TF_AMMO_COUNT; ++iAmmo)
-			{
-				GiveAmmo(GetMaxAmmo(iAmmo), iAmmo, true, kAmmoSource_Resupply);
-			}
-			return;
-		}
-	}
 	TFPlayerClassData_t *pData = m_PlayerClass.GetData();
 	if ( GetTeamNumber() == TEAM_SPECTATOR )
 	{
@@ -4564,144 +4530,142 @@ void CTFPlayer::ManageRegularWeapons( TFPlayerClassData_t *pData )
 		bool bItemsChanged = false;
 
 		// Now Loop through our inventory for the current class, and give us any items we don't have.
+		int iClass = GetPlayerClass()->GetClassIndex();
+		if ( iClass > TF_CLASS_UNDEFINED && iClass < TF_CLASS_COUNT )
+		{
+			CSteamID ownerSteamID;
+			GetSteamID( &ownerSteamID );
 
-			int iClass = GetPlayerClass()->GetClassIndex();
-			if (iClass > TF_CLASS_UNDEFINED && iClass < TF_CLASS_COUNT)
+			for ( int i = 0; i < CLASS_LOADOUT_POSITION_COUNT; i++ )
 			{
-				CSteamID ownerSteamID;
-				GetSteamID(&ownerSteamID);
+				// bots don't need the action slot item for MvM (canteen)
+ 				if ( ( i == LOADOUT_POSITION_ACTION ) && IsBot() && TFGameRules() && TFGameRules()->IsMannVsMachineMode() && ( GetTeamNumber() == TF_TEAM_PVE_INVADERS ) )
+ 					continue;
 
-				for (int i = 0; i < CLASS_LOADOUT_POSITION_COUNT; i++)
+				m_EquippedLoadoutItemIndices[i] = LOADOUT_SLOT_USE_BASE_ITEM;
+
+				// use base items in training mode
+				CEconItemView *pItem = GetLoadoutItem( iClass, i, true );
+				if ( !pItem || !pItem->IsValid() )
+					continue;
+
+				if ( !ItemIsAllowed( pItem ) )
+					continue;
+
+				// Only do this for taunts, because other items will be caught by the dynamic model loading system. 
+				if ( IsTauntSlot( i ) )
 				{
-					// bots don't need the action slot item for MvM (canteen)
-					if ((i == LOADOUT_POSITION_ACTION) && IsBot() && TFGameRules() && TFGameRules()->IsMannVsMachineMode() && (GetTeamNumber() == TF_TEAM_PVE_INVADERS))
-						continue;
-
-					m_EquippedLoadoutItemIndices[i] = LOADOUT_SLOT_USE_BASE_ITEM;
-
-					// use base items in training mode
-					CEconItemView* pItem = GetLoadoutItem(iClass, i, true);
-					if (!pItem || !pItem->IsValid())
-						continue;
-
-					if (!ItemIsAllowed(pItem))
-						continue;
-
-					// Only do this for taunts, because other items will be caught by the dynamic model loading system. 
-					if (IsTauntSlot(i))
+					tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "%s - Precaching taunts, etc", __FUNCTION__ );
+					// This has to be done before the continue for "no_entity", because we're trying to precache taunts which
+					// explicitly bail out there.
+					precacheStrings.RemoveAll();
+					pItem->GetItemDefinition()->GeneratePrecacheModelStrings( false, &precacheStrings );
+					FOR_EACH_VEC( precacheStrings, iModel )
 					{
-						tmZone(TELEMETRY_LEVEL0, TMZF_NONE, "%s - Precaching taunts, etc", __FUNCTION__);
-						// This has to be done before the continue for "no_entity", because we're trying to precache taunts which
-						// explicitly bail out there.
-						precacheStrings.RemoveAll();
-						pItem->GetItemDefinition()->GeneratePrecacheModelStrings(false, &precacheStrings);
-						FOR_EACH_VEC(precacheStrings, iModel)
+						if ( precacheStrings[iModel] && ( *precacheStrings[iModel] ) )
 						{
-							if (precacheStrings[iModel] && (*precacheStrings[iModel]))
-							{
-								PrecacheModel(precacheStrings[iModel], false);
-							}
+							PrecacheModel( precacheStrings[iModel], false );
 						}
 					}
+				}
 
-					m_EquippedLoadoutItemIndices[i] = pItem->GetItemID();
+				m_EquippedLoadoutItemIndices[i] = pItem->GetItemID();
 
-					Assert(pItem->GetStaticData()->GetItemClass());
-					if (pItem->GetStaticData()->GetItemClass() && FStrEq(pItem->GetStaticData()->GetItemClass(), "no_entity"))
-						continue;
+				Assert( pItem->GetStaticData()->GetItemClass() );
+				if ( pItem->GetStaticData()->GetItemClass() && FStrEq( pItem->GetStaticData()->GetItemClass(), "no_entity" ) )
+					continue;
 
-					CTFWeaponBase* pCurrentWeaponOfType = NULL;
-					bool bAlreadyHave = false;
-					// Don't need to check weapons if it's a wearable-only slot
-					if (!IsWearableSlot(i) || pItem->GetItemDefinition()->IsActingAsAWeapon())
+				CTFWeaponBase *pCurrentWeaponOfType = NULL;
+				bool bAlreadyHave = false;
+				// Don't need to check weapons if it's a wearable-only slot
+				if ( !IsWearableSlot(i) || pItem->GetItemDefinition()->IsActingAsAWeapon() )
+				{
+					// Weapon slot. Check out weapons to see if we have it.
+					for ( int wpn = 0; wpn < MAX_WEAPONS; wpn++ )
 					{
-						// Weapon slot. Check out weapons to see if we have it.
-						for (int wpn = 0; wpn < MAX_WEAPONS; wpn++)
-						{
-							CTFWeaponBase* pWeapon = (CTFWeaponBase*)GetWeapon(wpn);
-							if (!pWeapon)
-								continue;
+						CTFWeaponBase *pWeapon = (CTFWeaponBase *)GetWeapon(wpn);
+						if ( !pWeapon )
+							continue;
 
-							if (ItemsMatch(pData, pWeapon->GetAttributeContainer()->GetItem(), pItem, pWeapon))
-							{
-								pCurrentWeaponOfType = pWeapon;
-								bAlreadyHave = true;
-								break;
-							}
+						if ( ItemsMatch( pData, pWeapon->GetAttributeContainer()->GetItem(), pItem, pWeapon ) )
+						{
+							pCurrentWeaponOfType = pWeapon;
+							bAlreadyHave = true;
+							break;
 						}
 					}
+				}
 
-					CEconWearable* pWearable = NULL;
-					if (!bAlreadyHave)
+				CEconWearable *pWearable = NULL;
+				if ( !bAlreadyHave )
+				{
+					// We couldn't find a matching weapon. See if we have a matching wearable.
+					for ( int wbl = 0; wbl < m_hMyWearables.Count(); wbl++ )
 					{
-						// We couldn't find a matching weapon. See if we have a matching wearable.
-						for (int wbl = 0; wbl < m_hMyWearables.Count(); wbl++)
-						{
-							pWearable = m_hMyWearables[wbl];
-							if (!pWearable)
-								continue;
+						pWearable = m_hMyWearables[wbl];
+						if ( !pWearable )
+							continue;
 
-							CEconItemView* pWearableView = pWearable->GetAttributeContainer()->GetItem();
-							if (ItemsMatch(pData, pWearableView, pItem))
-							{
-								bAlreadyHave = true;
-								break;
-							}
+						CEconItemView *pWearableView = pWearable->GetAttributeContainer()->GetItem();
+						if ( ItemsMatch( pData, pWearableView, pItem ) )
+						{
+							bAlreadyHave = true;
+							break;
 						}
 					}
+				}
 
-					if (!bAlreadyHave && pItem->GetStaticData()->GetItemClass())
+				if ( !bAlreadyHave && pItem->GetStaticData()->GetItemClass() )
+				{
+					CEconEntity *pNewItem = dynamic_cast<CEconEntity*>(GiveNamedItem( pItem->GetStaticData()->GetItemClass(), 0, pItem ));
+					Assert( pNewItem );
+					if ( pNewItem )
 					{
-						CEconEntity* pNewItem = dynamic_cast<CEconEntity*>(GiveNamedItem(pItem->GetStaticData()->GetItemClass(), 0, pItem));
-						Assert(pNewItem);
-						if (pNewItem)
+						pNewItem->GetAttributeContainer()->GetItem()->SetOverrideAccountID( ownerSteamID.GetAccountID() );
+
+						CTFWeaponBuilder *pBuilder = dynamic_cast<CTFWeaponBuilder*>( (CBaseEntity*)pNewItem );
+						if ( pBuilder )
 						{
-							pNewItem->GetAttributeContainer()->GetItem()->SetOverrideAccountID(ownerSteamID.GetAccountID());
+							pBuilder->SetSubType( pData->m_aBuildable[0] );
+						}
 
-							CTFWeaponBuilder* pBuilder = dynamic_cast<CTFWeaponBuilder*>((CBaseEntity*)pNewItem);
-							if (pBuilder)
-							{
-								pBuilder->SetSubType(pData->m_aBuildable[0]);
-							}
+						CBaseCombatWeapon* pWeapon = dynamic_cast< CBaseCombatWeapon* >( pNewItem );
+						if ( pWeapon )
+						{
+							pWeapon->SetSoundsEnabled( false );
+						}
+						
+						pNewItem->GiveTo( this );
 
-							CBaseCombatWeapon* pWeapon = dynamic_cast<CBaseCombatWeapon*>(pNewItem);
-							if (pWeapon)
-							{
-								pWeapon->SetSoundsEnabled(false);
-							}
+						// set the default item charge meter value for this new weapon
+						m_Shared.SetItemChargeMeter( loadout_positions_t( i ), pNewItem->GetDefaultItemChargeMeterValue() );
 
-							pNewItem->GiveTo(this);
-
-							// set the default item charge meter value for this new weapon
-							m_Shared.SetItemChargeMeter(loadout_positions_t(i), pNewItem->GetDefaultItemChargeMeterValue());
-
-							if (pWeapon)
-							{
-								pWeapon->SetSoundsEnabled(true);
-							}
+						if ( pWeapon )
+						{
+							pWeapon->SetSoundsEnabled( true );
 						}
 					}
-					else
+				}
+				else
+				{
+					if ( pCurrentWeaponOfType )
 					{
-						if (pCurrentWeaponOfType)
-						{
-							pCurrentWeaponOfType->UpdateExtraWearables();
+						pCurrentWeaponOfType->UpdateExtraWearables();
 
-							// We need to ensure all hands pointers are updated for all weapons.
-							// Otherwise we could end up using animation sequences from the wrong class hands.
-							pCurrentWeaponOfType->UpdateHands();
-						}
+						// We need to ensure all hands pointers are updated for all weapons.
+						// Otherwise we could end up using animation sequences from the wrong class hands.
+						pCurrentWeaponOfType->UpdateHands();
 					}
+				}
 
-					bItemsChanged |= !bAlreadyHave;
-				} // For each item in load out
-			}
+				bItemsChanged |= !bAlreadyHave;
+			} // For each item in load out
+		}
 
 		if ( bItemsChanged )
 		{
 			CTF_GameStats.Event_PlayerLoadoutChanged( this, false );			
 		}
-
 		// We may have added weapons that make others invalid. Recheck.
 		ValidateWeapons( pData, false );
 
@@ -5986,8 +5950,9 @@ void CTFPlayer::HandleAnimEvent( animevent_t *pEvent )
 		char szAttrName[128];
 		float flVal;
 		float flDuration;
-		if ( sscanf( pEvent->options, "%s %f %f", szAttrName, &flVal, &flDuration ) == 3 )
+		if ( sscanf( pEvent->options, "%127s %f %f", szAttrName, &flVal, &flDuration ) == 3 )
 		{
+			szAttrName[ ARRAYSIZE( szAttrName ) - 1 ] = '\0';
 			Assert( flDuration > 0.f );
 			AddCustomAttribute( szAttrName, flVal, flDuration );
 		}
@@ -6110,10 +6075,8 @@ int CTFPlayer::GetAutoTeam( int nPreferedTeam /*= TF_TEAM_AUTOASSIGN*/ )
 						}
 					}
 				}
-				if (!tf_mvm_versus_enabled.GetBool())
-				{
-					return TFGameRules()->GetTeamAssignmentOverride(this, TF_TEAM_PVE_DEFENDERS);
-				}
+
+				return TFGameRules()->GetTeamAssignmentOverride( this, TF_TEAM_PVE_DEFENDERS );
 			}
 		}
 
@@ -6284,7 +6247,7 @@ void CTFPlayer::HandleCommand_JoinTeam( const char *pTeamName )
 
 	if ( stricmp( pTeamName, "auto" ) == 0 )
 	{	
-		iTeam = GetAutoTeam(); 
+		iTeam = GetAutoTeam();
 		bAutoTeamed = true;
 	}
 	else if ( stricmp( pTeamName, "spectate" ) == 0 )
@@ -6378,7 +6341,7 @@ void CTFPlayer::HandleCommand_JoinTeam( const char *pTeamName )
 		}
 
 		DuelMiniGame_NotifyPlayerChangedTeam( this, iTeam, true );
-		ChangeTeam( iTeam );
+		ChangeTeam( iTeam, true );
 
 		return;
 	}
@@ -6908,14 +6871,14 @@ void CTFPlayer::HandleCommand_JoinClass( const char *pClassName, bool bAllowSpaw
 	else
 	{
 		int iChoices = 0;
-		int iClasses[TF_LAST_NORMAL_CLASS - 1] = {}; // -1 to remove the civilian from the randomness
+		int iClasses[ TF_LAST_NORMAL_CLASS - 1 ] = {}; // -1 to remove the civilian from the randomness
 		int iCurrentClass = GetPlayerClass()->GetClassIndex();
 
 		for ( iClass = TF_FIRST_NORMAL_CLASS; iClass < TF_LAST_NORMAL_CLASS; iClass++ )
 		{
 			if ( iClass != iCurrentClass && TFGameRules()->CanPlayerChooseClass( this, iClass ) )
 			{
-				iClasses[iChoices++] = iClass;
+				iClasses[ iChoices++ ] = iClass;
 			}
 		}
 
@@ -6929,7 +6892,7 @@ void CTFPlayer::HandleCommand_JoinClass( const char *pClassName, bool bAllowSpaw
 			return;
 		}
 
-		iClass = iClasses[random->RandomInt( 0, iChoices - 1 )];
+		iClass = iClasses[ random->RandomInt( 0, iChoices - 1 ) ];
 	}
 
 	if ( TFGameRules() && TFGameRules()->State_Get() == GR_STATE_RND_RUNNING )
@@ -7380,19 +7343,14 @@ bool CTFPlayer::ClientCommand( const CCommand &args )
 	if ( FStrEq( pcmd, "jointeam" ) )
 	{
 		// don't let them spam the server with changes
-		if ( GetNextChangeTeamTime() > gpGlobals->curtime )
+		if ( ( GetNextChangeTeamTime() > gpGlobals->curtime ) && ( GetTeamNumber() != TEAM_UNASSIGNED ) )
 			return true;
 
 		SetNextChangeTeamTime( gpGlobals->curtime + 2.0f );  // limit to one change every 2 secs
-		if (tf_mvm_versus_enabled.GetBool()) {
-			AddFlag(FL_FAKECLIENT);
-		}
+
 		if ( args.ArgC() >= 2 )
 		{
 			HandleCommand_JoinTeam( args[1] );
-		}
-		if (tf_mvm_versus_enabled.GetBool()) {
-			RemoveFlag(FL_FAKECLIENT);
 		}
 		return true;
 	}
@@ -7819,14 +7777,14 @@ bool CTFPlayer::ClientCommand( const CCommand &args )
 				}
 
 				int iTeam = GetAutoTeam( nPreferedTeam );
-				ChangeTeam( iTeam );
+				ChangeTeam( iTeam, true, false );
 				ShowViewPortPanel( ( iTeam == TF_TEAM_RED ) ? PANEL_CLASS_RED : PANEL_CLASS_BLUE );
 			}
 #ifdef TF_RAID_MODE
 			else if ( TFGameRules()->IsBossBattleMode() )
 			{
 				int iTeam = GetAutoTeam();
-				ChangeTeam( iTeam );
+				ChangeTeam( iTeam, true );
 				ShowViewPortPanel( ( iTeam == TF_TEAM_RED ) ? PANEL_CLASS_RED : PANEL_CLASS_BLUE );
 			}
 #endif
@@ -9979,7 +9937,7 @@ int CTFPlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 					if ( !FVisible( pTFBlastVictim, MASK_OPAQUE ) )
 						continue;
 
-					pTFBlastVictim->m_Shared.MakeBleed( pTFGasTosser, pGasCan, 0.1f, 150.f, false, TF_DMG_CUSTOM_BURNING );
+					pTFBlastVictim->m_Shared.MakeBleed( pTFGasTosser, pGasCan, 0.1f, 350.f, false, TF_DMG_CUSTOM_BURNING );
 					DispatchParticleEffect( "dragons_fury_effect", pTFBlastVictim->GetAbsOrigin(), vec3_angle );
 					bExploded = true;
 				}
@@ -10964,9 +10922,8 @@ bool CTFPlayer::ShouldGib( const CTakeDamageInfo &info )
 	}
 
 	// normal players/bots don't gib in MvM
-	// WHY?
-	//if ( TFGameRules()->IsMannVsMachineMode() )
-		//return false;
+	if ( TFGameRules()->IsMannVsMachineMode() )
+		return false;
 
 	// Suicide explode always gibs.
 	if ( m_bSuicideExplode )
@@ -11171,13 +11128,7 @@ void CTFPlayer::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &
 
 		if ( bPlayspeech )
 		{
-			if (TFGameRules() && TFGameRules()->IsMannVsMachineMode() )
-			{
-				SpeakConceptIfAllowed(MP_CONCEPT_MVM_TAUNT, modifiers);
-			}
-			else {
-				SpeakConceptIfAllowed(MP_CONCEPT_KILLED_PLAYER, modifiers);
-			}
+			SpeakConceptIfAllowed( MP_CONCEPT_KILLED_PLAYER, modifiers );
 		}
 
 		CTFWeaponBase *pWeapon = dynamic_cast<CTFWeaponBase *>(info.GetWeapon());
@@ -11191,7 +11142,6 @@ void CTFPlayer::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &
 			{
 				// Perceptually, people seem to think the effect is shorter than the stated time, so we cheat by adding a tad more for that
 				m_Shared.AddCond( TF_COND_CRITBOOSTED_ON_KILL, iCritBoost+1 );
-				EmitSound("Weapon_BoxingGloves.CritEnabled");
 			}
 
 			int iMiniCritBoost = 0;
@@ -13704,7 +13654,7 @@ void CTFPlayer::StateEnterWELCOME( void )
 			data->SetBool( "unload", sv_motd_unload_on_dismissal.GetBool() );
 
 			ShowViewPortPanel( PANEL_INFO, true, data );
-			
+
 			data->deleteThis();
 		}
 		else
@@ -13715,76 +13665,6 @@ void CTFPlayer::StateEnterWELCOME( void )
 		m_bSeenRoundInfo = false;
 	}
 
-}
-
-void CTFPlayer::AddItem(const char* pszItemName)
-{
-	CItemSelectionCriteria criteria;
-	criteria.SetQuality(AE_USE_SCRIPT_VALUE);
-	criteria.BAddCondition("name", k_EOperator_String_EQ, pszItemName, true);
-
-	CBaseEntity* pItem = ItemGeneration()->GenerateRandomItem(&criteria, WorldSpaceCenter(), vec3_angle);
-	if (pItem)
-	{
-		CEconItemView* pScriptItem = static_cast<CBaseCombatWeapon*>(pItem)->GetAttributeContainer()->GetItem();
-
-		// If we already have an item in that slot, remove it
-		int iClass = GetPlayerClass()->GetClassIndex();
-		int iSlot = pScriptItem->GetStaticData()->GetLoadoutSlot(iClass);
-		equip_region_mask_t unNewItemRegionMask = pScriptItem->GetItemDefinition() ? pScriptItem->GetItemDefinition()->GetEquipRegionConflictMask() : 0;
-
-		if (IsWearableSlot(iSlot))
-		{
-			// Remove any wearable that has a conflicting equip_region
-			for (int wbl = 0; wbl < GetNumWearables(); wbl++)
-			{
-				CEconWearable* pWearable = GetWearable(wbl);
-				if (!pWearable)
-					continue;
-
-				equip_region_mask_t unWearableRegionMask = 0;
-				if (pWearable->GetAttributeContainer()->GetItem())
-				{
-					unWearableRegionMask = pWearable->GetAttributeContainer()->GetItem()->GetItemDefinition()->GetEquipRegionConflictMask();
-				}
-
-				if (unWearableRegionMask & unNewItemRegionMask)
-				{
-					RemoveWearable(pWearable);
-				}
-			}
-		}
-		else
-		{
-			CBaseEntity* pEntity = GetEntityForLoadoutSlot(iSlot);
-			if (pEntity)
-			{
-				CBaseCombatWeapon* pWpn = dynamic_cast<CBaseCombatWeapon*>(pEntity);
-				Weapon_Detach(pWpn);
-				UTIL_Remove(pEntity);
-			}
-		}
-
-		// Fake global id
-		pScriptItem->SetItemID(1);
-
-		DispatchSpawn(pItem);
-
-		CEconEntity* pNewItem = assert_cast<CEconEntity*>(pItem);
-		if (pNewItem)
-		{
-			pNewItem->GiveTo(this);
-		}
-
-		PostInventoryApplication();
-	}
-	else
-	{
-		if (pszItemName && pszItemName[0])
-		{
-			DevMsg("CTFBotSpawner::AddItemToBot: Invalid item %s.\n", pszItemName);
-		}
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -14883,10 +14763,7 @@ void CTFPlayer::CheatImpulseCommands( int iImpulse )
 
 					pWeapon->GiveDefaultAmmo();
 
-					if ( pWeapon->IsEnergyWeapon() )
-					{
-						pWeapon->WeaponRegenerate();
-					}
+					pWeapon->WeaponRegenerate();
 				}
 
 				m_Shared.m_flRageMeter = 100.f;
@@ -15439,7 +15316,7 @@ void CTFPlayer::DeathSound( const CTakeDamageInfo &info )
 //-----------------------------------------------------------------------------
 const char* CTFPlayer::GetSceneSoundToken( void )
 {
-	if ( TFGameRules() && TFGameRules()->IsMannVsMachineMode() && GetTeamNumber() == TF_TEAM_PVE_INVADERS && TFObjectiveResource()->GetMvMEventPopfileType() != MVM_EVENT_POPFILE_HALLOWEEN)
+	if ( TFGameRules() && TFGameRules()->IsMannVsMachineMode() && GetTeamNumber() == TF_TEAM_PVE_INVADERS )
 	{
 		if ( IsMiniBoss() )
 		{
@@ -16619,64 +16496,64 @@ bool CTFPlayer::SetObserverTarget(CBaseEntity *target)
 
 	return true;
 }
+
 //-----------------------------------------------------------------------------
-// Purpose: Find the nearest observable entity within distance of the origin.
-//          Prefers teammates of the same class, but includes NPCs as fallback.
+// Purpose: Find the nearest team member within the distance of the origin.
+//			Favor players who are the same class.
 //-----------------------------------------------------------------------------
-CBaseEntity* CTFPlayer::FindNearestObservableTarget(Vector vecOrigin, float flMaxDist)
+CBaseEntity *CTFPlayer::FindNearestObservableTarget( Vector vecOrigin, float flMaxDist )
 {
-	CTeam* pTeam = GetTeam();
-	CBaseEntity* pReturnTarget = NULL;
+	CTeam *pTeam = GetTeam();
+	CBaseEntity *pReturnTarget = NULL;
 	bool bFoundClass = false;
 	float flCurDistSqr = (flMaxDist * flMaxDist);
 	int iNumPlayers = pTeam->GetNumPlayers();
 
-	if (pTeam->GetTeamNumber() == TEAM_SPECTATOR)
+	if ( pTeam->GetTeamNumber() == TEAM_SPECTATOR )
 	{
 		iNumPlayers = gpGlobals->maxClients;
 	}
 
-	// ----------------------------------------------------------------------
-	// Step 1: Search for player teammates (standard TF2 logic)
-	// ----------------------------------------------------------------------
-	for (int i = 0; i < iNumPlayers; i++)
-	{
-		CTFPlayer* pPlayer = NULL;
 
-		if (pTeam->GetTeamNumber() == TEAM_SPECTATOR)
+	for ( int i = 0; i < iNumPlayers; i++ )
+	{
+		CTFPlayer *pPlayer = NULL;
+
+		if ( pTeam->GetTeamNumber() == TEAM_SPECTATOR )
 		{
-			pPlayer = ToTFPlayer(UTIL_PlayerByIndex(i));
+			pPlayer = ToTFPlayer( UTIL_PlayerByIndex( i ) );
 		}
 		else
 		{
-			pPlayer = ToTFPlayer(pTeam->GetPlayer(i));
+			pPlayer = ToTFPlayer( pTeam->GetPlayer(i) );
 		}
 
-		if (!pPlayer)
+		if ( !pPlayer )
 			continue;
 
-		if (!IsValidObserverTarget(pPlayer))
+		if ( !IsValidObserverTarget(pPlayer) )
 			continue;
 
-		float flDistSqr = (pPlayer->GetAbsOrigin() - vecOrigin).LengthSqr();
+		float flDistSqr = ( pPlayer->GetAbsOrigin() - vecOrigin ).LengthSqr();
 
-		if (flDistSqr < flCurDistSqr)
+		if ( flDistSqr < flCurDistSqr )
 		{
-			// Prefer same-class targets if found
-			if (!bFoundClass || pPlayer->IsPlayerClass(GetPlayerClass()->GetClassIndex()))
+			// If we've found a player matching our class already, this guy needs
+			// to be a matching class and closer to boot.
+			if ( !bFoundClass || pPlayer->IsPlayerClass( GetPlayerClass()->GetClassIndex() ) )
 			{
 				pReturnTarget = pPlayer;
 				flCurDistSqr = flDistSqr;
 
-				if (pPlayer->IsPlayerClass(GetPlayerClass()->GetClassIndex()))
+				if ( pPlayer->IsPlayerClass( GetPlayerClass()->GetClassIndex() ) )
 				{
 					bFoundClass = true;
 				}
 			}
 		}
-		else if (!bFoundClass)
+		else if ( !bFoundClass )
 		{
-			if (pPlayer->IsPlayerClass(GetPlayerClass()->GetClassIndex()))
+			if ( pPlayer->IsPlayerClass( GetPlayerClass()->GetClassIndex() ) )
 			{
 				pReturnTarget = pPlayer;
 				flCurDistSqr = flDistSqr;
@@ -16685,55 +16562,23 @@ CBaseEntity* CTFPlayer::FindNearestObservableTarget(Vector vecOrigin, float flMa
 		}
 	}
 
-	// ----------------------------------------------------------------------
-	// Step 2: Engineers can watch their sentry if no teammates found
-	// ----------------------------------------------------------------------
-	if (!bFoundClass && IsPlayerClass(TF_CLASS_ENGINEER))
+	if ( !bFoundClass && IsPlayerClass( TF_CLASS_ENGINEER ) )
 	{
+		// let's spectate our sentry instead, we didn't find any other engineers to spec
 		int iNumObjects = GetObjectCount();
-		for (int i = 0; i < iNumObjects; i++)
+		for ( int i=0;i<iNumObjects;i++ )
 		{
-			CBaseObject* pObj = GetObject(i);
-			if (pObj && pObj->GetType() == OBJ_SENTRYGUN)
+			CBaseObject *pObj = GetObject(i);
+
+			if ( pObj && pObj->GetType() == OBJ_SENTRYGUN )
 			{
 				pReturnTarget = pObj;
-				break;
 			}
 		}
-	}
-
-	// ----------------------------------------------------------------------
-	// Step 3: If still nothing, look for the nearest valid NPC
-	// ----------------------------------------------------------------------
-	if (!pReturnTarget)
-	{
-		CBaseEntity* pEnt = NULL;
-		float flBestDistSqr = flCurDistSqr;
-
-		while ((pEnt = gEntList.NextEnt(pEnt)) != NULL)
-		{
-			if (!pEnt->IsNPC())
-				continue;
-
-			if (!IsValidObserverTarget(pEnt))
-				continue;
-
-			// Optionally filter NPCs by team if they have one
-			if (pEnt->GetTeamNumber() != TEAM_UNASSIGNED && pEnt->GetTeamNumber() != GetTeamNumber())
-				continue;
-
-			float flDistSqr = (pEnt->GetAbsOrigin() - vecOrigin).LengthSqr();
-			if (flDistSqr < flBestDistSqr)
-			{
-				pReturnTarget = pEnt;
-				flBestDistSqr = flDistSqr;
-			}
-		}
-	}
+	}		
 
 	return pReturnTarget;
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -17976,7 +17821,7 @@ void CTFPlayer::Taunt( taunts_t iTauntIndex, int iTauntConcept )
 				if ( m_Shared.GetRageMeter() >= 100.f )
 				{
 					m_Shared.m_bRageDraining = true;
-					SpeakConceptIfAllowed(MP_CONCEPT_MVM_DEPLOY_RAGE);
+					EmitSound( "Heavy.Battlecry03" );
 					return;
 				}
 
@@ -18171,7 +18016,7 @@ void CTFPlayer::Taunt( taunts_t iTauntIndex, int iTauntConcept )
 	}
 	else if ( IsPlayerClass(TF_CLASS_HEAVYWEAPONS) )
 	{
-		if ( !V_stricmp( szResponse, "scenes/player/heavy/low/taunt03_v1.vcd" ) || !V_stricmp(szResponse, "scenes/player/heavy/low/taunt03_v2.vcd") || !V_stricmp(szResponse, "scenes/player/heavy/low/taunt03.vcd"))
+		if ( !V_stricmp( szResponse, "scenes/player/heavy/low/taunt03_v1.vcd" ) )
 		{
 			m_flTauntAttackTime = gpGlobals->curtime + 1.8;
 			m_iTauntAttack = TAUNTATK_HEAVY_HIGH_NOON;
@@ -19286,6 +19131,30 @@ void CTFPlayer::DoTauntAttack( void )
 			pLoser->TakeDamage( CTakeDamageInfo( pWinner, pWinner, NULL, 999, DMG_GENERIC, 0 ) );
 		}
 	}
+	else if ( iTauntAttack == TAUNTATK_ENGINEER_TRICKSHOT )
+	{
+		// Engineer "Texan Trickshot" attack
+		Vector vecForward;
+		AngleVectors( EyeAngles(), &vecForward );
+		Vector vecEnd = EyePosition() + vecForward * 500;
+
+		trace_t tr;
+		UTIL_TraceLine( EyePosition(), vecEnd, ( MASK_SOLID | CONTENTS_HITBOX ), this, COLLISION_GROUP_PLAYER, &tr );
+		//		DebugDrawLine( EyePosition(), vecEnd, 0, 0, 255, true, 3.0f );
+
+		if ( tr.fraction < 1.0 )
+		{
+			CBaseEntity *pEnt = tr.m_pEnt;
+
+			if ( pEnt && pEnt->IsPlayer() && pEnt->GetTeamNumber() > LAST_SHARED_TEAM && pEnt->GetTeamNumber() != GetTeamNumber() )
+			{
+				// Launch them up a little
+				AngleVectors( QAngle( -45, m_angEyeAngles[ YAW ], 0 ), &vecForward );
+				pEnt->TakeDamage( CTakeDamageInfo( this, this, GetActiveTFWeapon(), vecForward * 25000, WorldSpaceCenter(), 500.0f, DMG_BULLET, TF_DMG_CUSTOM_TAUNTATK_TRICKSHOT ) );
+			}
+		}
+	}
+
 	// Particle Being played in VCD instead
 	//else if ( iTauntAttack == TAUNTATK_FLIP_LAND_PARTICLE )
 	//{
@@ -21735,6 +21604,7 @@ static bool SelectPartnerTaunt( const GameItemDefinition_t *pItemDef, CTFPlayer 
 {
 	static CSchemaItemDefHandle pItemDef_rpsTaunt( "RPS Taunt" );
 	static CSchemaItemDefHandle pItemDef_TauntNeckSnap( "Taunt: Neck Snap" );
+	static CSchemaItemDefHandle pItemDef_TauntBearHug( "Taunt: Bear Hug" );
 
 	CTFTauntInfo *pTauntData = pItemDef->GetTauntData();
 	if ( !pTauntData )
@@ -21783,6 +21653,13 @@ static bool SelectPartnerTaunt( const GameItemDefinition_t *pItemDef, CTFPlayer 
 
 		iInitiator = 0;
 		iReceiver = ( iReceiverClass != TF_CLASS_SOLDIER ) ? 0 : 1;
+	}
+	else if ( pItemDef == pItemDef_TauntBearHug )
+	{
+		Assert( iInitiatorSceneCount == 2 && iReceiverSceneCount > 0 );
+
+		iInitiator = 0;
+		iReceiver = ( iReceiverClass != TF_CLASS_HEAVYWEAPONS ) ? 0 : 1;
 	}
 	else
 	{

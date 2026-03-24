@@ -184,7 +184,7 @@ void CWeaponAR2::DelayedAttack( void )
 		return;
 
 	// Deplete the clip completely
-	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+	SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 	m_flNextSecondaryAttack = pOwner->m_flNextAttack = gpGlobals->curtime + SequenceDuration();
 
 	// Register a muzzleflash for the AI

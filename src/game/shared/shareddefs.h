@@ -322,7 +322,7 @@ inline bool IsIndexIntoPlayerArrayValid( int iIndex )
 
 // Humans only have left and right hands, though we might have aliens with more
 //  than two, sigh
-#define MAX_VIEWMODELS			2
+#define MAX_VIEWMODELS			8
 
 #define MAX_BEAM_ENTS			10
 
@@ -579,9 +579,12 @@ enum
 	BLOOD_COLOR_YELLOW,
 	BLOOD_COLOR_GREEN,
 	BLOOD_COLOR_MECH,
+
+#if defined( HL2_EPISODIC )
 	BLOOD_COLOR_ANTLION,		// FIXME: Move to Base HL2
 	BLOOD_COLOR_ZOMBIE,			// FIXME: Move to Base HL2
 	BLOOD_COLOR_ANTLION_WORKER,
+#endif // HL2_EPISODIC
 };
 
 //-----------------------------------------------------------------------------

@@ -5,6 +5,8 @@
 
 #include "cbase.h"
 
+#ifdef OBSOLETE_USE_BOSS_ALPHA
+
 #ifdef TF_RAID_MODE
 
 #include "tf_player.h"
@@ -121,6 +123,7 @@ CBotNPC::CBotNPC()
 	m_laserTarget = NULL;
 	m_isNuking = false;
 	m_ageTimer.Invalidate();
+	m_spawner = NULL;
 	ClearStunDamage();
 }
 
@@ -189,11 +192,85 @@ void CBotNPC::Precache()
 
 
 //-----------------------------------------------------------------------------------------------------
-void CBotNPC::PrecacheArmorParts( void ) {}
+void CBotNPC::PrecacheArmorParts( void )
+{
+	CUtlBuffer fileBuffer( 4096, 1024*1024, CUtlBuffer::TEXT_BUFFER );
+
+	// filename is local to game dir for Steam, so we need to prepend game dir
+	char gamePath[256];
+	engine->GetGameDir( gamePath, 256 );
+
+	char filename[256];
+	Q_snprintf( filename, sizeof( filename ), "%s\\models\\bots\\knight\\armor_parts.txt", gamePath );
+
+	if ( !filesystem->ReadFile( filename, "MOD", fileBuffer ) )
+	{
+		Warning( "Unable to read %s\n", filename );
+	}
+	else
+	{
+		while( true )
+		{
+			char partName[256];
+
+			if ( fileBuffer.Scanf( "%s", partName ) <= 0 )
+			{
+				break;
+			}
+
+			// Make sure we have a valid string before trying to precache it.
+			if ( Q_strlen( partName ) > 0 )
+			{
+				PrecacheModel( partName );
+			}
+		}
+	}
+}
 
 
 //-----------------------------------------------------------------------------------------------------
-void CBotNPC::InstallArmorParts( void ) {}
+void CBotNPC::InstallArmorParts( void )
+{
+	if ( IsMiniBoss() )
+		return;
+
+	CUtlBuffer fileBuffer( 4096, 1024*1024, CUtlBuffer::TEXT_BUFFER );
+
+	// filename is local to game dir for Steam, so we need to prepend game dir
+	char gamePath[256];
+	engine->GetGameDir( gamePath, 256 );
+
+	char filename[256];
+	Q_snprintf( filename, sizeof( filename ), "%s\\models\\bots\\knight\\armor_parts.txt", gamePath );
+
+	if ( !filesystem->ReadFile( filename, "MOD", fileBuffer ) )
+	{
+		Warning( "Unable to read %s\n", filename );
+	}
+	else
+	{
+		while( true )
+		{
+			char partName[256];
+
+			if ( fileBuffer.Scanf( "%s", partName ) <= 0 )
+			{
+				break;
+			}
+
+			CBaseAnimating *part = (CBaseAnimating *)CreateEntityByName( "prop_dynamic" );
+			if ( part )
+			{
+				part->SetModel( partName );
+
+				// bonemerge into our model
+				part->FollowEntity( this, true );
+
+				m_armorPartVector.AddToTail( part );
+			}		
+		}
+	}
+}
 
 
 //-----------------------------------------------------------------------------------------------------
@@ -204,14 +281,12 @@ void CBotNPC::Spawn( void )
 #ifdef USE_BOSS_SENTRY
 	SetModel( "models/bots/boss_sentry/boss_sentry.mdl" );
 #else
-	SetModel( "models/bots/demo_boss/bot_demo_boss.mdl" );
-	SetModelScale(2.0f);
+	SetModel( "models/bots/knight/knight.mdl" );
 #endif
 
 	InstallArmorParts();
-	
-	SetMaxHealth( tf_bot_npc_health.GetInt() );
-	SetHealth( tf_bot_npc_health.GetInt() );
+
+	ModifyMaxHealth( tf_bot_npc_health.GetInt() );
 
 	// show Boss' health meter on HUD
 	if ( g_pMonsterResource )
@@ -241,9 +316,9 @@ void CBotNPC::Spawn( void )
 	m_grenadeTimer.Start( GetGrenadeInterval() );
 	m_ageTimer.Start();
 
-	ChangeTeam( TF_TEAM_BLUE );
+	ChangeTeam( TF_TEAM_RED );
 
-	TFGameRules()->AddActiveBoss(this);
+	TFGameRules()->SetActiveBoss( this );
 }
 
 
@@ -255,7 +330,7 @@ ConVar tf_bot_npc_dmg_mult_sentrygun( "tf_bot_npc_dmg_mult_sentrygun", "0.5"/*, 
 ConVar tf_bot_npc_dmg_mult_grenade( "tf_bot_npc_dmg_mult_grenade", "2"/*, FCVAR_CHEAT*/ );
 
 
-float OLD_ModifyBossDamage( const CTakeDamageInfo &info )
+float ModifyBossDamage( const CTakeDamageInfo &info )
 {
 	CTFWeaponBase *pWeapon = dynamic_cast< CTFWeaponBase * >( info.GetWeapon() );
 
@@ -329,7 +404,7 @@ int CBotNPC::OnTakeDamage_Alive( const CTakeDamageInfo &rawInfo )
 
 	
 	// weapon-specific damage modification
-	info.SetDamage( OLD_ModifyBossDamage( info ) );
+	info.SetDamage( ModifyBossDamage( info ) );
 
 
 	if ( IsInCondition( VULNERABLE_TO_STUN ) )
@@ -846,7 +921,7 @@ void CBotNPC::Update( void )
 	if ( m_hateTauntTimer.IsElapsed() )
 	{
 		CUtlVector< CTFPlayer * > playerVector;
-		CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS );
+		CollectPlayers( &playerVector, TF_TEAM_BLUE, COLLECT_ONLY_LIVING_PLAYERS );
 
 		for( int i=0; i<playerVector.Count(); ++i )
 		{
@@ -955,7 +1030,7 @@ void CBotNPC::UpdateNearestVisibleEnemy( void )
 	// collect everyone
 	CUtlVector< CTFPlayer * > playerVector;
 	//CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS );
-	CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS, APPEND_PLAYERS );
+	CollectPlayers( &playerVector, TF_TEAM_BLUE, COLLECT_ONLY_LIVING_PLAYERS, APPEND_PLAYERS );
 
 	Vector myForward;
 	GetVectors( &myForward, NULL, NULL );
@@ -1171,6 +1246,13 @@ ActionResult< CBotNPC >	CBotNPCStunned::OnStart( CBotNPC *me, Action< CBotNPC > 
 	}
 
 	me->m_outputOnStunned.FireOutput( me, me );
+
+	// relay the event to the map logic
+	CTFSpawnerBoss *spawner = me->GetSpawner();
+	if ( spawner )
+	{
+		spawner->OnBotStunned( me );
+	}
 
 	return Continue();
 }
@@ -1523,8 +1605,8 @@ ActionResult< CBotNPC >	CBotNPCNukeAttack::Update( CBotNPC *me, float interval )
 	{
 		// BLAST!
 		CUtlVector< CTFPlayer * > playerVector;
-		CollectPlayers( &playerVector, TF_TEAM_BLUE, COLLECT_ONLY_LIVING_PLAYERS );
-		CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS, APPEND_PLAYERS );
+		CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS );
+		CollectPlayers( &playerVector, TF_TEAM_BLUE, COLLECT_ONLY_LIVING_PLAYERS, APPEND_PLAYERS );
 
 		me->EmitSound( "RobotBoss.NukeAttack" );
 
@@ -1624,7 +1706,7 @@ ActionResult< CBotNPC >	CBotNPCNukeAttack::Update( CBotNPC *me, float interval )
 					// catch them on fire (unless they are a Pyro)
 					if ( !playerVictim->IsPlayerClass( TF_CLASS_PYRO ) )
 					{
-						playerVictim->m_Shared.Burn( nullptr, nullptr, tf_bot_npc_nuke_afterburn_time.GetFloat() );
+						playerVictim->m_Shared.Burn( me, tf_bot_npc_nuke_afterburn_time.GetFloat() );
 					}
 
 					color32 colorHit = { 255, 255, 255, 255 };
@@ -1816,7 +1898,7 @@ private:
 
 
 //---------------------------------------------------------------------------------------------
-void OLD_PushawayPlayer( CTFPlayer *victim, const Vector &pushOrigin, float pushForce )
+void PushawayPlayer( CTFPlayer *victim, const Vector &pushOrigin, float pushForce )
 {
 	if ( !victim )
 		return;
@@ -1867,8 +1949,8 @@ ActionResult< CBotNPC >	CBotNPCRush::Update( CBotNPC *me, float interval )
 {
 	// pushaway/hit nearby players
 	CUtlVector< CTFPlayer * > playerVector;
-	CollectPlayers( &playerVector, TF_TEAM_BLUE, COLLECT_ONLY_LIVING_PLAYERS );
-	CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS, APPEND_PLAYERS );
+	CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS );
+	CollectPlayers( &playerVector, TF_TEAM_BLUE, COLLECT_ONLY_LIVING_PLAYERS, APPEND_PLAYERS );
 
 	Vector chargeVector = me->GetAbsOrigin() - m_chargeOrigin;
 	chargeVector.NormalizeInPlace();
@@ -1898,7 +1980,7 @@ ActionResult< CBotNPC >	CBotNPCRush::Update( CBotNPC *me, float interval )
 
 		// push 'em
 		float pushForce = tf_bot_npc_charge_pushaway_force.GetFloat() * nearness;
-		OLD_PushawayPlayer( victim, closestPointOnChargePath, pushForce );
+		PushawayPlayer( victim, closestPointOnChargePath, pushForce );
 
 		// crunch 'em
 		CTakeDamageInfo info( me, me, tf_bot_npc_charge_damage.GetFloat() * nearness, DMG_CRUSH, TF_DMG_CUSTOM_NONE );
@@ -2681,12 +2763,12 @@ ActionResult< CBotNPC >	CBotNPCLaserBlast::Update( CBotNPC *me, float interval )
 
 		if ( target->IsPlayer() && damage > tf_bot_npc_laser_damage_ignite_threshold.GetFloat() )
 		{
-			ToTFPlayer( target )->m_Shared.Burn(nullptr, nullptr, tf_bot_npc_laser_afterburn_time.GetFloat() );
+			ToTFPlayer( target )->m_Shared.Burn( me, tf_bot_npc_laser_afterburn_time.GetFloat() );
 		}
 
 		if ( target->IsPlayer() && m_laserTimer.GetElapsedTime() > tf_bot_npc_laser_damage_ignite_time.GetFloat() )
 		{
-			ToTFPlayer( target )->m_Shared.Burn( nullptr, nullptr, tf_bot_npc_laser_afterburn_time.GetFloat() );
+			ToTFPlayer( target )->m_Shared.Burn( me, tf_bot_npc_laser_afterburn_time.GetFloat() );
 		}
 
 		// me->EmitSound( "Weapon_Sword.HitFlesh" );
@@ -2980,7 +3062,7 @@ public:
 				CTFNavArea *myArea = (CTFNavArea *)me->GetLastKnownArea();
 				if ( myArea )
 				{
-					const CUtlVector< CTFNavArea * > &invasionAreaVector = myArea->GetEnemyInvasionAreaVector( TF_TEAM_BLUE );
+					const CUtlVector< CTFNavArea * > &invasionAreaVector = myArea->GetEnemyInvasionAreaVector( TF_TEAM_RED );
 
 					if ( invasionAreaVector.Count() > 0 )
 					{
@@ -3143,7 +3225,7 @@ ActionResult< CBotNPC >	CBotNPCGetOffMe::Update( CBotNPC *me, float interval )
 			for( int i=0; i<onMeVector.Count(); ++i )
 			{
 				// push 'em off
-				OLD_PushawayPlayer( onMeVector[i], headPos, tf_bot_npc_charge_pushaway_force.GetFloat() );
+				PushawayPlayer( onMeVector[i], headPos, tf_bot_npc_charge_pushaway_force.GetFloat() );
 			}
 		}
 
@@ -3329,6 +3411,12 @@ public:
 
 	virtual EventDesiredResult< CBotNPC > OnKilled( CBotNPC *me, const CTakeDamageInfo &info )
 	{
+		// relay the event to the map logic
+		CTFSpawnerBoss *spawner = me->GetSpawner();
+		if ( spawner )
+		{
+			spawner->OnBotKilled( me );
+		}
 
 		// Calculate death force
 		Vector forceVector = me->CalcDamageForceVector( info );
@@ -3512,3 +3600,5 @@ bool CBotNPCVision::IsIgnored( CBaseEntity *subject ) const
 }
 
 #endif // TF_RAID_MODE
+
+#endif // OBSOLETE_USE_BOSS_ALPHA

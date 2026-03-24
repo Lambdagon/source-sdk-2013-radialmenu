@@ -16,12 +16,10 @@
 #include "engine/IEngineSound.h"
 #include "c_tf_mvm_boss_progress_user.h"
 #include "usermessages.h"
-#include "achievementmgr.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern CAchievementMgr g_AchievementMgrTF;
 
 using namespace vgui;
 
@@ -47,7 +45,7 @@ extern ConVar cl_hud_minmode;
 #define RATING_SCORE_STR			"ratingscore"
 
 
-ConVar cl_mvm_wave_status_visible_during_wave( "cl_mvm_wave_status_visible_during_wave", "1", FCVAR_ARCHIVE, "Display full wave contents while a wave is active in MvM." );
+ConVar cl_mvm_wave_status_visible_during_wave( "cl_mvm_wave_status_visible_during_wave", "0", FCVAR_ARCHIVE, "Display full wave contents while a wave is active in MvM." );
 
 
 //-----------------------------------------------------------------------------
@@ -1888,65 +1886,6 @@ void CTFHudMannVsMachineStatus::OnTick( void )
 		m_bInVictorySplash = false;
 		m_pVictorySplash->SetVisible( false );
 		m_pVictoryContainer->ShowVictoryPanel( false );
-
-		// Get current map name (lowercased for comparison)
-		const char* mapName = engine->GetLevelName();
-		if (mapName || mapName[0])
-		{
-
-			// Strip folder and extension
-			char szBaseMap[64];
-			Q_FileBase(mapName, szBaseMap, sizeof(szBaseMap));
-			Q_strlower(szBaseMap);
-
-			// Check against known MvM map names and award the corresponding achievement
-			if (V_stristr(mapName, "mvm_coaltown"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_COALTOWN_COMPLETE);
-			}
-			if (V_stristr(mapName, "mvm_decoy"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_DECOY_COMPLETE);
-			}
-			else if (V_stristr(mapName, "mvm_mannworks"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_MANNWORKS_COMPLETE);
-			}
-			else if (V_stristr(mapName, "mvm_ghost_town"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_GHOST_TOWN_COMPLETE);
-			}
-			else if (V_stristr(mapName, "mvm_mannhattan"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_MANNHATTAN_COMPLETE);
-			}
-			else if (V_stristr(mapName, "mvm_rottenburg"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_ROTTENBURG_COMPLETE);
-			}
-			else if (V_stristr(mapName, "mvm_whiteforest"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_WHITEFOREST_COMPLETE);
-			}
-			else if (V_stristr(mapName, "mvm_hakurei_shrine_v3"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_HAKUREI_SHRINE_COMPLETE);
-			}
-			else if (V_stristr(mapName, "mvm_engineerruins"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_ACHIEVEMENT_ENGINEER_RUINS_COMPLETE);
-			}
-			else if (V_stristr(mapName, "td_trade_plaza_v5_hotfix"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_TRADE_PLAZA_COMPLETE);
-			}
-			else if (V_stristr(mapName, "mvm_bigrock"))
-			{
-				g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_BIGROCK_COMPLETE);
-			}
-
-
-		}
 	}
 
 	m_pVictorySplash->SetVisible( m_bInVictorySplash && TFGameRules()->State_Get() == GR_STATE_GAME_OVER );

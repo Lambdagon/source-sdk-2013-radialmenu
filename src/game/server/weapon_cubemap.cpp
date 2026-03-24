@@ -21,13 +21,13 @@ public:
 
 	void	Spawn( void );
 
-	//DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 };
 
 LINK_ENTITY_TO_CLASS( weapon_cubemap, CWeaponCubemap );
 
-//IMPLEMENT_SERVERCLASS_ST( CWeaponCubemap, DT_WeaponCubemap )
-//END_SEND_TABLE()
+IMPLEMENT_SERVERCLASS_ST( CWeaponCubemap, DT_WeaponCubemap )
+END_SEND_TABLE()
 
 //-----------------------------------------------------------------------------
 // Purpose: 

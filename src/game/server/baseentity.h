@@ -200,16 +200,6 @@ enum Class_T
 	CLASS_NONE = 0,
 	CLASS_PLAYER,
 	CLASS_PLAYER_ALLY,
-	NUM_AI_CLASSES
-};
-
-#else
-
-enum Class_T
-{
-	CLASS_NONE = 0,
-	CLASS_PLAYER,
-	CLASS_PLAYER_ALLY,
 	CLASS_PLAYER_ALLY_VITAL,
 	CLASS_ANTLION,
 	CLASS_BARNACLE,
@@ -235,17 +225,17 @@ enum Class_T
 	CLASS_EARTH_FAUNA,
 	CLASS_HACKED_ROLLERMINE,
 	CLASS_COMBINE_HUNTER,
-	CLASS_MACHINE,
-	CLASS_HUMAN_PASSIVE,
-	CLASS_HUMAN_MILITARY,
-	CLASS_ALIEN_MILITARY,
-	CLASS_ALIEN_MONSTER,
-	CLASS_ALIEN_PREY,
-	CLASS_ALIEN_PREDATOR,
-	CLASS_INSECT,
-	CLASS_PLAYER_BIOWEAPON,
-	CLASS_ALIEN_BIOWEAPON,
 
+	NUM_AI_CLASSES
+};
+
+#else
+
+enum Class_T
+{
+	CLASS_NONE = 0,
+	CLASS_PLAYER,
+	CLASS_PLAYER_ALLY,
 	NUM_AI_CLASSES
 };
 
@@ -1911,7 +1901,7 @@ private:
 	EHANDLE			m_pBlocker;
 
 	// was pev->gravity;
-	float			m_flGravity;  // rename to m_flGravityScale;
+	CNetworkVar( float, m_flGravity );  // rename to m_flGravityScale;
 	// was pev->friction
 	CNetworkVarForDerived( float, m_flFriction );
 	CNetworkVar( float, m_flElasticity );

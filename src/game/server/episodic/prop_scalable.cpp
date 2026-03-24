@@ -14,7 +14,7 @@ class CPropScalable : public CBaseAnimating
 public:
 	DECLARE_CLASS( CPropScalable, CBaseAnimating );
 	DECLARE_DATADESC();
-	//DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	CPropScalable();
 
@@ -59,7 +59,6 @@ BEGIN_DATADESC( CPropScalable )
 	DEFINE_FIELD( m_flGoalTimeZ, FIELD_FLOAT ),
 END_DATADESC()
 
-/*
 IMPLEMENT_SERVERCLASS_ST( CPropScalable, DT_PropScalable )
 	SendPropFloat( SENDINFO(m_flScaleX), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO(m_flScaleY), 0, SPROP_NOSCALE ),
@@ -73,7 +72,6 @@ IMPLEMENT_SERVERCLASS_ST( CPropScalable, DT_PropScalable )
 	SendPropFloat( SENDINFO(m_flGoalTimeY), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO(m_flGoalTimeZ), 0, SPROP_NOSCALE ),
 END_SEND_TABLE()
-*/
 
 CPropScalable::CPropScalable( void )
 {

@@ -2322,7 +2322,7 @@ Vector CNPC_PlayerCompanion::GetActualShootPosition( const Vector &shootOrigin )
 		return GetEnemy()->HeadTarget( shootOrigin );
 	}
 
-	return GetEnemy()->HeadTarget(shootOrigin);
+	return BaseClass::GetActualShootPosition( shootOrigin );
 }
 
 //------------------------------------------------------------------------------

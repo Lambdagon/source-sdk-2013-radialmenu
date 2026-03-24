@@ -23,7 +23,7 @@ public:
 
 	CHLMachineGun();
 	
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	void	PrimaryAttack( void );
 
@@ -70,7 +70,7 @@ public:
 
 	CHLSelectFireMachineGun( void );
 	
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	virtual float	GetBurstCycleRate( void );
 	virtual float	GetFireRate( void );

@@ -18,7 +18,7 @@ class CRotorWashEmitter : public CBaseEntity
 {
 public:
 	DECLARE_CLASS( CRotorWashEmitter, CBaseEntity );
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 	void SetAltitude( float flAltitude ) { m_flAltitude = flAltitude; }
@@ -37,7 +37,6 @@ protected:
 IMPLEMENT_SERVERCLASS_ST( CRotorWashEmitter, DT_RotorWashEmitter )
 	SendPropFloat(SENDINFO(m_flAltitude), -1, SPROP_NOSCALE ),
 END_SEND_TABLE()
-
 
 LINK_ENTITY_TO_CLASS( env_rotorwash_emitter, CRotorWashEmitter );
 

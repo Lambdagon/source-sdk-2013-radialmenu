@@ -111,10 +111,10 @@ LINK_ENTITY_TO_CLASS( npc_fisherman, CNPC_Fisherman );
 //---------------------------------------------------------
 // 
 //---------------------------------------------------------
-
-//IMPLEMENT_SERVERCLASS_ST(CNPC_Fisherman, DT_NPC_Fisherman)
-//END_SEND_TABLE()
-
+/*
+IMPLEMENT_SERVERCLASS_ST(CNPC_Fisherman, DT_NPC_Fisherman)
+END_SEND_TABLE()
+*/
 
 //---------------------------------------------------------
 // Save/Restore

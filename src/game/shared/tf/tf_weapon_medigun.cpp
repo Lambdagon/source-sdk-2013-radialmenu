@@ -458,6 +458,7 @@ bool CWeaponMedigun::Holster( CBaseCombatWeapon *pSwitchingTo )
 //-----------------------------------------------------------------------------
 void CWeaponMedigun::UpdateOnRemove( void )
 {
+	m_bHealing = false;
 	RemoveHealingTarget( true );
 	m_bAttacking = false;
 	m_bChargeRelease = false;
@@ -602,7 +603,7 @@ bool CWeaponMedigun::AllowedToHealTarget( CBaseEntity *pTarget )
 		if ( !pTarget->InSameTeam( pOwner ) )
 			return false;
 
-		if ( pTarget->IsBaseObject() && TFGameRules() && !TFGameRules()->IsMannVsMachineMode())
+		if ( pTarget->IsBaseObject() )
 			return false;
 
 		CTFReviveMarker *pReviveMarker = dynamic_cast< CTFReviveMarker* >( pTarget );

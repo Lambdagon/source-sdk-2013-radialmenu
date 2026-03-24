@@ -5,7 +5,6 @@
 
 #ifndef TF_BOT_GENERATOR_H
 #define TF_BOT_GENERATOR_H
-#include "bot/tf_bot.h"
 
 class CTFBotGenerator : public CPointEntity
 {

@@ -956,7 +956,7 @@ void CQuestItemTracker::SendUpdateToClient( const CQuestObjectiveDefinition* pOb
 		Assert( GetEarnedPoints( (EQuestPoints)1 ) < ( 256 ) );
 		Assert( GetEarnedPoints( (EQuestPoints)2 ) < ( 256 ) );
 		Assert( nScorerUserID < 256 );
-		/*
+
 		// Update the user on their progress
 		CSingleUserRecipientFilter filter( GetTrackedPlayer() );
 		filter.MakeReliable();
@@ -968,7 +968,6 @@ void CQuestItemTracker::SendUpdateToClient( const CQuestObjectiveDefinition* pOb
 		WRITE_BYTE( GetEarnedPoints( (EQuestPoints)2 ) );
 		WRITE_WORD( pObjective ? pObjective->GetDefIndex() : (uint32)-1 );
 		WRITE_BYTE( nScorerUserID );
-		*/
 		MessageEnd();
 	}
 }

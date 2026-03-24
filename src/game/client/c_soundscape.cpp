@@ -718,6 +718,23 @@ void C_SoundscapeSystem::ProcessDSPVolume( KeyValues *pKey, subsoundscapeparams_
 	params.wroteDSPVolume = true;
 }
 
+Vector getVectorFromString(const char* pString)
+{
+	char tempString[128];
+	Q_strncpy(tempString, pString, sizeof(tempString));
+
+	Vector result;
+	int i = 0;
+	char* token = strtok(tempString, ",");
+	while (token)
+	{
+		result[i] = atof(token);
+		token = strtok(NULL, ",");
+		i++;
+	}
+	return result;
+}
+
 // start a new looping sound
 void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsoundscapeparams_t &params )
 {
@@ -727,6 +744,8 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 	int pitch = PITCH_NORM;
 	int positionIndex = -1;
 	bool suppress = false;
+	bool useTextOrigin = false;
+	Vector textOrigin;
 	KeyValues *pKey = pAmbient->GetFirstSubKey();
 	while ( pKey )
 	{
@@ -741,6 +760,11 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 		else if ( !Q_strcasecmp( pKey->GetName(), "wave" ) )
 		{
 			pSoundName = pKey->GetString();
+		}
+		else if (!Q_strcasecmp(pKey->GetName(), "origin"))
+		{
+			textOrigin = getVectorFromString(pKey->GetString());
+			useTextOrigin = true;
 		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "position" ) )
 		{
@@ -789,7 +813,11 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 
 	if ( volume != 0 && pSoundName != NULL )
 	{
-		if ( positionIndex < 0 )
+		if (useTextOrigin)
+		{
+			AddLoopingSound(pSoundName, false, volume, soundlevel, pitch, textOrigin);
+		}
+		else if ( positionIndex < 0 )
 		{
 			AddLoopingAmbient( pSoundName, volume, pitch );
 		}
@@ -909,6 +937,8 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 	int positionIndex = -1;
 	bool suppress = false;
 	bool randomPosition = false;
+	bool useTextOrigin = false;
+	Vector textOrigin;
 	KeyValues *pKey = pPlayRandom->GetFirstSubKey();
 	while ( pKey )
 	{
@@ -964,6 +994,12 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 				positionIndex = params.startingPosition + pKey->GetInt();
 			}
 		}
+		else if (!Q_strcasecmp(pKey->GetName(), "origin"))
+		{
+			const char* originString = pKey->GetString();
+			textOrigin = getVectorFromString(originString);
+			useTextOrigin = true;
+		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "suppress_on_restore" ) )
 		{
 			suppress = Q_atoi( pKey->GetString() ) != 0 ? true : false;
@@ -992,23 +1028,27 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 		return;
 	}
 
-	if ( sound.waveCount != 0 )
+	if (sound.waveCount != 0)
 	{
-		if ( positionIndex < 0 && !randomPosition )
+		if (positionIndex < 0 && !randomPosition && !useTextOrigin)
 		{
 			sound.isAmbient = true;
-			AddRandomSound( sound );
+			AddRandomSound(sound);
 		}
 		else
 		{
 			sound.isAmbient = false;
-			if ( randomPosition )
+			if (randomPosition)
 			{
 				sound.isRandom = true;
 			}
+			else if (useTextOrigin)
+			{
+				sound.position = textOrigin;
+			}
 			else
 			{
-				if ( positionIndex > 31 || !(m_params.localBits & (1<<positionIndex) ) )
+				if (positionIndex > 31 || !(m_params.localBits & (1 << positionIndex)))
 				{
 					// suppress sounds if the position isn't available
 					//DevMsg( 1, "Bad position %d\n", positionIndex );
@@ -1016,7 +1056,7 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 				}
 				sound.position = m_params.localSound[positionIndex];
 			}
-			AddRandomSound( sound );
+			AddRandomSound(sound);
 		}
 	}
 }

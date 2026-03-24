@@ -20,6 +20,7 @@
 #include "world.h"
 #include "functorutils.h"
 #include "team.h"
+#include "cs_shareddefs.h"
 #ifdef TERROR
 #include "TerrorShared.h"
 #endif
@@ -985,7 +986,10 @@ void CNavMesh::DrawEditMode( void )
 					if ( m_selectedArea->IsBlocked( TEAM_SURVIVOR ) ) Q_strncat( attrib, "BLOCKED_SURVIVOR ", sizeof( attrib ), -1 );
 					if ( m_selectedArea->IsBlocked( TEAM_ZOMBIE ) ) Q_strncat( attrib, "BLOCKED_ZOMBIE ", sizeof( attrib ), -1 );
 #else
-					if ( m_selectedArea->IsBlocked( TEAM_ANY ) ) Q_strncat( attrib, "BLOCKED ", sizeof( attrib ), -1 );
+					if (attributes & NAV_PLAYERCLIP)		Q_strncat(attrib, "PLAYERCLIP ", sizeof(attrib), -1);
+					if (attributes & NAV_BREAKABLEWALL)	Q_strncat(attrib, "BREAKABLEWALL ", sizeof(attrib), -1);
+					if (m_selectedArea->IsBlocked(TEAM_SURVIVOR)) Q_strncat(attrib, "BLOCKED_SURVIVOR ", sizeof(attrib), -1);
+					if (m_selectedArea->IsBlocked(TEAM_ZOMBIE)) Q_strncat(attrib, "BLOCKED_ZOMBIE ", sizeof(attrib), -1);
 #endif
 					if ( m_selectedArea->HasAvoidanceObstacle() )	Q_strncat( attrib, "OBSTRUCTED ", sizeof( attrib ), -1 );
 					if ( m_selectedArea->IsDamaging() )		Q_strncat( attrib, "DAMAGING ", sizeof( attrib ), -1 );

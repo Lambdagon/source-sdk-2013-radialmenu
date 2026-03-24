@@ -2150,13 +2150,6 @@ bool CBaseObject::Construct( float flHealth )
 	return false;
 }
 
-bool CBaseObject::CanBeUpgraded() {
-
-	int iUpgradeMiniSentry = 0;
-	CALL_ATTRIB_HOOK_INT_ON_OTHER(GetBuilder(), iUpgradeMiniSentry, upgrade_mini_sentry);
-	return !(IsDisposableBuilding() || IsMiniBuilding() && iUpgradeMiniSentry == 0); 
-}
-
 //----------------------------------------------------------------------------------------------------------------------------------------
 void CBaseObject::OnConstructionHit( CTFPlayer *pPlayer, CTFWrench *pWrench, Vector hitLoc )
 {
@@ -2528,21 +2521,7 @@ void CBaseObject::Killed( const CTakeDamageInfo &info )
 //-----------------------------------------------------------------------------
 Class_T	CBaseObject::Classify( void )
 {
-	if (GetTeamNumber() == TF_TEAM_PVE_DEFENDERS) {
-		return CLASS_PLAYER;
-	}
-	else {
-		if (GetTeamNumber() == TF_TEAM_PVE_INVADERS) {
-
-			return CLASS_COMBINE;
-
-		}
-		else {
-
-			return CLASS_NONE;
-
-		}
-	}
+	return CLASS_NONE;
 }
 
 //-----------------------------------------------------------------------------
@@ -2943,10 +2922,7 @@ bool CBaseObject::CanBeUpgraded( CTFPlayer *pPlayer )
 	if ( IsUpgrading() )
 		return false;
 
-	int iUpgradeMiniSentry = 0;
-	CALL_ATTRIB_HOOK_INT_ON_OTHER(pPlayer, iUpgradeMiniSentry, upgrade_mini_sentry);
-
-	if ( IsMiniBuilding() && iUpgradeMiniSentry == 0 || IsDisposableBuilding() )
+	if ( IsMiniBuilding() || IsDisposableBuilding() )
 		return false;
 
 	// only engineers
@@ -3831,7 +3807,7 @@ void CBaseObject::InputDisable( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 int CBaseObject::GetMaxHealthForCurrentLevel( void )
 {
-	int iMaxHealth = IsMiniBuilding() && !CanBeUpgraded() ? GetMiniBuildingStartingHealth() : GetBaseHealth();
+	int iMaxHealth = IsMiniBuilding() ? GetMiniBuildingStartingHealth() : GetBaseHealth();
 	if ( GetOwner() && !m_bDisposableBuilding )
 	{
 		CALL_ATTRIB_HOOK_INT_ON_OTHER( GetOwner(), iMaxHealth, mult_engy_building_health );

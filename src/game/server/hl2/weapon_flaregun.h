@@ -62,7 +62,7 @@ public:
 	void	InputDie( inputdata_t &inputdata );
 	void	InputLaunch( inputdata_t &inputdata );
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 	static CFlare *activeFlares;
@@ -95,7 +95,7 @@ class CFlaregun:public CBaseHLCombatWeapon
 public:
 	DECLARE_CLASS( CFlaregun, CBaseHLCombatWeapon );
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	void Precache( void );
 	void PrimaryAttack( void );

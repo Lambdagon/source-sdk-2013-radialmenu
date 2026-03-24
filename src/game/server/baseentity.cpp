@@ -279,6 +279,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CBaseEntity, DT_BaseEntity )
 	SendPropInt		(SENDINFO(m_clrRender),	32, SPROP_UNSIGNED),
 	SendPropInt		(SENDINFO(m_iTeamNum),		TEAMNUM_NUM_BITS, 0),
 	SendPropInt		(SENDINFO(m_CollisionGroup), 5, SPROP_UNSIGNED),
+	SendPropFloat	(SENDINFO(m_flGravity)),
 	SendPropFloat	(SENDINFO(m_flElasticity), 0, SPROP_COORD),
 	SendPropFloat	(SENDINFO(m_flShadowCastDistance), 12, SPROP_UNSIGNED ),
 	SendPropEHandle (SENDINFO(m_hOwnerEntity)),
@@ -3448,68 +3449,48 @@ bool CBaseEntity::PassesDamageFilter( const CTakeDamageInfo &info )
 
 FORCEINLINE bool NamesMatch( const char *pszQuery, string_t nameToMatch )
 {
-	try {
+	if ( nameToMatch == NULL_STRING )
+		return (!pszQuery || *pszQuery == 0 || *pszQuery == '*');
 
-		if (nameToMatch == NULL_STRING)
-			return (!pszQuery || *pszQuery == 0 || *pszQuery == '*');
+	const char *pszNameToMatch = STRING(nameToMatch);
 
-		const char* pszNameToMatch = STRING(nameToMatch);
+	// If the pointers are identical, we're identical
+	if ( pszNameToMatch == pszQuery )
+		return true;
 
-		// If the pointers are identical, we're identical
-		if (pszNameToMatch == pszQuery)
-			return true;
-
-		while (*pszNameToMatch && *pszQuery)
-		{
-			unsigned char cName = *pszNameToMatch;
-			unsigned char cQuery = *pszQuery;
-			// simple ascii case conversion
-			if (cName == cQuery)
-				;
-			else if (cName - 'A' <= (unsigned char)'Z' - 'A' && cName - 'A' + 'a' == cQuery)
-				;
-			else if (cName - 'a' <= (unsigned char)'z' - 'a' && cName - 'a' + 'A' == cQuery)
-				;
-			else
-				break;
-			++pszNameToMatch;
-			++pszQuery;
-		}
-
-		if (*pszQuery == 0 && *pszNameToMatch == 0)
-			return true;
-
-		// @TODO (toml 03-18-03): Perhaps support real wildcards. Right now, only thing supported is trailing *
-		if (*pszQuery == '*')
-			return true;
-
-		return false;
+	while ( *pszNameToMatch && *pszQuery )
+	{
+		unsigned char cName = *pszNameToMatch;
+		unsigned char cQuery = *pszQuery;
+		// simple ascii case conversion
+		if ( cName == cQuery )
+			;
+		else if ( cName - 'A' <= (unsigned char)'Z' - 'A' && cName - 'A' + 'a' == cQuery )
+			;
+		else if ( cName - 'a' <= (unsigned char)'z' - 'a' && cName - 'a' + 'A' == cQuery )
+			;
+		else
+			break;
+		++pszNameToMatch;
+		++pszQuery;
 	}
-	catch (...) {
-		return false;
-	}
+
+	if ( *pszQuery == 0 && *pszNameToMatch == 0 )
+		return true;
+
+	// @TODO (toml 03-18-03): Perhaps support real wildcards. Right now, only thing supported is trailing *
+	if ( *pszQuery == '*' )
+		return true;
+
+	return false;
 }
 
 bool CBaseEntity::NameMatchesComplex( const char *pszNameOrWildcard )
 {
-	if (pszNameOrWildcard == nullptr)
-		return false;
+	if ( !Q_stricmp( "!player", pszNameOrWildcard) )
+		return IsPlayer();
 
-	try
-	{
-		if (*pszNameOrWildcard == '\0')
-			return false;
-
-		if (!Q_stricmp("!player", pszNameOrWildcard))
-			return IsPlayer();
-
-		return NamesMatch(pszNameOrWildcard, m_iName);
-	}
-	catch (...)
-	{
-		// Pointer is invalid or unreadable
-		return false;
-	}
+	return NamesMatch( pszNameOrWildcard, m_iName );
 }
 
 bool CBaseEntity::ClassMatchesComplex( const char *pszClassOrWildcard )

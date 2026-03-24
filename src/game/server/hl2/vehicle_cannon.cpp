@@ -85,7 +85,7 @@ class CPropCannon : public CBaseProp, public IDrivableVehicle
 	DECLARE_CLASS( CPropCannon, CBaseProp );
 public:
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	CPropCannon( void )
 	{

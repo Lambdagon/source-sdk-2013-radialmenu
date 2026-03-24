@@ -382,7 +382,7 @@ void CObjectSentrygun::MakeMiniBuilding( CTFPlayer* pPlayer )
 //-----------------------------------------------------------------------------
 int CObjectSentrygun::GetMaxUpgradeLevel( )
 { 
-	if ( IsDisposableBuilding() )
+	if ( IsDisposableBuilding() || IsMiniBuilding() )
 		return SENTRYGUN_MAX_LEVEL_MINI;
 
 	return BaseClass::GetMaxUpgradeLevel(); 
@@ -1367,6 +1367,7 @@ bool CObjectSentrygun::FireRocket()
 		// Setup next rocket shot
 		if ( m_bPlayerControlled )
 		{
+			AddGesture( ACT_RANGE_ATTACK2, 2.25, true );
 			m_flNextRocketAttack = gpGlobals->curtime + 2.25;
 		}
 		else
@@ -1735,10 +1736,10 @@ void CObjectSentrygun::SentryRotate( void )
 				EmitSentrySound( "Building_Sentrygun.Idle" );
 				break;
 			case 2:
-				EmitSentrySound( "Building_Sentrygun.Idle2" );
+				EmitSound( "Building_Sentrygun.Idle2" );
 				break;
 			case 3:
-				EmitSentrySound( "Building_Sentrygun.Idle3" );
+				EmitSound( "Building_Sentrygun.Idle3" );
 				break;
 			}
 

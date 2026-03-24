@@ -532,7 +532,7 @@ void CNPC_GroundTurret::Shoot()
 		else
 		{
 			// First shot is at the enemy.
-			info.m_vecDirShooting = GetShootEnemyDir( vecSrc );
+			info.m_vecDirShooting = GetActualShootTrajectory( vecSrc );
 			info.m_vecSpread = VECTOR_CONE_PRECALCULATED;
 		}
 		

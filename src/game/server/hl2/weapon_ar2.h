@@ -24,7 +24,7 @@ public:
 
 	CWeaponAR2();
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	void	ItemPostFrame( void );
 	void	Precache( void );

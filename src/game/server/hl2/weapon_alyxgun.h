@@ -22,7 +22,7 @@ public:
 	CWeaponAlyxGun();
 	~CWeaponAlyxGun();
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	
 	void	Precache( void );
 

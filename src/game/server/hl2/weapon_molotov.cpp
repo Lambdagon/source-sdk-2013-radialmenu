@@ -9,7 +9,6 @@
 
 #include "cbase.h"
 #include	"npcevent.h"
-#include	"basehlcombatweapon.h"
 #include	"basecombatcharacter.h"
 #include	"ai_basenpc.h"
 #include	"AI_Memory.h"
@@ -42,8 +41,10 @@ END_DATADESC()
 IMPLEMENT_SERVERCLASS_ST(CWeaponMolotov, DT_WeaponMolotov)
 END_SEND_TABLE()
 
-LINK_ENTITY_TO_CLASS( weapon_molotov, CWeaponMolotov );
-PRECACHE_WEAPON_REGISTER(weapon_molotov);
+// Keep this legacy molotov weapon available for NPC usage under a different classname,
+// so it doesn't collide with the shared CS-style molotov weapon.
+LINK_ENTITY_TO_CLASS( weapon_molotov_npc, CWeaponMolotov );
+PRECACHE_WEAPON_REGISTER( weapon_molotov_npc );
 
 acttable_t	CWeaponMolotov::m_acttable[] = 
 {
@@ -76,7 +77,7 @@ void CWeaponMolotov::Spawn( void )
 //------------------------------------------------------------------------------
 void CWeaponMolotov::SetPickupTouch( void )
 {
-	SetTouch(MolotovTouch);
+	SetTouch(&CWeaponMolotov::MolotovTouch);
 }
 
 //-----------------------------------------------------------------------------

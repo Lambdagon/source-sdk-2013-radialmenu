@@ -574,7 +574,10 @@ void CTFPlaylistPanel::ApplySchemeSettings( vgui::IScheme *pScheme )
 
 	LoadControlSettings( "resource/UI/MatchMakingPlayList.res", NULL, NULL, kvConditions );
 
+	m_pCasual = FindControl< CPlayListEntry >( "CasualEntry" );
+	m_pCompetitive = FindControl< CPlayListEntry >( "CompetitiveEntry" );
 	m_pMvM = FindControl< CPlayListEntry >( "MvMEntry" );
+	m_pEvent = FindControl< CEventPlayListEntry >( "EventEntry" );
 
 	SetMouseInputEnabled( true );
 }
@@ -665,13 +668,23 @@ void CTFPlaylistPanel::FireGameEvent( IGameEvent* event )
 
 void CTFPlaylistPanel::UpdatePlaylistEntries( void )
 {
+	if ( !m_pCasual || !m_pCompetitive || !m_pMvM )
+		return;
+
+	m_pCasual->UpdateDisabledState();
+	m_pCompetitive->UpdateDisabledState();
+	m_pMvM->UpdateDisabledState();
+	m_pEvent->UpdateDisabledState();
 }
 
 void CTFPlaylistPanel::SidePanelActive()
 {
 	UpdatePlaylistEntries();
 
+	m_pCasual->OnPlaylistActive();
+	m_pCompetitive->OnPlaylistActive();
 	m_pMvM->OnPlaylistActive();
+	m_pEvent->OnPlaylistActive();
 }
 
 void CTFPlaylistPanel::UpdateEventStatus()

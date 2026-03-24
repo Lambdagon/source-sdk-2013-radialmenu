@@ -7,6 +7,7 @@
 //===========================================================================//
 #include "cbase.h"
 #include "c_baseplayer.h"
+#include "baseviewmodel_shared.h"
 #include "flashlighteffect.h"
 #include "weapon_selection.h"
 #include "history_resource.h"
@@ -418,6 +419,9 @@ LINK_ENTITY_TO_CLASS( player, C_BasePlayer );
 C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOffset" )
 {
 	AddVar( &m_vecViewOffset, &m_iv_vecViewOffset, LATCH_SIMULATION_VAR );
+
+	AddVar( &m_Local.m_vecPunchAngle, &m_Local.m_iv_vecPunchAngle, LATCH_SIMULATION_VAR );
+	AddVar( &m_Local.m_vecPunchAngleVel, &m_Local.m_iv_vecPunchAngleVel, LATCH_SIMULATION_VAR );
 	
 #ifdef _DEBUG																
 	m_vecLadderNormal.Init();
@@ -1268,11 +1272,36 @@ void C_BasePlayer::UpdateFlashlight()
 			m_pFlashlight->TurnOn();
 		}
 
-		Vector vecForward, vecRight, vecUp;
-		EyeVectors( &vecForward, &vecRight, &vecUp );
+		Vector vecOrigin = EyePosition();
+		QAngle angDirection = EyeAngles();
+		bool bUseFlashlightAttachment = false;
 
-		// Update the light with the new position and direction.		
-		m_pFlashlight->UpdateLight( EyePosition(), vecForward, vecRight, vecUp, FLASHLIGHT_DISTANCE );
+#if defined( CSTRIKE_DLL )
+		if ( !ShouldDrawLocalPlayer() )
+		{
+			C_BaseViewModel *pViewModel = GetViewModel( 0 );
+			if ( pViewModel )
+			{
+				const int iAttachment = pViewModel->LookupAttachment( "flashlight" );
+				if ( iAttachment > 0 )
+				{
+					bUseFlashlightAttachment = pViewModel->GetAttachment( iAttachment, vecOrigin, angDirection );
+				}
+			}
+		}
+#endif
+
+		if ( !bUseFlashlightAttachment )
+		{
+			vecOrigin = EyePosition();
+			angDirection = EyeAngles();
+		}
+
+		Vector vecForward, vecRight, vecUp;
+		AngleVectors( angDirection, &vecForward, &vecRight, &vecUp );
+
+		// Update the light with the new position and direction.
+		m_pFlashlight->UpdateLight( vecOrigin, vecForward, vecRight, vecUp, FLASHLIGHT_DISTANCE );
 	}
 	else if (m_pFlashlight)
 	{
@@ -1573,7 +1602,7 @@ void C_BasePlayer::CalcChaseCamView(Vector& eyeOrigin, QAngle& eyeAngles, float&
 		}
 	}
 
-	if ( target && !target->IsPlayer() && (target->IsNextBot() || target->IsNPC()) )
+	if ( target && !target->IsPlayer() && target->IsNextBot() )
 	{
 		// if this is a boss, we want to be back a little further so we can see more of it
 		flMaxDistance *= 2.5f;
@@ -1725,7 +1754,6 @@ void C_BasePlayer::CalcFreezeCamView( Vector& eyeOrigin, QAngle& eyeAngles, floa
 		view->FreezeFrame( spec_freeze_time.GetFloat() );
 	}
 }
-
 
 void C_BasePlayer::CalcInEyeCamView(Vector& eyeOrigin, QAngle& eyeAngles, float& fov)
 {
@@ -1951,7 +1979,7 @@ void C_BasePlayer::ThirdPersonSwitch( bool bThirdperson )
 {
 	if ( !UseVR() )
 	{
-		return !LocalPlayerInFirstPersonView() || cl_first_person_uses_world_model.GetBool();
+		return !LocalPlayerInFirstPersonView() || cl_first_person_uses_world_model.GetBool() || GetLocalPlayer()->GetMoveType() == MOVETYPE_LADDER;
 	}
 
 	static ConVarRef vr_first_person_uses_world_model( "vr_first_person_uses_world_model" );
@@ -1993,7 +2021,7 @@ bool C_BasePlayer::ShouldDrawThisPlayer()
 	{
 		return true;
 	}
-	if ( !UseVR() && cl_first_person_uses_world_model.GetBool() )
+	if ( !UseVR() && (cl_first_person_uses_world_model.GetBool() || GetLocalPlayer()->GetMoveType() == MOVETYPE_LADDER) )
 	{
 		return true;
 	}

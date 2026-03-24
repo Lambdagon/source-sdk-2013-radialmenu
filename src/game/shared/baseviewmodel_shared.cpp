@@ -27,6 +27,7 @@ extern ConVar in_forceuser;
 #include "iclientmode.h"
 #endif
 
+#include "weapon_csbase.h"
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -41,6 +42,7 @@ CBaseViewModel::CBaseViewModel()
 #if defined( CLIENT_DLL )
 	// NOTE: We do this here because the color is never transmitted for the view model.
 	m_nOldAnimationParity = 0;
+	m_nOldViewModelLayerParity = 0;
 	m_EntClientFlags |= ENTCLIENTFLAG_ALWAYS_INTERPOLATE;
 #endif
 	SetRenderColor( 255, 255, 255, 255 );
@@ -53,6 +55,9 @@ CBaseViewModel::CBaseViewModel()
 	m_nViewModelIndex	= 0;
 
 	m_nAnimationParity	= 0;
+	m_nViewModelLayerSequence = -1;
+	m_nViewModelLayerParity = 0;
+	m_nAnimationLayerIndex = -1;
 }
 
 //-----------------------------------------------------------------------------
@@ -350,37 +355,251 @@ CBaseCombatWeapon *CBaseViewModel::GetOwningWeapon( void )
 	return m_hWeapon.Get();
 }
 
+void CBaseViewModel::SetPlaybackRate( float flPlaybackRate )
+{
+	BaseClass::SetPlaybackRate( flPlaybackRate );
+
+	if ( !HasViewModelAnimationLayer() )
+		return;
+
+#if defined( CLIENT_DLL )
+	m_AnimOverlay[m_nAnimationLayerIndex].m_flPlaybackRate = flPlaybackRate;
+#else
+	SetLayerPlaybackRate( m_nAnimationLayerIndex, flPlaybackRate );
+#endif
+}
+
+bool CBaseViewModel::HasViewModelAnimationLayer()
+{
+#if defined( CLIENT_DLL )
+	return m_nAnimationLayerIndex >= 0 && m_nAnimationLayerIndex < m_AnimOverlay.Count();
+#else
+	return IsValidLayer( m_nAnimationLayerIndex );
+#endif
+}
+
+void CBaseViewModel::ClearViewModelAnimationLayer()
+{
+	if ( !HasViewModelAnimationLayer() )
+	{
+		m_nAnimationLayerIndex = -1;
+#if !defined( CLIENT_DLL )
+		if ( m_nViewModelLayerSequence != -1 )
+		{
+			m_nViewModelLayerSequence = -1;
+			m_nViewModelLayerParity = ( m_nViewModelLayerParity + 1 ) & ( (1<<VIEWMODEL_ANIMATION_PARITY_BITS) - 1 );
+		}
+#endif
+		return;
+	}
+
+#if defined( CLIENT_DLL )
+	C_AnimationLayer &layer = m_AnimOverlay[m_nAnimationLayerIndex];
+	layer.Reset();
+	layer.m_nOrder = CBaseAnimatingOverlay::MAX_OVERLAYS;
+	m_flOverlayPrevEventCycle[m_nAnimationLayerIndex] = -1.0f;
+#else
+	FastRemoveLayer( m_nAnimationLayerIndex );
+	m_nViewModelLayerSequence = -1;
+	m_nViewModelLayerParity = ( m_nViewModelLayerParity + 1 ) & ( (1<<VIEWMODEL_ANIMATION_PARITY_BITS) - 1 );
+#endif
+
+	m_nAnimationLayerIndex = -1;
+}
+
+void CBaseViewModel::SetViewModelBaseSequence( int sequence )
+{
+	ClearViewModelAnimationLayer();
+
+	SetSequence( sequence );
+	m_nAnimationParity = ( m_nAnimationParity + 1 ) & ( (1<<VIEWMODEL_ANIMATION_PARITY_BITS) - 1 );
+
+#if defined( CLIENT_DLL )
+	m_nOldAnimationParity = m_nAnimationParity;
+	m_flAnimTime = gpGlobals->curtime;
+#endif
+
+	SetCycle( 0 );
+	ResetSequenceInfo();
+}
+
+void CBaseViewModel::EnsureViewModelIdleSequence()
+{
+	if ( GetSequenceActivity( GetSequence() ) == ACT_VM_IDLE )
+		return;
+
+	const int idleSequence = SelectWeightedSequence( ACT_VM_IDLE );
+	if ( idleSequence == ACTIVITY_NOT_AVAILABLE )
+		return;
+
+	SetSequence( idleSequence );
+#if defined( CLIENT_DLL )
+	m_flAnimTime = gpGlobals->curtime;
+#endif
+	SetCycle( 0 );
+	ResetSequenceInfo();
+}
+
+void CBaseViewModel::AddViewModelAnimationLayer( int sequence )
+{
+	ClearViewModelAnimationLayer();
+
+#if defined( CLIENT_DLL )
+	m_nAnimationLayerIndex = 0;
+
+	if ( m_AnimOverlay.Count() <= m_nAnimationLayerIndex )
+	{
+		m_AnimOverlay.AddMultipleToTail( m_nAnimationLayerIndex + 1 - m_AnimOverlay.Count() );
+	}
+
+	if ( m_iv_AnimOverlay.Count() <= m_nAnimationLayerIndex )
+	{
+		const int nOldInterpCount = m_iv_AnimOverlay.Count();
+		m_iv_AnimOverlay.AddMultipleToTail( m_nAnimationLayerIndex + 1 - m_iv_AnimOverlay.Count() );
+		for ( int i = nOldInterpCount; i < m_iv_AnimOverlay.Count(); ++i )
+		{
+			AddVar( &m_AnimOverlay.Element( i ), &m_iv_AnimOverlay.Element( i ), LATCH_ANIMATION_VAR, true );
+		}
+	}
+
+	C_AnimationLayer &layer = m_AnimOverlay[m_nAnimationLayerIndex];
+	layer.Reset();
+	layer.m_nSequence = sequence;
+	layer.m_flPrevCycle = 0.0f;
+	layer.m_flCycle = 0.0f;
+	layer.m_flPlaybackRate = GetPlaybackRate();
+	layer.m_flWeight = 1.0f;
+	layer.m_nOrder = 1;
+	layer.m_flLayerAnimtime = gpGlobals->curtime;
+	m_flOverlayPrevEventCycle[m_nAnimationLayerIndex] = -1.0f;
+#else
+	m_nAnimationLayerIndex = AddGestureSequence( sequence, true );
+	SetLayerPlaybackRate( m_nAnimationLayerIndex, GetPlaybackRate() );
+	m_nViewModelLayerSequence = sequence;
+	m_nViewModelLayerParity = ( m_nViewModelLayerParity + 1 ) & ( (1<<VIEWMODEL_ANIMATION_PARITY_BITS) - 1 );
+#endif
+}
+
+bool CBaseViewModel::IsViewModelSequenceFinished()
+{
+	if ( HasViewModelAnimationLayer() )
+	{
+#if defined( CLIENT_DLL )
+		return m_AnimOverlay[m_nAnimationLayerIndex].m_flWeight == 0.0f;
+#else
+		return m_AnimOverlay[m_nAnimationLayerIndex].m_bSequenceFinished;
+#endif
+	}
+
+	return BaseClass::IsSequenceFinished();
+}
+
+float CBaseViewModel::GetViewModelSequenceDuration()
+{
+	if ( HasViewModelAnimationLayer() )
+	{
+#if defined( CLIENT_DLL )
+		const C_AnimationLayer &layer = m_AnimOverlay[m_nAnimationLayerIndex];
+		float flPlaybackRate = layer.m_flPlaybackRate;
+		if ( flPlaybackRate < 0.0f )
+		{
+			flPlaybackRate = -flPlaybackRate;
+		}
+		return flPlaybackRate > 0.0f ? SequenceDuration( layer.m_nSequence ) / flPlaybackRate : 0.0f;
+#else
+		const CAnimationLayer &layer = m_AnimOverlay[m_nAnimationLayerIndex];
+		float flPlaybackRate = layer.m_flPlaybackRate;
+		if ( flPlaybackRate < 0.0f )
+		{
+			flPlaybackRate = -flPlaybackRate;
+		}
+		return flPlaybackRate > 0.0f ? SequenceDuration( layer.m_nSequence ) / flPlaybackRate : 0.0f;
+#endif
+	}
+
+	return SequenceDuration();
+}
+
+#if defined( CLIENT_DLL )
+void CBaseViewModel::AdvanceViewModelAnimationLayer( float currentTime )
+{
+	if ( !HasViewModelAnimationLayer() )
+		return;
+
+	CStudioHdr *pStudioHdr = GetModelPtr();
+	if ( pStudioHdr == NULL )
+	{
+		ClearViewModelAnimationLayer();
+		return;
+	}
+
+	C_AnimationLayer &layer = m_AnimOverlay[m_nAnimationLayerIndex];
+	if ( layer.m_nSequence == -1 )
+	{
+		ClearViewModelAnimationLayer();
+		return;
+	}
+
+	if ( layer.m_flWeight == 0.0f )
+	{
+		ClearViewModelAnimationLayer();
+		return;
+	}
+
+	const float flInterval = currentTime - layer.m_flLayerAnimtime;
+	if ( flInterval <= 0.0f )
+		return;
+
+	layer.m_flPrevCycle = layer.m_flCycle;
+	layer.m_flCycle += flInterval * GetSequenceCycleRate( pStudioHdr, layer.m_nSequence ) * layer.m_flPlaybackRate;
+	layer.m_flLayerAnimtime = currentTime;
+
+	if ( layer.m_flCycle >= 1.0f )
+	{
+		if ( IsSequenceLooping( layer.m_nSequence ) )
+		{
+			layer.m_flCycle = 0.0f;
+		}
+		else
+		{
+			layer.m_flCycle = 1.0f;
+		}
+
+		layer.m_flWeight = 0.0f;
+	}
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : sequence - 
 //-----------------------------------------------------------------------------
 void CBaseViewModel::SendViewModelMatchingSequence( int sequence )
 {
-	// since all we do is send a sequence number down to the client, 
-	// set this here so other weapons code knows which sequence is playing.
-	SetSequence( sequence );
+	if ( sequence < 0 )
+		return;
 
-	m_nAnimationParity = ( m_nAnimationParity + 1 ) & ( (1<<VIEWMODEL_ANIMATION_PARITY_BITS) - 1 );
-
-#if defined( CLIENT_DLL )
-	m_nOldAnimationParity = m_nAnimationParity;
-
-	// Force frame interpolation to start at exactly frame zero
-	m_flAnimTime			= gpGlobals->curtime;
-#else
-	CBaseCombatWeapon *weapon = m_hWeapon.Get();
+	CBaseCombatWeapon* weapon = m_hWeapon.Get();
+#if !defined( CLIENT_DLL )
 	bool showControlPanels = weapon && weapon->ShouldShowControlPanels();
 	SetControlPanelsActive( showControlPanels );
 #endif
 
-	// Restart animation at frame 0
-	SetCycle( 0 );
-	ResetSequenceInfo();
+	if ( GetSequenceActivity( sequence ) == ACT_VM_IDLE )
+	{
+		SetViewModelBaseSequence( sequence );
+		return;
+	}
+
+	EnsureViewModelIdleSequence();
+	weapon->SetViewModel();
+	AddViewModelAnimationLayer(sequence);
 }
 
 #if defined( CLIENT_DLL )
 #include "ivieweffects.h"
 #endif
+extern float g_verticalBob;
 
 void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePosition, const QAngle& eyeAngles )
 {
@@ -406,6 +625,7 @@ void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePos
 	}
 	// Add model-specific bob even if no weapon associated (for head bob for off hand models)
 	AddViewModelBob( owner, vmorigin, vmangles );
+	CalcViewModelLag(vmorigin, vmangles, vmangoriginal);
 
 #if defined( CLIENT_DLL )
 	if ( !prediction->InPrediction() )
@@ -419,6 +639,7 @@ void CBaseViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePos
 	{
 		g_ClientVirtualReality.OverrideViewModelTransform( vmorigin, vmangles, pWeapon && pWeapon->ShouldUseLargeViewModelVROverride() );
 	}
+
 
 	SetLocalOrigin( vmorigin );
 	SetLocalAngles( vmangles );
@@ -564,16 +785,20 @@ BEGIN_NETWORK_TABLE_NOBASE(CBaseViewModel, DT_BaseViewModel)
 	SendPropFloat	(SENDINFO(m_flPlaybackRate),	8,	SPROP_ROUNDUP,	-4.0,	12.0f),
 	SendPropInt		(SENDINFO(m_fEffects),		10, SPROP_UNSIGNED),
 	SendPropInt		(SENDINFO(m_nAnimationParity), 3, SPROP_UNSIGNED ),
+	SendPropInt		(SENDINFO(m_nViewModelLayerSequence), 14),
+	SendPropInt		(SENDINFO(m_nViewModelLayerActivity), 13, SPROP_UNSIGNED),
+	SendPropInt		(SENDINFO(m_nViewModelLayerParity), 3, SPROP_UNSIGNED ),
 	SendPropEHandle (SENDINFO(m_hWeapon)),
 	SendPropEHandle (SENDINFO(m_hOwner)),
 
 	SendPropInt( SENDINFO( m_nNewSequenceParity ), EF_PARITY_BITS, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_nResetEventsParity ), EF_PARITY_BITS, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_nMuzzleFlashParity ), EF_MUZZLEFLASH_BITS, SPROP_UNSIGNED ),
+	// In CS, viewmodel animation layers are mirrored and advanced clientside (see C_BaseViewModel::Interpolate).
+	// Don't network overlay vars from the server, or the server will drive layer cycles at tickrate.
+	SendPropDataTable( "overlay_vars", 0, &REFERENCE_SEND_TABLE( DT_OverlayVars ) ),
 
-#if !defined( INVASION_DLL ) && !defined( INVASION_CLIENT_DLL )
 	SendPropArray	(SendPropFloat(SENDINFO_ARRAY(m_flPoseParameter),	8, 0, 0.0f, 1.0f), m_flPoseParameter),
-#endif
 #else
 	RecvPropInt		(RECVINFO(m_nModelIndex)),
 	RecvPropInt		(RECVINFO(m_nSkin)),
@@ -583,16 +808,18 @@ BEGIN_NETWORK_TABLE_NOBASE(CBaseViewModel, DT_BaseViewModel)
 	RecvPropFloat	(RECVINFO(m_flPlaybackRate)),
 	RecvPropInt		(RECVINFO(m_fEffects), 0, RecvProxy_EffectFlags ),
 	RecvPropInt		(RECVINFO(m_nAnimationParity)),
+	RecvPropInt		(RECVINFO(m_nViewModelLayerSequence)),
+	RecvPropInt		(RECVINFO(m_nViewModelLayerActivity)),
+	RecvPropInt		(RECVINFO(m_nViewModelLayerParity)),
 	RecvPropEHandle (RECVINFO(m_hWeapon), RecvProxy_Weapon ),
 	RecvPropEHandle (RECVINFO(m_hOwner)),
 
 	RecvPropInt( RECVINFO( m_nNewSequenceParity )),
 	RecvPropInt( RECVINFO( m_nResetEventsParity )),
 	RecvPropInt( RECVINFO( m_nMuzzleFlashParity )),
+	RecvPropDataTable( "overlay_vars", 0, 0, &REFERENCE_RECV_TABLE( DT_OverlayVars ) ),
 
-#if !defined( INVASION_DLL ) && !defined( INVASION_CLIENT_DLL )
 	RecvPropArray(RecvPropFloat(RECVINFO(m_flPoseParameter[0]) ), m_flPoseParameter ),
-#endif
 #endif
 END_NETWORK_TABLE()
 
@@ -609,12 +836,15 @@ BEGIN_PREDICTION_DATA( CBaseViewModel )
 	DEFINE_PRED_FIELD_TOL( m_flPlaybackRate, FIELD_FLOAT, FTYPEDESC_INSENDTABLE, 0.125f ),
 	DEFINE_PRED_FIELD( m_fEffects, FIELD_INTEGER, FTYPEDESC_INSENDTABLE | FTYPEDESC_OVERRIDE ),
 	DEFINE_PRED_FIELD( m_nAnimationParity, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_nViewModelLayerSequence, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_nViewModelLayerParity, FIELD_INTEGER, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_hWeapon, FIELD_EHANDLE, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_flAnimTime, FIELD_FLOAT, 0 ),
 
 	DEFINE_FIELD( m_hOwner, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_flTimeWeaponIdle, FIELD_FLOAT ),
 	DEFINE_FIELD( m_Activity, FIELD_INTEGER ),
+	DEFINE_FIELD( m_nAnimationLayerIndex, FIELD_INTEGER ),
 	DEFINE_PRED_FIELD( m_flCycle, FIELD_FLOAT, FTYPEDESC_PRIVATE | FTYPEDESC_OVERRIDE | FTYPEDESC_NOERRORCHECK ),
 
 END_PREDICTION_DATA()

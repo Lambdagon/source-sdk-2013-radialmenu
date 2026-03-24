@@ -77,7 +77,7 @@ class CEnvHeadcrabCanister : public CBaseAnimating
 {
 	DECLARE_CLASS( CEnvHeadcrabCanister, CBaseAnimating );
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 public:
 
@@ -210,8 +210,8 @@ BEGIN_DATADESC( CEnvHeadcrabCanister )
 END_DATADESC()
 
 
-
 EXTERN_SEND_TABLE(DT_EnvHeadcrabCanisterShared);
+
 IMPLEMENT_SERVERCLASS_ST( CEnvHeadcrabCanister, DT_EnvHeadcrabCanister )
 	SendPropDataTable( SENDINFO_DT( m_Shared ), &REFERENCE_SEND_TABLE(DT_EnvHeadcrabCanisterShared) ),
 	SendPropBool( SENDINFO( m_bLanded ) ),

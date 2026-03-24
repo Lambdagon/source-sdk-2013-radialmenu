@@ -22,7 +22,7 @@ class CBaseHLBludgeonWeapon : public CBaseHLCombatWeapon
 public:
 	CBaseHLBludgeonWeapon();
 
-	//DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	virtual	void	Spawn( void );
 	virtual	void	Precache( void );

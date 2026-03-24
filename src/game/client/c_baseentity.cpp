@@ -78,7 +78,7 @@ void cc_cl_interp_all_changed( IConVar *pConVar, const char *pOldString, float f
 
 
 static ConVar  cl_extrapolate( "cl_extrapolate", "1", FCVAR_CHEAT, "Enable/disable extrapolation if interpolation history runs out." );
-static ConVar  cl_interp_npcs( "cl_interp_npcs", "0.0", FCVAR_USERINFO, "Interpolate NPC positions starting this many seconds in past (or cl_interp, if greater)" );  
+static ConVar  cl_interp_npcs( "cl_interp_npcs", "0.1", FCVAR_ARCHIVE|FCVAR_USERINFO, "Interpolate NPC positions starting this many seconds in past (or cl_interp, if greater)" );  
 static ConVar  cl_interp_all( "cl_interp_all", "0", 0, "Disable interpolation list optimizations.", 0, 0, 0, 0, cc_cl_interp_all_changed );
 ConVar  r_drawmodeldecals( "r_drawmodeldecals", "1", FCVAR_ALLOWED_IN_COMPETITIVE );
 extern ConVar	cl_showerror;
@@ -457,6 +457,7 @@ BEGIN_RECV_TABLE_NOBASE(C_BaseEntity, DT_BaseEntity)
 	RecvPropInt(RECVINFO(m_clrRender)),
 	RecvPropInt(RECVINFO(m_iTeamNum)),
 	RecvPropInt(RECVINFO(m_CollisionGroup)),
+	RecvPropFloat(RECVINFO(m_flGravity)),
 	RecvPropFloat(RECVINFO(m_flElasticity)),
 	RecvPropFloat(RECVINFO(m_flShadowCastDistance)),
 	RecvPropEHandle( RECVINFO(m_hOwnerEntity) ),
@@ -539,7 +540,7 @@ BEGIN_PREDICTION_DATA_NO_BASE( C_BaseEntity )
 //	DEFINE_FIELD( m_flLastMessageTime, FIELD_FLOAT ),
 	DEFINE_FIELD( m_vecBaseVelocity, FIELD_VECTOR ),
 	DEFINE_FIELD( m_iEFlags, FIELD_INTEGER ),
-	DEFINE_FIELD( m_flGravity, FIELD_FLOAT ),
+	DEFINE_PRED_FIELD( m_flGravity, FIELD_FLOAT, FTYPEDESC_INSENDTABLE | FTYPEDESC_NOERRORCHECK ),
 //	DEFINE_FIELD( m_ModelInstance, FIELD_SHORT ),
 	DEFINE_FIELD( m_flProxyRandomValue, FIELD_FLOAT ),
 
@@ -6314,7 +6315,56 @@ void C_BaseEntity::RemoveFromTeleportList()
 #ifdef TF_CLIENT_DLL
 bool C_BaseEntity::ValidateEntityAttachedToPlayer( bool &bShouldRetry )
 {
-	return true;
+	bShouldRetry = false;
+	C_BaseEntity *pParent = GetRootMoveParent();
+	if ( pParent == this )
+		return true;
+
+	// Some wearables parent to the view model
+	C_TFPlayer *pPlayer = ToTFPlayer( pParent );
+	if ( pPlayer )
+	{
+		if ( pPlayer->GetViewModel() == this )
+			return true;
+
+		if ( pPlayer->HasItem() && ( pPlayer->GetItem()->GetItemID() == TF_ITEM_CAPTURE_FLAG ) && ( pPlayer->GetItem() == this ) )
+			return true;
+	}
+
+	// always allow the briefcase model
+	const char *pszModel = modelinfo->GetModelName( GetModel() );
+	if ( pszModel && pszModel[0] )
+	{
+		if ( FStrEq( pszModel, "models/flag/briefcase.mdl" ) )
+			return true;
+				
+		if ( FStrEq( pszModel, "models/props_doomsday/australium_container.mdl" ) )
+			return true;
+
+		// Temp for MVM testing
+		if ( FStrEq( pszModel, "models/buildables/sapper_placement.mdl" ) )
+			return true;
+
+		if ( FStrEq( pszModel, "models/props_td/atom_bomb.mdl" ) )
+			return true;
+
+		if ( FStrEq( pszModel, "models/props_lakeside_event/bomb_temp_hat.mdl" ) )
+			return true;
+
+		if ( FStrEq( pszModel, "models/props_moonbase/powersupply_flag.mdl" ) )
+			return true;
+
+		// The Halloween 2014 doomsday flag replacement
+		if ( FStrEq( pszModel, "models/flag/ticket_case.mdl" ) )
+			return true;
+
+		if ( FStrEq( pszModel, "models/weapons/c_models/c_grapple_proj/c_grapple_proj.mdl" ) )
+			return true;
+	}
+
+	// Any entity that's not an item parented to a player is invalid.
+	// This prevents them creating some other entity to pretend to be a cosmetic item.
+	return !pParent->IsPlayer();
 }
 #endif // TF_CLIENT_DLL
 

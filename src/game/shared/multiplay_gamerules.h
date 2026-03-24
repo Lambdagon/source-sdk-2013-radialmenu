@@ -231,8 +231,8 @@ public:
 	};
 	CUtlVector<ResponseRules_t>	m_ResponseRules;
 
-	virtual void InitCustomResponseRulesDicts()	{}
-	virtual void ShutdownCustomResponseRulesDicts() {}
+	virtual void InitCustomResponseRulesDicts();
+	virtual void ShutdownCustomResponseRulesDicts();
 
 	// NVNT virtual to check for haptic device 
 	virtual void ClientSettingsChanged( CBasePlayer *pPlayer );

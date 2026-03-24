@@ -264,7 +264,9 @@ void CGameRules::RefreshSkillData ( bool forceUpdate )
 	}
 	GlobalEntity_Add( "skill.cfg", STRING(gpGlobals->mapname), GLOBAL_ON );
 
+#if !defined( TF_DLL ) && !defined( DOD_DLL )
 	char	szExec[256];
+#endif 
 
 	ConVarRef skill( "skill" );
 

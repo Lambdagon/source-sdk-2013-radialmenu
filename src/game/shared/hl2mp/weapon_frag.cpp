@@ -362,7 +362,7 @@ void CWeaponFrag::ItemPostFrame( void )
 					if ( pOwner->m_nButtons & IN_DUCK )
 					{
 						//Send the weapon animation
-						SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+						SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 					}
 					else
 					{

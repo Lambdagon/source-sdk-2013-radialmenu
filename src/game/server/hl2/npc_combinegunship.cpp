@@ -220,7 +220,7 @@ public:
 	~CNPC_CombineGunship( void );
 
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DEFINE_CUSTOM_AI;
 
 	void	PlayPatrolLoop( void );
@@ -413,7 +413,6 @@ LINK_ENTITY_TO_CLASS( npc_combinegunship, CNPC_CombineGunship );
 IMPLEMENT_SERVERCLASS_ST( CNPC_CombineGunship, DT_CombineGunship )
 	SendPropVector(SENDINFO(m_vecHitPos), -1, SPROP_COORD),
 END_SEND_TABLE()
-
 
 BEGIN_DATADESC( CNPC_CombineGunship )
 
@@ -2510,7 +2509,7 @@ void CNPC_CombineGunship::SelfDestruct( void )
 	}
 
 #ifdef HL2_EPISODIC
-	//NPCEventResponse()->TriggerEvent( "TLK_CITIZEN_RESPONSE_KILLED_GUNSHIP", false, false );
+	NPCEventResponse()->TriggerEvent( "TLK_CITIZEN_RESPONSE_KILLED_GUNSHIP", false, false );
 #endif
 }
 
@@ -2857,7 +2856,7 @@ void CNPC_CombineGunship::TraceAttack( const CTakeDamageInfo &info, const Vector
 			}
 
 #ifdef HL2_EPISODIC
-			//NPCEventResponse()->TriggerEvent( "TLK_CITIZEN_RESPONSE_SHOT_GUNSHIP", false, false );
+			NPCEventResponse()->TriggerEvent( "TLK_CITIZEN_RESPONSE_SHOT_GUNSHIP", false, false );
 #endif
 		}
 

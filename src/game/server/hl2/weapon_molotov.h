@@ -11,17 +11,17 @@
 // $NoKeywords: $
 //=============================================================================//
 
-#include "basehlcombatweapon.h"
+#include "weapon_basecsgrenade.h"
 
 #ifndef	WEAPON_MOLOTOV_H
 #define	WEAPON_MOLOTOV_H
 
 class CGrenade_Molotov;
 
-class CWeaponMolotov : public CBaseHLCombatWeapon
+class CWeaponMolotov : public CBaseCSGrenade
 {
 public:
-	DECLARE_CLASS( CWeaponMolotov, CBaseHLCombatWeapon );
+	DECLARE_CLASS( CWeaponMolotov, CBaseCSGrenade);
 
 	DECLARE_SERVERCLASS();
 
@@ -55,9 +55,10 @@ public:
 	void				SecondaryAttack( void );
 
 	void				Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
+	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_HEGRENADE; }
 
-	DECLARE_ACTTABLE();
 	DECLARE_DATADESC();
+	DECLARE_ACTTABLE();
 
 	CWeaponMolotov(void);
 };

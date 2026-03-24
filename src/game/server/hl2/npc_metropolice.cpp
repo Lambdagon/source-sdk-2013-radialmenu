@@ -2294,7 +2294,7 @@ Vector CNPC_MetroPolice::ComputeTightBurstTrajectory( const Vector &shootOrigin 
 	CBaseEntity *pEnemy = GetEnemy();
 	if ( !pEnemy )
 	{
-		return BaseClass::GetShootEnemyDir( shootOrigin );
+		return BaseClass::GetActualShootTrajectory( shootOrigin );
 	}
 
 	// Aim around the player...
@@ -2329,6 +2329,8 @@ Vector CNPC_MetroPolice::GetActualShootTrajectory( const Vector &shootOrigin )
 {
 	switch ( m_nBurstMode )
 	{
+	case BURST_NOT_ACTIVE:
+		return BaseClass::GetActualShootTrajectory( shootOrigin );
 
 	case BURST_LOCKED_ON:
 		if ( m_nBurstHits < m_nMaxBurstHits )
@@ -3099,6 +3101,14 @@ void CNPC_MetroPolice::Event_Killed( const CTakeDamageInfo &info )
 
 	if ( pPlayer != NULL )
 	{
+		CHalfLife2 *pHL2GameRules = static_cast<CHalfLife2 *>(g_pGameRules);
+
+		// Attempt to drop health
+		if ( pHL2GameRules->NPC_ShouldDropHealth( pPlayer ) )
+		{
+			DropItem( "item_healthvial", WorldSpaceCenter()+RandomVector(-4,4), RandomAngle(0,360) );
+			pHL2GameRules->NPC_DroppedHealth();
+		}
 	}
 
 	BaseClass::Event_Killed( info );
@@ -5098,7 +5108,7 @@ void CNPC_MetroPolice::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 	int otherIndex = !index;
 	
 	CBaseEntity *pHitEntity = pEvent->pEntities[otherIndex];
-	/*
+
 	if ( pEvent->pObjects[otherIndex]->GetGameFlags() & FVPHYSICS_PLAYER_HELD )
 	{
 		CHL2_Player *pPlayer = dynamic_cast<CHL2_Player *>(UTIL_PlayerByIndex( 1 ));
@@ -5115,7 +5125,6 @@ void CNPC_MetroPolice::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 			}
 		}
 	}
-	*/
 }
 
 //-----------------------------------------------------------------------------

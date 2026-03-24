@@ -76,7 +76,7 @@ protected:
 	//CHandle<CSpriteTrail>	m_pGlowTrail;
 
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 };
 LINK_ENTITY_TO_CLASS( crossbow_bolt, CCrossbowBolt );
 
@@ -443,7 +443,7 @@ public:
 	bool	ShouldDisplayHUDHint() { return true; }
 
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 private:

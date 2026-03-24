@@ -39,7 +39,7 @@ public:
 
 	float	WeaponAutoAimScale()	{ return 0.6f; }
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 };
 

@@ -131,9 +131,9 @@ public:
 	{
 		MAX_OVERLAYS = 15,
 	};
+	CUtlVector< CAnimationLayer	> m_AnimOverlay;
 
 private:
-	CUtlVector< CAnimationLayer	> m_AnimOverlay;
 	//int				m_nActiveLayers;
 	//int				m_nActiveBaseLayers;
 
@@ -202,6 +202,7 @@ private:
 };
 
 EXTERN_SEND_TABLE(DT_BaseAnimatingOverlay);
+EXTERN_SEND_TABLE(DT_OverlayVars);
 
 inline int CBaseAnimatingOverlay::GetNumAnimOverlays() const
 {

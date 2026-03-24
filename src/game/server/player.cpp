@@ -517,6 +517,27 @@ void CBasePlayer::CreateViewModel( int index /*=0*/ )
 		m_hViewModel.Set( index, vm );
 	}
 }
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBasePlayer::CreateHandModel(int index, int iOtherVm)
+{
+	Assert(index >= 0 && index < MAX_VIEWMODELS && iOtherVm >= 0 && iOtherVm < MAX_VIEWMODELS);
+
+	if (GetViewModel(index))
+		return;
+
+	CBaseViewModel* vm = (CBaseViewModel*)CreateEntityByName("hand_viewmodel");
+	if (vm)
+	{
+		vm->SetAbsOrigin(GetAbsOrigin());
+		vm->SetOwner(this);
+		vm->SetIndex(index);
+		DispatchSpawn(vm);
+		vm->FollowEntity(GetViewModel(iOtherVm), true);
+		m_hViewModel.Set(index, vm);
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -2916,12 +2937,13 @@ void CBasePlayer::Duck( )
 //
 Class_T  CBasePlayer::Classify ( void )
 {
-	if (GetTeamNumber() == TF_TEAM_PVE_INVADERS) {
-		return CLASS_COMBINE;
+	if (GetTeamNumber() == 3) { // infected
+		return CLASS_ZOMBIE;
 	}
-	else {
+	else if (GetTeamNumber() == 2) {
 		return CLASS_PLAYER;
 	}
+	return CLASS_NONE;
 }
 
 
@@ -3586,6 +3608,34 @@ void CBasePlayer::ProcessUsercmds( CUserCmd *cmds, int numcmds, int totalcmds,
 	ctx->dropped_packets	= dropped_packets;
 	ctx->paused				= paused;
 		
+	// If the server is paused, zero out motion,buttons,view changes
+	if ( ctx->paused )
+	{
+		bool clear_angles = true;
+
+		// If no clipping and cheats enabled and sv_noclipduringpause enabled, then don't zero out movement part of CUserCmd
+		if ( GetMoveType() == MOVETYPE_NOCLIP &&
+			sv_cheats->GetBool() && 
+			sv_noclipduringpause.GetBool() )
+		{
+			clear_angles = false;
+		}
+
+		for ( i = 0; i < ctx->numcmds; i++ )
+		{
+			ctx->cmds[ i ].buttons = 0;
+			if ( clear_angles )
+			{
+				ctx->cmds[ i ].forwardmove = 0;
+				ctx->cmds[ i ].sidemove = 0;
+				ctx->cmds[ i ].upmove = 0;
+				VectorCopy ( pl.v_angle, ctx->cmds[ i ].viewangles );
+			}
+		}
+
+		ctx->dropped_packets = 0;
+	}
+
 	// Set global pause state for this player
 	m_bGamePaused = paused;
 
@@ -5107,6 +5157,7 @@ void CBasePlayer::Spawn( void )
 	enginesound->SetPlayerDSP( user, 0, false );
 
 	CreateViewModel();
+	CreateHandModel();
 
 	SetCollisionGroup( COLLISION_GROUP_PLAYER );
 
@@ -9297,7 +9348,6 @@ bool CPlayerInfo::IsReplay()
 
 bool CPlayerInfo::IsPlayer() 
 { 
-	Assert( m_pParent );
 	return m_pParent->IsPlayer(); 
 }
 

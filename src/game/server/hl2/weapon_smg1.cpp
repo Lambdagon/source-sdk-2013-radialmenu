@@ -31,7 +31,7 @@ public:
 
 	CWeaponSMG1();
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	
 	void	Precache( void );
 	void	AddViewKick( void );
@@ -70,7 +70,6 @@ protected:
 
 IMPLEMENT_SERVERCLASS_ST(CWeaponSMG1, DT_WeaponSMG1)
 END_SEND_TABLE()
-
 
 LINK_ENTITY_TO_CLASS( weapon_smg1, CWeaponSMG1 );
 PRECACHE_WEAPON_REGISTER(weapon_smg1);
@@ -223,7 +222,7 @@ void CWeaponSMG1::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatChar
 
 			CAI_BaseNPC *npc = pOperator->MyNPCPointer();
 			ASSERT( npc != NULL );
-			vecShootDir = npc->GetShootEnemyDir( vecShootOrigin );
+			vecShootDir = npc->GetActualShootTrajectory( vecShootOrigin );
 
 			FireNPCPrimaryAttack( pOperator, vecShootOrigin, vecShootDir );
 		}

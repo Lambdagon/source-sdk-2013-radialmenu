@@ -219,7 +219,7 @@ void CWeaponAlyxGun::FireNPCPrimaryAttack( CBaseCombatCharacter *pOperator, bool
 	else 
 	{
 		vecShootOrigin = pOperator->Weapon_ShootPosition();
-		vecShootDir = npc->GetShootEnemyDir(vecShootOrigin);
+ 		vecShootDir = npc->GetActualShootTrajectory( vecShootOrigin );
 	}
 
 	WeaponSound( SINGLE_NPC );

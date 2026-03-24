@@ -21,7 +21,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-static ConVar  r_drawflecks( "r_drawflecks", "1", FCVAR_ALLOWED_IN_COMPETITIVE );
+static ConVar  r_drawflecks("r_drawflecks", "1");
+static ConVar  r_impacts_alt_orientation("r_impacts_alt_orientation", "1");
 extern ConVar r_drawmodeldecals;
 
 ImpactSoundRouteFn g_pImpactSoundRouteFn = NULL;
@@ -208,7 +209,7 @@ char const *GetImpactDecal( C_BaseEntity *pEntity, int iMaterial, int iDamageTyp
 //-----------------------------------------------------------------------------
 // Purpose: Perform custom effects based on the Decal index
 //-----------------------------------------------------------------------------
-static ConVar cl_new_impact_effects( "cl_new_impact_effects", "0" );
+static ConVar cl_new_impact_effects( "cl_new_impact_effects", "1", FCVAR_ARCHIVE|FCVAR_HIDDEN );
 
 struct ImpactEffect_t
 {
@@ -220,42 +221,47 @@ static ImpactEffect_t s_pImpactEffect[26] =
 {
 	{ "impact_antlion",		NULL },							// CHAR_TEX_ANTLION
 	{ NULL,					NULL },							// CHAR_TEX_BLOODYFLESH	
-	{ "impact_concrete",	"impact_concrete_noflecks" },	// CHAR_TEX_CONCRETE		
-	{ "impact_dirt",		NULL },							// CHAR_TEX_DIRT			
+	{ "impact_concrete",	"impact_concrete" },		// CHAR_TEX_CONCRETE		
+	{ "impact_dirt",		"impact_dirt" },			// CHAR_TEX_DIRT			
 	{ NULL,					NULL },							// CHAR_TEX_EGGSHELL		
 	{ NULL,					NULL },							// CHAR_TEX_FLESH			
-	{ NULL,					NULL },							// CHAR_TEX_GRATE			
+	{ "impact_metal",		"impact_metal" },			// CHAR_TEX_GRATE			
 	{ NULL,					NULL },							// CHAR_TEX_ALIENFLESH		
 	{ NULL,					NULL },							// CHAR_TEX_CLIP			
-	{ NULL,					NULL },							// CHAR_TEX_UNUSED		
-	{ NULL,					NULL },							// CHAR_TEX_UNUSED		
-	{ NULL,					NULL },							// CHAR_TEX_PLASTIC		
-	{ "impact_metal",		NULL },							// CHAR_TEX_METAL			
-	{ "impact_dirt",		NULL },							// CHAR_TEX_SAND			
-	{ NULL,					NULL },							// CHAR_TEX_FOLIAGE		
-	{ "impact_computer",	NULL },							// CHAR_TEX_COMPUTER		
-	{ NULL,					NULL },							// CHAR_TEX_UNUSED		
-	{ NULL,					NULL },							// CHAR_TEX_UNUSED		
-	{ NULL,					NULL },							// CHAR_TEX_SLOSH			
-	{ "impact_concrete",	"impact_concrete_noflecks" },	// CHAR_TEX_TILE			
-	{ NULL,					NULL },							// CHAR_TEX_UNUSED		
-	{ "impact_metal",		NULL },							// CHAR_TEX_VENT			
-	{ "impact_wood",		"impact_wood_noflecks" },		// CHAR_TEX_WOOD			
-	{ NULL,					NULL },							// CHAR_TEX_UNUSED		
-	{ "impact_glass",		NULL },							// CHAR_TEX_GLASS			
+	{ "impact_grass",		"impact_grass" },			// CHAR_TEX_GRASS		
+	{ "impact_snow",		"impact_snow" },			// CHAR_TEX_SNOW
+	{ "impact_plastic",		"impact_plastic" },		// CHAR_TEX_PLASTIC		
+	{ "impact_metal",		"impact_metal" },			// CHAR_TEX_METAL			
+	{ "impact_sand",		"impact_sand" },			// CHAR_TEX_SAND			
+	{ "impact_leaves",		"impact_leaves" },		// CHAR_TEX_FOLIAGE		
+	{ "impact_computer",	"impact_computer" },		// CHAR_TEX_COMPUTER		
+	{ "impact_asphalt",		"impact_asphalt" },		// CHAR_TEX_ASPHALT		
+	{ "impact_brick",		"impact_brick" },			// CHAR_TEX_BRICK		
+	{ "impact_wet",			"impact_wet" },			// CHAR_TEX_SLOSH			
+	{ "impact_tile",		"impact_tile" },			// CHAR_TEX_TILE			
+	{ "impact_cardboard",	"impact_cardboard" },		// CHAR_TEX_CARDBOARD		
+	{ "impact_metal",		"impact_metal" },			// CHAR_TEX_VENT			
+	{ "impact_wood",		"impact_wood" },			// CHAR_TEX_WOOD			
+	{ NULL,					NULL },							// CHAR_TEX_FAKE		
+	{ "impact_glass",		"impact_glass" },			// CHAR_TEX_GLASS							
 	{ "warp_shield_impact", NULL },							// CHAR_TEX_WARPSHIELD		
 };
 
-static void SetImpactControlPoint( CNewParticleEffect *pEffect, int nPoint, const Vector &vecImpactPoint, const Vector &vecForward, C_BaseEntity *pEntity )
+static void SetImpactControlPoint(CNewParticleEffect* pEffect, int nPoint, const Vector& vecImpactPoint, const Vector& vecForward, C_BaseEntity* pEntity)
 {
 	Vector vecImpactY, vecImpactZ;
-	VectorVectors( vecForward, vecImpactY, vecImpactZ ); 
+	VectorVectors(vecForward, vecImpactY, vecImpactZ);
 	vecImpactY *= -1.0f;
 
-	pEffect->SetControlPoint( nPoint, vecImpactPoint );
-	pEffect->SetControlPointOrientation( nPoint, vecForward, vecImpactY, vecImpactZ );
-	pEffect->SetControlPointEntity( nPoint, pEntity );
+	pEffect->SetControlPoint(nPoint, vecImpactPoint);
+
+	if (r_impacts_alt_orientation.GetBool())
+		pEffect->SetControlPointOrientation(nPoint, vecImpactZ, vecImpactY, vecForward);
+	else
+		pEffect->SetControlPointOrientation(nPoint, vecForward, vecImpactY, vecImpactZ);
+	pEffect->SetControlPointEntity(nPoint, pEntity);
 }
+
 
 static void PerformNewCustomEffects( const Vector &vecOrigin, trace_t &tr, const Vector &shotDir, int iMaterial, int iScale, int nFlags )
 {
@@ -275,24 +281,28 @@ static void PerformNewCustomEffects( const Vector &vecOrigin, trace_t &tr, const
 	if ( !pImpactName )
 		return;
 
+	if (pImpactName == NULL)
+		return;
+
 	CSmartPtr<CNewParticleEffect> pEffect = CNewParticleEffect::Create( NULL, pImpactName );
 	if ( !pEffect->IsValid() )
 		return;
-
+	
 	Vector	vecReflect;
 	float	flDot = DotProduct( shotDir, tr.plane.normal );
 	VectorMA( shotDir, -2.0f * flDot, tr.plane.normal, vecReflect );
-
+		
 	Vector vecShotBackward;
 	VectorMultiply( shotDir, -1.0f, vecShotBackward );
-
+		
 	Vector vecImpactPoint = ( tr.fraction != 1.0f ) ? tr.endpos : vecOrigin;
 	Assert( VectorsAreEqual( vecOrigin, tr.endpos, 1e-1 ) );
-
+	
 	SetImpactControlPoint( pEffect.GetObject(), 0, vecImpactPoint, tr.plane.normal, tr.m_pEnt ); 
 	SetImpactControlPoint( pEffect.GetObject(), 1, vecImpactPoint, vecReflect,		tr.m_pEnt ); 
 	SetImpactControlPoint( pEffect.GetObject(), 2, vecImpactPoint, vecShotBackward,	tr.m_pEnt ); 
 	pEffect->SetControlPoint( 3, Vector( iScale, iScale, iScale ) );
+
 	if ( pEffect->m_pDef->ReadsControlPoint( 4 ) )
 	{
 		Vector vecColor;

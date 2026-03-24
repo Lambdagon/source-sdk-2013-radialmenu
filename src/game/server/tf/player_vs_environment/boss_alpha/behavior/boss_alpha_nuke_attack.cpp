@@ -168,7 +168,7 @@ ActionResult< CBossAlpha >	CBossAlphaNukeAttack::Update( CBossAlpha *me, float i
 					// catch them on fire (unless they are a Pyro)
 					if ( !playerVictim->IsPlayerClass( TF_CLASS_PYRO ) )
 					{
-						playerVictim->m_Shared.Burn(nullptr, nullptr, tf_boss_alpha_nuke_afterburn_time.GetFloat());
+						playerVictim->m_Shared.Burn( me, tf_boss_alpha_nuke_afterburn_time.GetFloat() );
 					}
 
 					color32 colorHit = { 255, 255, 255, 255 };

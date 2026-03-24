@@ -1507,7 +1507,7 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 			info2.SetDamagePosition( pos );
 		}
 
-	// UNDONE: Put in a real sound cue here, don't do this bogus hack anymore
+// UNDONE: Put in a real sound cue here, don't do this bogus hack anymore
 #if 0
 		Vector soundOrigin = info.GetDamagePosition();
 		CPASAttenuationFilter filter( soundOrigin );
@@ -1532,6 +1532,17 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 	//Fix up the force applied to server side ragdolls. This fixes magnets not affecting them.
 	CTakeDamageInfo newinfo = info;
 	newinfo.SetDamageForce( forceVector );
+
+#ifdef HL2_EPISODIC
+	// Burning corpses are server-side in episodic, if we're in darkness mode
+	if ( IsOnFire() && HL2GameRules()->IsAlyxInDarknessMode() )
+	{
+		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_DEBRIS );
+		FixupBurningServerRagdoll( pRagdoll );
+		RemoveDeferred();
+		return true;
+	}
+#endif
 
 #ifdef HL2_DLL	
 

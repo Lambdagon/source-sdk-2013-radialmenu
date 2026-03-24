@@ -122,6 +122,7 @@ private:
 	CNetworkArray( int, m_iAmmo, MAX_AMMO_TYPES );
 
 	CHandle<C_BaseCombatWeapon>		m_hMyWeapons[MAX_WEAPONS];
+	CHandle<C_BaseCombatWeapon>		m_hPreviousActiveWeapon;
 	CHandle< C_BaseCombatWeapon > m_hActiveWeapon;
 
 #ifdef GLOWS_ENABLE

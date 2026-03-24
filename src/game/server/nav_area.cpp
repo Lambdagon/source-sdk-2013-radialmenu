@@ -4850,12 +4850,8 @@ void CNavArea::UpdateBlocked( bool force, int teamID )
 	bool wasBlocked = IsBlocked( TEAM_ANY );
 
 	// See if spot is valid
-#ifdef TERROR
 	// don't unblock func_doors
 	CTraceFilterWalkableEntities filter( NULL, COLLISION_GROUP_PLAYER_MOVEMENT, WALK_THRU_PROP_DOORS | WALK_THRU_BREAKABLES );
-#else
-	CTraceFilterWalkableEntities filter( NULL, COLLISION_GROUP_PLAYER_MOVEMENT, WALK_THRU_DOORS | WALK_THRU_BREAKABLES );
-#endif
 	trace_t tr;
 	{
 	VPROF( "CNavArea::UpdateBlocked-Trace" );

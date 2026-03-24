@@ -35,7 +35,7 @@ public:
 	void	ExtinguishThink( void );
 
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 // Stuff from the datatable.
 public:

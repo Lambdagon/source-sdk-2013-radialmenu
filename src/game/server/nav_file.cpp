@@ -909,6 +909,22 @@ void CNavArea::ComputeEarliestOccupyTimes( void )
 		}
 	}
 
+	team = TEAM_ANY % MAX_NAV_TEAMS;
+	for (spot = gEntList.FindEntityByClassname(NULL, "info_player_start");
+		spot;
+		spot = gEntList.FindEntityByClassname(spot, "info_player_start"))
+	{
+		float travelDistance = NavAreaTravelDistance(spot->GetAbsOrigin(), m_center, cost);
+		if (travelDistance < 0.0f)
+			continue;
+
+		float travelTime = travelDistance / playerSpeed;
+		if (travelTime < m_earliestOccupyTime[team])
+		{
+			m_earliestOccupyTime[team] = travelTime;
+		}
+	}
+
 #else
 	for( int i=0; i<MAX_NAV_TEAMS; ++i )
 	{

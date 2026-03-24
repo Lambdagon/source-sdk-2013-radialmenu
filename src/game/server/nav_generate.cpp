@@ -609,10 +609,9 @@ private:
 //--------------------------------------------------------------------------------------------------------------
 void CNavMesh::MarkPlayerClipAreas( void )
 {
-#ifdef TERROR
 	FOR_EACH_VEC( TheNavAreas, it )
 	{
-		TerrorNavArea *area = static_cast< TerrorNavArea * >(TheNavAreas[it]);
+		CNavArea *area = static_cast< CNavArea * >(TheNavAreas[it]);
 
 		// Trace upward a bit from our center point just colliding wtih PLAYERCLIP to see if we're in one, if we are, mark us as accordingly.
 		trace_t trace;
@@ -622,10 +621,9 @@ void CNavMesh::MarkPlayerClipAreas( void )
 
 		if ( trace.fraction < 1.0 )
 		{
-			area->SetAttributes( area->GetAttributes() | TerrorNavArea::NAV_PLAYERCLIP );
+			area->SetAttributes( area->GetAttributes() | NAV_PLAYERCLIP );
 		}
 	}
-#endif
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -3423,19 +3421,16 @@ void CNavMesh::BeginGeneration( bool incremental )
 		gameeventmanager->FireEvent( event );
 	}
 
-#ifdef TERROR
-	engine->ServerCommand( "director_stop\nnb_delete_all\n" );
-	if ( !incremental && !engine->IsDedicatedServer() )
+	engine->ServerCommand("director_stop\nnb_delete_all\n");
+	if (!incremental && !engine->IsDedicatedServer())
 	{
-		CBasePlayer *host = UTIL_GetListenServerHost();
-		if ( host )
+		CBasePlayer* host = UTIL_GetListenServerHost();
+		if (host)
 		{
-			host->ChangeTeam( TEAM_SPECTATOR );
+			host->ChangeTeam(TEAM_SPECTATOR);
 		}
 	}
-#else
 	engine->ServerCommand( "bot_kick\n" );
-#endif
 
 	// Right now, incrementally-generated areas won't connect to existing areas automatically.
 	// Since this means hand-editing will be necessary, don't do a full analyze.
@@ -3491,7 +3486,6 @@ void CNavMesh::BeginGeneration( bool incremental )
  */
 void CNavMesh::BeginAnalysis( bool quitWhenFinished )
 {
-#ifdef TERROR
 	if ( !engine->IsDedicatedServer() )
 	{
 		CBasePlayer *host = UTIL_GetListenServerHost();
@@ -3524,7 +3518,6 @@ void CNavMesh::BeginAnalysis( bool quitWhenFinished )
 			mat_queue_mode.SetValue( 0 );
 		}
 	}
-#endif
 
 	// Remove and re-add elements in TheNavAreas, to ensure indices are useful for progress feedback
 	NavAreaVector tmpSet;

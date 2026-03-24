@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -15,6 +15,12 @@
 #include "utlvector.h"
 #include "baseplayer_shared.h"
 #include "shared_classnames.h"
+#if defined( CSTRIKE_DLL )
+#include "weapon_csbase.h"
+#ifdef CLIENT_DLL
+#include "c_cs_player.h"
+#endif
+#endif
 
 #if defined( CLIENT_DLL )
 #define CPredictedViewModel C_PredictedViewModel
@@ -22,39 +28,40 @@
 
 class CPredictedViewModel : public CBaseViewModel
 {
-	DECLARE_CLASS( CPredictedViewModel, CBaseViewModel );
+	DECLARE_CLASS(CPredictedViewModel, CBaseViewModel);
 public:
 
 	DECLARE_NETWORKCLASS();
 
-	CPredictedViewModel( void );
-	virtual ~CPredictedViewModel( void );
-							
-	virtual void CalcViewModelLag( Vector& origin, QAngle& angles, QAngle& original_angles );
+	CPredictedViewModel(void);
+	virtual ~CPredictedViewModel(void);
+
+	virtual void CalcViewModelLag(Vector& origin, QAngle& angles, QAngle& original_angles);
+	virtual void AddViewModelBob(CBasePlayer* owner, Vector& eyePosition, QAngle& eyeAngles);
+	virtual void ApplyViewModelPitchAndDip(CBasePlayer* owner, Vector& origin, QAngle& angles);
+
+#if defined( CSTRIKE_DLL )
+	virtual void CalcViewModelView(const Vector& eyePosition, const QAngle& eyeAngles);
 
 #if defined( CLIENT_DLL )
-	virtual bool ShouldPredict( void )
+	BobState_t& GetBobState() { return m_BobState; }
+#endif //CLIENT_DLL
+
+#endif //CSTRIKE15
+
+
+#if defined( CLIENT_DLL )
+	virtual bool ShouldPredict(void)
 	{
-		if ( GetOwner() && GetOwner() == C_BasePlayer::GetLocalPlayer() )
+		if (GetOwner() && GetOwner() == C_BasePlayer::GetLocalPlayer())
 			return true;
 
 		return BaseClass::ShouldPredict();
 	}
-
-	virtual bool PredictionErrorShouldResetLatchedForAllPredictables( void ) OVERRIDE
-	{
-#ifdef HL2MP
-		// misyl: If viewmodel mispred's on HL2MP don't reset all the player's variables.
-		return false;
-#else
-		// Not changing this behaviour for other games without testing. They also don't have the same issues.
-		return BaseClass::PredictionErrorShouldResetLatchedForAllPredictables();
-#endif
-	}
 #endif
 
 private:
-	
+
 #if defined( CLIENT_DLL )
 
 	// This is used to lag the angles.
@@ -62,7 +69,15 @@ private:
 	QAngle m_vLagAngles;
 	Vector	m_vPredictedOffset;
 
-	CPredictedViewModel( const CPredictedViewModel & ); // not defined, not accessible
+	CPredictedViewModel(const CPredictedViewModel&); // not defined, not accessible
+
+#if defined( CSTRIKE_DLL )
+protected:
+	BobState_t		m_BobState;		// view model head bob state
+	QAngle m_vLoweredWeaponOffset;
+	float m_flInaccuracyTilt;
+	float m_flOldAccuracyDiffSmoothed;
+#endif //CSTRIKE15
 
 #endif
 };

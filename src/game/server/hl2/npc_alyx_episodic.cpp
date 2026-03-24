@@ -209,7 +209,6 @@ int CNPC_Alyx::ObjectCaps()
 //=========================================================
 void CNPC_Alyx::HandleAnimEvent( animevent_t *pEvent )
 {
-	/*
 	if (pEvent->event == AE_ALYX_EMPTOOL_ATTACHMENT)
 	{
 		if (!m_hEmpTool)
@@ -289,8 +288,6 @@ void CNPC_Alyx::HandleAnimEvent( animevent_t *pEvent )
 		BaseClass::HandleAnimEvent( pEvent );
 		break;
 	}
-	*/
-	BaseClass::HandleAnimEvent(pEvent);
 }
 
 //=========================================================
@@ -608,11 +605,11 @@ void CNPC_Alyx::PrescheduleThink( void )
 	if ( GetMoveType() == MOVETYPE_NONE && !GetMoveParent() )
 	{
 		// Don't confuse the passenger behavior with just removing Alyx's parent!
-		//if ( m_PassengerBehavior.IsEnabled() == false )
-		//{
+		if ( m_PassengerBehavior.IsEnabled() == false )
+		{
 			SetupAlyxWithoutParent();
 			SetupVPhysicsHull();
-		//}
+		}
 	}
 
 	// If Alyx is in combat, and she doesn't have her gun out, fetch it
@@ -747,7 +744,6 @@ void CNPC_Alyx::GatherConditions()
 			{
 				// If the power level is low, consider it expired, due
 				// to it running out or the player turning it off in anticipation.
-				/*
 				CHL2_Player *pHLPlayer = assert_cast<CHL2_Player*>( pPlayer );
 				if ( pHLPlayer->SuitPower_GetCurrentPercentage() < 15 )
 				{
@@ -757,7 +753,6 @@ void CNPC_Alyx::GatherConditions()
 				{
 					SetCondition( COND_ALYX_PLAYER_TURNED_OFF_FLASHLIGHT );
 				}
-				*/
 			}
 
 			m_bPlayerFlashlightState = bFlashlightState;
@@ -840,7 +835,7 @@ void CNPC_Alyx::GatherConditions()
 
 	// ROBIN: This was here to solve a problem in a playtest. We've since found what we think was the cause.
 	// It's a useful piece of debug to have lying there, so I've left it in.
-	if ( (GetFlags() & FL_FLY) && m_NPCState != NPC_STATE_SCRIPT && !m_ActBusyBehavior.IsActive() )
+	if ( (GetFlags() & FL_FLY) && m_NPCState != NPC_STATE_SCRIPT && !m_ActBusyBehavior.IsActive() && !m_PassengerBehavior.IsEnabled() )
 	{
 		Warning( "Removed FL_FLY from Alyx, who wasn't running a script or actbusy. Time %.2f, map %s.\n", gpGlobals->curtime, STRING(gpGlobals->mapname) );
 		RemoveFlag( FL_FLY );
@@ -1045,7 +1040,7 @@ void CNPC_Alyx::CombineBallSocketed( int iNumBounces )
 	CFmtStrN<128> modifiers( "num_bounces:%d", iNumBounces );
 
 	// fire off a ball socketed concept
-	//SpeakIfAllowed( TLK_BALLSOCKETED, modifiers );
+	SpeakIfAllowed( TLK_BALLSOCKETED, modifiers );
 }
 
 //-----------------------------------------------------------------------------
@@ -1054,8 +1049,8 @@ void CNPC_Alyx::CombineBallSocketed( int iNumBounces )
 bool CNPC_Alyx::RunningPassengerBehavior( void )
 {
 	// Must be active and not outside the vehicle
-	//if ( m_PassengerBehavior.IsRunning() && m_PassengerBehavior.GetPassengerState() != PASSENGER_STATE_OUTSIDE )
-		//return true;
+	if ( m_PassengerBehavior.IsRunning() && m_PassengerBehavior.GetPassengerState() != PASSENGER_STATE_OUTSIDE )
+		return true;
 
 	return false;
 }
@@ -2656,6 +2651,8 @@ bool CNPC_Alyx::CanBeBlindedByFlashlight( bool bCheckLightSources )
 	// Not during an actbusy
 	if ( m_ActBusyBehavior.IsActive() )
 		return false;
+	if ( m_OperatorBehavior.IsRunning() )
+		return false;
 
 	// Can't be blinded if I've been in combat recently, to fix anim snaps
 	if ( GetLastEnemyTime() != 0.0 )
@@ -2832,6 +2829,13 @@ void CNPC_Alyx::AimGun( void )
 		return;
 	}
 
+	// Always allow the passenger behavior to handle this
+	if ( m_PassengerBehavior.IsEnabled() )
+	{
+		m_PassengerBehavior.AimGun();
+		return;
+	}
+
 	if( !GetEnemy() )
 	{
 		if ( GetReadinessLevel() == AIRL_STEALTH && m_hStealthLookTarget != NULL )
@@ -2997,9 +3001,9 @@ void CNPC_Alyx::ModifyOrAppendCriteria( AI_CriteriaSet &set )
 	set.AppendCriteria( "darkness_mode", UTIL_VarArgs( "%d", HasCondition( COND_ALYX_IN_DARK ) ) );
 	set.AppendCriteria( "water_level", UTIL_VarArgs( "%d", GetWaterLevel() ) );
 
-	//CHL2_Player *pPlayer = assert_cast<CHL2_Player*>( UTIL_PlayerByIndex( 1 ) );
-	//set.AppendCriteria( "num_companions", UTIL_VarArgs( "%d", pPlayer ? pPlayer->GetNumSquadCommandables() : 0 ) );
-	//set.AppendCriteria( "flashlight_on", UTIL_VarArgs( "%d", pPlayer ? pPlayer->FlashlightIsOn() : 0 ) );
+	CHL2_Player *pPlayer = assert_cast<CHL2_Player*>( UTIL_PlayerByIndex( 1 ) );
+	set.AppendCriteria( "num_companions", UTIL_VarArgs( "%d", pPlayer ? pPlayer->GetNumSquadCommandables() : 0 ) );
+	set.AppendCriteria( "flashlight_on", UTIL_VarArgs( "%d", pPlayer ? pPlayer->FlashlightIsOn() : 0 ) );
 
 	BaseClass::ModifyOrAppendCriteria( set );
 }
@@ -3113,12 +3117,21 @@ void CNPC_Alyx::BarnacleDeathSound( void )
 // Purpose: 
 // Output : PassengerState_e
 //-----------------------------------------------------------------------------
-// 
+PassengerState_e CNPC_Alyx::GetPassengerState( void )
+{
+	return m_PassengerBehavior.GetPassengerState();
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CNPC_Alyx::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	// if I'm in the vehicle, the player is probably trying to use the vehicle
+	if ( GetPassengerState() == PASSENGER_STATE_INSIDE && pActivator->IsPlayer() && GetParent() )
+	{
+		GetParent()->Use( pActivator, pCaller, useType, value );
+		return;
+	}
 	m_bDontUseSemaphore = true;
 	SpeakIfAllowed( TLK_USE );
 	m_bDontUseSemaphore = false;
@@ -3216,7 +3229,7 @@ void CNPC_Alyx::SpeakAttacking( void )
 //-----------------------------------------------------------------------------
 bool CNPC_Alyx::ForceVehicleInteraction( const char *lpszInteractionName, CBaseCombatCharacter *pOther )
 {
-	return false;
+	return m_PassengerBehavior.ForceVehicleInteraction( lpszInteractionName, pOther );
 }
 
 //-----------------------------------------------------------------------------
@@ -3282,6 +3295,7 @@ void CNPC_Alyx::InputOutsideTransition( inputdata_t &inputdata )
 			return;
 
 		// Enter immediately
+		EnterVehicle( pPlayer->GetVehicleEntity(), true );
 		return;
 	}
 

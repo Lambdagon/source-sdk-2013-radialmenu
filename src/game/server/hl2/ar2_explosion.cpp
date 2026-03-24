@@ -13,7 +13,6 @@
 #define AR2EXPLOSION_ENTITYNAME	"ar2explosion"
 
 
-
 IMPLEMENT_SERVERCLASS_ST(AR2Explosion, DT_AR2Explosion)
 	SendPropString( SENDINFO( m_szMaterialName ) ),
 END_SEND_TABLE()

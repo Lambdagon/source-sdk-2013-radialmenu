@@ -44,17 +44,6 @@ ActionResult< CTFBot >	CTFBotAttack::Update( CTFBot *me, float interval )
 		return Done( "No threat" );
 	}
 
-	// find the flag in the map
-	CCaptureFlag* pFlag = NULL;
-	for (int i = 0; i < ICaptureFlagAutoList::AutoList().Count(); ++i)
-	{
-		pFlag = static_cast<CCaptureFlag*>(ICaptureFlagAutoList::AutoList()[i]);
-		if (!pFlag->IsDisabled())
-		{
-			break;
-		}
-	}
-
 	me->EquipBestWeaponForThreat( threat );
 
 	if ( isUsingCloseRangeWeapon && threat->IsVisibleRecently() && me->IsRangeLessThan( threat->GetLastKnownPosition(), 1.1f * me->GetDesiredAttackRange() ) )
@@ -83,14 +72,10 @@ ActionResult< CTFBot >	CTFBotAttack::Update( CTFBot *me, float interval )
 				CTFBotPathCost cost( me, SAFEST_ROUTE );
 				m_chasePath.Update( me, threat->GetEntity(), cost );
 			}
-			else if (isUsingCloseRangeWeapon && TFGameRules()->IsMannVsMachineMode() && me->GetFlagToFetch())
+			else
 			{
 				CTFBotPathCost cost( me, DEFAULT_ROUTE );
 				m_chasePath.Update( me, threat->GetEntity(), cost );
-			}
-			else {
-				CTFBotPathCost cost(me, SAFEST_ROUTE);
-				m_chasePath.Update(me, threat->GetEntity(), cost);
 			}
 		}
 		else
@@ -117,28 +102,16 @@ ActionResult< CTFBot >	CTFBotAttack::Update( CTFBot *me, float interval )
 				//m_repathTimer.Start( RandomFloat( 0.3f, 0.5f ) );
 				m_repathTimer.Start( RandomFloat( 3.0f, 5.0f ) );
 
-				if ( isUsingCloseRangeWeapon )	// all bots in MvM use the default route
+				if ( isUsingCloseRangeWeapon && !TFGameRules()->IsMannVsMachineMode() )	// all bots in MvM use the default route
 				{
-					if (TFGameRules()->IsMannVsMachineMode() && me->GetFlagToFetch()) {
-
-					}
-					else {
-						CTFBotPathCost cost(me, SAFEST_ROUTE);
-						m_path.Compute(me, threat->GetLastKnownPosition(), cost);
-					}
+					CTFBotPathCost cost( me, SAFEST_ROUTE );
+					m_path.Compute( me, threat->GetLastKnownPosition(), cost );
 				}
 				else
 				{
-					if (TFGameRules()->IsMannVsMachineMode() && me->GetFlagToFetch()) {
-						CTFBotPathCost cost(me, DEFAULT_ROUTE);
-						float maxPathLength = TFBOT_MVM_MAX_PATH_LENGTH;
-						m_path.Compute(me, threat->GetLastKnownPosition(), cost, maxPathLength);
-					}
-					else {
-						CTFBotPathCost cost(me, DEFAULT_ROUTE);
-						float maxPathLength = 0.0f;
-						m_path.Compute(me, threat->GetLastKnownPosition(), cost, maxPathLength);
-					}
+					CTFBotPathCost cost( me, DEFAULT_ROUTE );
+					float maxPathLength = TFGameRules()->IsMannVsMachineMode() ? TFBOT_MVM_MAX_PATH_LENGTH : 0.0f;
+					m_path.Compute( me, threat->GetLastKnownPosition(), cost, maxPathLength );
 				}
 			}
 		}

@@ -15,7 +15,6 @@
 #include "soundent.h"
 #include "ai_behavior_follow.h"
 #include "ai_behavior_assault.h"
-#include "globalstate.h"
 
 class CAntlionTemplateMaker;
 
@@ -126,7 +125,7 @@ public:
 	virtual int		GetSoundInterests( void ) { return (BaseClass::GetSoundInterests())|(SOUND_DANGER|SOUND_PHYSICS_DANGER|SOUND_THUMPER|SOUND_BUGBAIT); }
 	virtual	bool	IsHeavyDamage( const CTakeDamageInfo &info );
 
-	Class_T		Classify( void );
+	Class_T		Classify( void ) { return CLASS_ANTLION; }
 	
 	void		Event_Killed( const CTakeDamageInfo &info );
 	bool		FValidateHintType ( CAI_Hint *pHint );
@@ -415,14 +414,5 @@ extern bool IsAntlionWorker( CBaseEntity *pEntity );
 #ifdef HL2_EPISODIC
 extern float AntlionWorkerBurstRadius( void );
 #endif // HL2_EPISODIC
-inline Class_T CNPC_Antlion::Classify(void) 
-{ 
-	if (GlobalEntity_GetState("antlion_allied") == GLOBAL_ON) {
 
-		return CLASS_PLAYER_ALLY;
-	}
-	else {
-		return CLASS_ANTLION;
-	}
-}
 #endif // NPC_ANTLION_H

@@ -19,16 +19,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_BaseHelicopter, DT_BaseHelicopter, CBaseHelicopter )
 END_RECV_TABLE()
 
 
-IMPLEMENT_CLIENTCLASS_DT(C_HL1BaseHelicopter, DT_HL1BaseHelicopter, CHL1BaseHelicopter)
-END_RECV_TABLE()
-
-
 C_BaseHelicopter::C_BaseHelicopter()
-{
-}
-
-
-C_HL1BaseHelicopter::C_HL1BaseHelicopter()
 {
 }
 

@@ -621,11 +621,12 @@ public:
 		NEXT_CONDITION 	= LAST_SHARED_CONDITION,
 	};
 
-protected:
 	// Used by derived classes to chain a task to a task that might not be the 
 	// one they are currently handling:
-	void				ChainStartTask( int task, float taskData = 0 )	{ Task_t tempTask = { task, taskData }; StartTask( (const Task_t *)&tempTask ); }
-	void				ChainRunTask( int task, float taskData = 0 )	{ Task_t tempTask = { task, taskData }; RunTask( (const Task_t *)	&tempTask );	}
+	void				ChainStartTask(int task, float taskData = 0) { Task_t tempTask = { task, taskData }; StartTask((const Task_t*)&tempTask); }
+	void				ChainRunTask(int task, float taskData = 0) { Task_t tempTask = { task, taskData }; RunTask((const Task_t*)&tempTask); }
+
+protected:
 
 	void				StartTaskOverlay();
 	void				RunTaskOverlay();

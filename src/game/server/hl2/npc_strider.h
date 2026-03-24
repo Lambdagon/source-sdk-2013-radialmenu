@@ -81,7 +81,7 @@ class CNPC_Strider : public CAI_BlendingHost<CAI_BaseNPC>,
 					 public IStriderMinigunHost
 {
 	DECLARE_CLASS( CNPC_Strider, CAI_BaseNPC );
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 public:
 	CNPC_Strider();

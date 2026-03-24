@@ -29,7 +29,7 @@ private:
 	CNetworkVar( int, m_nTargetAttachment );	// Attachment point to match to on the target
 
 	DECLARE_DATADESC();
-	//DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 };
 
 LINK_ENTITY_TO_CLASS( npc_puppet, CNPC_Puppet );
@@ -42,12 +42,12 @@ BEGIN_DATADESC( CNPC_Puppet )
 	DEFINE_FIELD( m_hAnimationTarget, FIELD_EHANDLE ),
 	DEFINE_INPUTFUNC( FIELD_STRING, "SetAnimationTarget", InputSetAnimationTarget ),
 END_DATADESC()
-/*
+
 IMPLEMENT_SERVERCLASS_ST( CNPC_Puppet, DT_NPC_Puppet )
 	SendPropEHandle( SENDINFO( m_hAnimationTarget ) ),
 	SendPropInt( SENDINFO( m_nTargetAttachment) ),
 END_SEND_TABLE()
-*/
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------

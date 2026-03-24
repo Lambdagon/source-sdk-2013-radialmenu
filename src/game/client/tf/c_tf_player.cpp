@@ -76,6 +76,9 @@
 #include "netadr.h"
 #include "input.h"
 
+// for rescue ranger
+#include "materialsystem/imaterialproxy.h"
+
 #include "gcsdk/gcclientsdk.h"
 #include "econ_gcmessages.h"
 #include "rtime.h"
@@ -130,8 +133,6 @@
 // NVNT haptics system interface
 #include "c_tf_haptics.h"
 
-#include "achievementmgr.h"
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -145,8 +146,6 @@ static_assert( TF_TEAM_BLUE == 3, "If this assert fires, update the assert and t
 // Forward decl
 CEconItemView *GetEconItemViewFromProxyEntity( void *pEntity );
 C_TFPlayer *GetOwnerFromProxyEntity( void *pEntity );
-
-extern CAchievementMgr g_AchievementMgrTF;
 
 // --------------------------------------------------------------------------------
 // Local Convar Helper Function
@@ -2293,12 +2292,31 @@ public:
 EXPOSE_INTERFACE( CProxyBenefactorLevel, IMaterialProxy, "BenefactorLevel" IMATERIAL_PROXY_INTERFACE_VERSION );
 
 //-----------------------------------------------------------------------------
-// Purpose: Used for scaling the oscilloscope on the Building Rescue Gun
-// Flattens the Wave when the player has no energy
+// Purpose: Used for scaling the oscilloscope on the Rescue Ranger
+// Flattens the Wave when the player has insufficent energy to rescue buildings
+// Wave has horizontal scrolling whose speed and direction can be controlled from material proxy
 //-----------------------------------------------------------------------------
+
 class CProxyBuildingRescueLevel : public CResultProxy
 {
 public:
+// Add this member (default to something safe)
+    float m_flScrollSpeed = -0.1f;
+
+    virtual bool Init( IMaterial *pMaterial, KeyValues *pKeyValues )
+    {
+        // Call base init first if needed
+        if ( !CResultProxy::Init( pMaterial, pKeyValues ) )
+            return false;
+
+        // pKeyValues points to the { "screenScrollRate" "#" ... } subkey
+        if ( pKeyValues )
+        {
+            m_flScrollSpeed = pKeyValues->GetFloat( "screenScrollRate", -0.1f );  // fallback if missing
+        }
+
+        return true;
+    }
 	void OnBind( void *pC_BaseEntity )
 	{
 		Assert( m_pResult );
@@ -2342,6 +2360,17 @@ public:
 		MatrixBuildTranslation( temp, center.x, center.y, 0.0f );
 		MatrixMultiply( temp, mat, mat );
 
+
+		float flScrollSpeed = m_flScrollSpeed;
+
+		float scrollOffset = fmodf( gpGlobals->curtime * flScrollSpeed, 1.0f );
+		if ( scrollOffset < 0.0f )
+			scrollOffset += 1.0f;  // [0,1) range for seamless loop
+
+		// Apply horizontal scroll AFTER the existing scale/center operations
+		MatrixBuildTranslation( temp, scrollOffset, 0.0f, 0.0f );
+		MatrixMultiply( temp, mat, mat );
+
 		m_pResult->SetMatrixValue( mat );
 
 		if ( ToolsEnabled() )
@@ -2351,7 +2380,7 @@ public:
 	}
 };
 
-EXPOSE_INTERFACE( CProxyBuildingRescueLevel, IMaterialProxy, "BuildingRescueLevel" IMATERIAL_PROXY_INTERFACE_VERSION );
+EXPOSE_INTERFACE(CProxyBuildingRescueLevel, IMaterialProxy, "BuildingRescueLevel" IMATERIAL_PROXY_INTERFACE_VERSION);
 
 
 //-----------------------------------------------------------------------------
@@ -3731,6 +3760,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_TFPlayer, DT_TFPlayer, CTFPlayer )
 	RecvPropFloat( RECVINFO( m_flMvMLastDamageTime ) ),
 	RecvPropFloat( RECVINFO_NAME( m_flMvMLastDamageTime, "m_flLastDamageTime" ) ), // Renamed
 	RecvPropInt( RECVINFO( m_iSpawnCounter ) ),
+	RecvPropBool( RECVINFO( m_bFlipViewModels ) ),
 	RecvPropBool( RECVINFO( m_bArenaSpectator ) ),
 
 	RecvPropDataTable( RECVINFO_DT( m_AttributeManager ), 0, &REFERENCE_RECV_TABLE(DT_AttributeManager) ),
@@ -4034,7 +4064,6 @@ void C_TFPlayer::Spawn( void )
 	SetShowHudMenuTauntSelection( false );
 
 	CleanUpAnimationOnSpawn();
-	g_AchievementMgrTF.AwardAchievement(ACHIEVEMENT_SIOBHAN_WELCOME);
 }
 
 //-----------------------------------------------------------------------------
@@ -9482,14 +9511,12 @@ void C_TFPlayer::ComputeFxBlend( void )
 	}
 }
 
-
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
 void C_TFPlayer::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov )
 {
 	HandleTaunting();
-
 	BaseClass::CalcView( eyeOrigin, eyeAngles, zNear, zFar, fov );
 }
 
@@ -11617,26 +11644,24 @@ void C_TFPlayer::ClientAdjustVOPitch( int& pitch )
 	{
 		pitch *= 1.3f;
 	}
+
 	// Halloween voice futzery?
-	else
+	float flVoicePitchScale = 1.f;
+	CALL_ATTRIB_HOOK_FLOAT( flVoicePitchScale, voice_pitch_scale );
+
+	int iHalloweenVoiceSpell = 0;
+	if ( TF_IsHolidayActive( kHoliday_HalloweenOrFullMoon ) )
 	{
-		float flVoicePitchScale = 1.f;
-		CALL_ATTRIB_HOOK_FLOAT( flVoicePitchScale, voice_pitch_scale );
+		CALL_ATTRIB_HOOK_INT( iHalloweenVoiceSpell, halloween_voice_modulation );
+	}
 
-		int iHalloweenVoiceSpell = 0;
-		if ( TF_IsHolidayActive( kHoliday_HalloweenOrFullMoon ) )
-		{
-			CALL_ATTRIB_HOOK_INT( iHalloweenVoiceSpell, halloween_voice_modulation );
-		}
-
-		if ( iHalloweenVoiceSpell > 0 )
-		{
-			pitch *= 0.8f;
-		}
-		else if ( flVoicePitchScale != 1.f )
-		{
-			pitch *= flVoicePitchScale;
-		}
+	if ( iHalloweenVoiceSpell > 0 )
+	{
+		pitch *= 0.8f;
+	}
+	else if ( flVoicePitchScale != 1.f )
+	{
+		pitch *= flVoicePitchScale;
 	}
 }
 

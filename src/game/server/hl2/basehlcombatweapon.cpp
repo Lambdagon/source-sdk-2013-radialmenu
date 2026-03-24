@@ -15,10 +15,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-
 IMPLEMENT_SERVERCLASS_ST( CHLMachineGun, DT_HLMachineGun )
 END_SEND_TABLE()
-
 
 //=========================================================
 //	>> CHLSelectFireMachineGun
@@ -268,11 +266,8 @@ void CHLMachineGun::ItemPostFrame( void )
 	BaseClass::ItemPostFrame();
 }
 
-
 IMPLEMENT_SERVERCLASS_ST( CHLSelectFireMachineGun, DT_HLSelectFireMachineGun )
 END_SEND_TABLE()
-
-
 
 //=========================================================
 //	>> CHLSelectFireMachineGun
@@ -283,7 +278,7 @@ BEGIN_DATADESC( CHLSelectFireMachineGun )
 	DEFINE_FIELD( m_iFireMode,		FIELD_INTEGER ),
 	
 	// Function pinters
-	//DEFINE_FUNCTION( BurstThink ),
+	DEFINE_FUNCTION( BurstThink ),
 
 END_DATADESC()
 

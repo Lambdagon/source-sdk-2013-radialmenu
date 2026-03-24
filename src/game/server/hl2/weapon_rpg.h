@@ -18,7 +18,7 @@
 #include "beam_shared.h"
 
 class CWeaponRPG;
-class CHL2LaserDot;
+class CLaserDot;
 class RocketTrail;
  
 //###########################################################################
@@ -71,14 +71,14 @@ public:
 
 protected:
 	virtual void DoExplosion();	
-	virtual void ComputeActualDotPosition( CHL2LaserDot *pLaserDot, Vector *pActualDotPosition, float *pHomingSpeed );
+	virtual void ComputeActualDotPosition( CLaserDot *pLaserDot, Vector *pActualDotPosition, float *pHomingSpeed );
 	virtual int AugerHealth() { return m_iMaxHealth - 20; }
 
 	// Creates the smoke trail
 	void CreateSmokeTrail( void );
 
 	// Gets the shooting position 
-	void GetShootPosition( CHL2LaserDot *pLaserDot, Vector *pShootPosition );
+	void GetShootPosition( CLaserDot *pLaserDot, Vector *pShootPosition );
 
 	CHandle<RocketTrail>	m_hRocketTrail;
 	float					m_flAugerTime;		// Amount of time to auger before blowing up anyway
@@ -140,7 +140,7 @@ public:
 
 protected:
 	virtual void DoExplosion();	
-	virtual void ComputeActualDotPosition( CHL2LaserDot *pLaserDot, Vector *pActualDotPosition, float *pHomingSpeed );
+	virtual void ComputeActualDotPosition( CLaserDot *pLaserDot, Vector *pActualDotPosition, float *pHomingSpeed );
 	virtual int AugerHealth();
 
 private:
@@ -177,7 +177,7 @@ public:
 	CWeaponRPG();
 	~CWeaponRPG();
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	void	Precache( void );
 
@@ -246,8 +246,8 @@ protected:
 	bool				m_bInitialStateUpdate;
 	bool				m_bGuiding;
 	bool				m_bHideGuiding;		//User to override the player's wish to guide under certain circumstances
-	Vector				m_vecNPCHL2LaserDot;
-	CHandle<CHL2LaserDot>	m_hLaserDot;
+	Vector				m_vecNPCLaserDot;
+	CHandle<CLaserDot>	m_hLaserDot;
 	CHandle<CMissile>	m_hMissile;
 	CHandle<CSprite>	m_hLaserMuzzleSprite;
 	CHandle<CBeam>		m_hLaserBeam;

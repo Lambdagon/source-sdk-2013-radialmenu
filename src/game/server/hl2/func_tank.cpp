@@ -3248,7 +3248,7 @@ private:
 	CNetworkVar( Vector, m_vecSurfaceNormal );
 
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 };
 
 LINK_ENTITY_TO_CLASS( mortarshell, CMortarShell );
@@ -3272,7 +3272,6 @@ BEGIN_DATADESC( CMortarShell )
 	DEFINE_FUNCTION( FlyThink ),
 	DEFINE_FUNCTION( FadeThink ),
 END_DATADESC()
-
 
 IMPLEMENT_SERVERCLASS_ST( CMortarShell, DT_MortarShell )
 	SendPropFloat( SENDINFO( m_flLifespan ), -1, SPROP_NOSCALE ),

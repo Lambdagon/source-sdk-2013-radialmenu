@@ -3354,7 +3354,7 @@ void CAI_BaseNPC::UpdateSleepState( bool bInPVS )
 {
 	if ( GetSleepState() > AISS_AWAKE )
 	{
-		CBasePlayer* pLocalPlayer = UTIL_GetNearestPlayer(GetAbsOrigin());
+		CBasePlayer *pLocalPlayer = AI_GetSinglePlayer();
 		if ( !pLocalPlayer )
 		{
 			if ( gpGlobals->maxClients > 1 )
@@ -3554,8 +3554,7 @@ void CAI_BaseNPC::RebalanceThinks()
 
 		int i;
 
-		CBasePlayer* pPlayer = UTIL_GetNearestPlayer(GetAbsOrigin());
-
+		CBasePlayer *pPlayer = AI_GetSinglePlayer();
 		Vector vPlayerForward;
 		Vector vPlayerEyePosition;
 
@@ -3836,7 +3835,7 @@ void CAI_BaseNPC::SetPlayerAvoidState( void )
 
 		GetPlayerAvoidBounds( &vMins, &vMaxs );
 
-		CBasePlayer* pLocalPlayer = UTIL_GetNearestPlayer(GetAbsOrigin());
+		CBasePlayer *pLocalPlayer = AI_GetSinglePlayer();
 
 		if ( pLocalPlayer )
 		{
@@ -5158,8 +5157,6 @@ void CAI_BaseNPC::GiveWeapon( string_t iszWeaponName )
 
 	// Handle this case
 	OnGivenWeapon( pWeapon );
-
-	pWeapon->MarkAttachedEntityAsValidated();
 }
 
 //-----------------------------------------------------------------------------
@@ -9911,7 +9908,7 @@ CBaseEntity *CAI_BaseNPC::FindNamedEntity( const char *name, IEntityFindFilter *
 {
 	if ( !stricmp( name, "!player" ))
 	{
-		return UTIL_GetNearestPlayer(GetAbsOrigin());
+		return ( CBaseEntity * )AI_GetSinglePlayer();
 	}
 	else if ( !stricmp( name, "!enemy" ) )
 	{
@@ -9926,7 +9923,7 @@ CBaseEntity *CAI_BaseNPC::FindNamedEntity( const char *name, IEntityFindFilter *
 	{
 		// FIXME: look at CBaseEntity *CNPCSimpleTalker::FindNearestFriend(bool fPlayer)
 		// punt for now
-		return UTIL_GetNearestPlayer(GetAbsOrigin());
+		return ( CBaseEntity * )AI_GetSinglePlayer();
 	}
 	else if (!stricmp( name, "self" ))
 	{
@@ -9946,7 +9943,7 @@ CBaseEntity *CAI_BaseNPC::FindNamedEntity( const char *name, IEntityFindFilter *
 		{
 			DevMsg( "ERROR: \"player\" is no longer used, use \"!player\" in vcd instead!\n" );
 		}
-		return UTIL_GetNearestPlayer(GetAbsOrigin());
+		return ( CBaseEntity * )AI_GetSinglePlayer();
 	}
 	else
 	{
@@ -11996,7 +11993,7 @@ void CAI_BaseNPC::Teleport( const Vector *newPosition, const QAngle *newAngles, 
 
 bool CAI_BaseNPC::FindSpotForNPCInRadius( Vector *pResult, const Vector &vStartPos, CAI_BaseNPC *pNPC, float radius, bool bOutOfPlayerViewcone )
 {
-	CBasePlayer* pPlayer = UTIL_GetNearestPlayer(pNPC->GetAbsOrigin());
+	CBasePlayer *pPlayer = AI_GetSinglePlayer();
 	QAngle fan;
 
 	fan.x = 0;
@@ -12830,7 +12827,7 @@ bool CAI_BaseNPC::FindNearestValidGoalPos( const Vector &vTestPoint, Vector *pRe
 
 	if ( vCandidate != vec3_invalid )
 	{
-		AI_Waypoint_t* pPathToPoint = GetPathfinder()->BuildRoute(GetAbsOrigin(), vCandidate, UTIL_GetNearestPlayer(GetAbsOrigin()), 5 * 12, NAV_NONE, true);
+		AI_Waypoint_t *pPathToPoint = GetPathfinder()->BuildRoute( GetAbsOrigin(), vCandidate, AI_GetSinglePlayer(), 5*12, NAV_NONE, true );
 		if ( pPathToPoint )
 		{
 			GetPathfinder()->UnlockRouteNodes( pPathToPoint );

@@ -30,7 +30,7 @@ class CPropCombineBall : public CBaseAnimating, public CDefaultPlayerPickupVPhys
 public:
 	DECLARE_CLASS( CPropCombineBall, CBaseAnimating );
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	virtual void Precache();
 	virtual void Spawn();

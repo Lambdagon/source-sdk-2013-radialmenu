@@ -32,15 +32,14 @@ public:
 
 	virtual void Event_Killed( const CTakeDamageInfo &info );
 
-	void TankBossThink(void);
-	Class_T Classify(void) { return CLASS_COMBINE; }
+	void TankBossThink( void );
 
 	void SetStartingPathTrackNode( char *name );
 
 	void DefineOnKilledOutput( EventInfo *eventInfo );
 	void DefineOnBombDroppedOutput( EventInfo *eventInfo );
 
-	void SetWaveSpawnPopulator(CWaveSpawnPopulator* pWave) { m_pWaveSpawnPopulator = pWave; }
+	void SetWaveSpawnPopulator( CWaveSpawnPopulator *pWave ){ m_pWaveSpawnPopulator = pWave; }
 
 	virtual int GetCurrencyValue( void );
 

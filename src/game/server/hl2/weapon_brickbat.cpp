@@ -9,7 +9,6 @@
 
 #include "cbase.h"
 #include "npcevent.h"
-#include "basehlcombatweapon.h"
 #include "basecombatcharacter.h"
 #include "ai_basenpc.h"
 #include "AI_Memory.h"

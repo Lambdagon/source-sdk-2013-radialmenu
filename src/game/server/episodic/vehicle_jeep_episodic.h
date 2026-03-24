@@ -27,7 +27,7 @@ class CSprite;
 class CPropJeepEpisodic : public CPropJeep
 {
 	DECLARE_CLASS( CPropJeepEpisodic, CPropJeep );
-	//DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 public:
 					CPropJeepEpisodic( void );

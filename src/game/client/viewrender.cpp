@@ -83,6 +83,14 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+CLIENTEFFECT_REGISTER_BEGIN(PrecachePostProcessingGlowEffects)
+CLIENTEFFECT_MATERIAL("dev/glow_blur_x")
+CLIENTEFFECT_MATERIAL("dev/glow_blur_y")
+CLIENTEFFECT_MATERIAL("dev/glow_color")
+CLIENTEFFECT_MATERIAL("dev/glow_downsample")
+CLIENTEFFECT_MATERIAL("dev/halo_add_to_screen")
+CLIENTEFFECT_REGISTER_END()
+
 
 static void testfreezeframe_f( void )
 {
@@ -2969,6 +2977,7 @@ void CViewRender::GetWaterLODParams( float &flCheapWaterStartDistance, float &fl
 	flCheapWaterStartDistance = m_flCheapWaterStartDistance;
 	flCheapWaterEndDistance = m_flCheapWaterEndDistance;
 }
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : &view - 

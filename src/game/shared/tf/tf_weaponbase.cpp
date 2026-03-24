@@ -48,6 +48,7 @@
 // Client specific.
 #else
 #include "c_tf_player.h"
+#include "c_baseviewmodel.h"
 #include "tf_viewmodel.h"
 #include "hud_crosshair.h"
 #include "c_tf_playerresource.h"
@@ -91,7 +92,6 @@ extern ConVar tf_weapon_criticals_bucket_bottom;
 
 #ifdef CLIENT_DLL
 extern ConVar cl_crosshair_file;
-extern ConVar cl_flipviewmodels;
 #endif
 
 //=============================================================================
@@ -1233,7 +1233,7 @@ bool CTFWeaponBase::Deploy( void )
 		if ( !pPlayer )
 			return false;
 
-		float flWeaponSwitchTime = 0.67f;
+		float flWeaponSwitchTime = 0.5f;
 
 		// Overrides the anim length for calculating ready time.
 		float flDeployTimeMultiplier = 1.0f;
@@ -1878,7 +1878,6 @@ float CTFWeaponBase::ApplyFireDelay( float flDelay ) const
 	float flDelayMult = 1.0f;
 	CALL_ATTRIB_HOOK_FLOAT( flDelayMult, mult_postfiredelay );
 
-
 	float flComboBoost = 0.0f;
 	CALL_ATTRIB_HOOK_FLOAT( flComboBoost, kill_combo_fire_rate_boost );
 	flComboBoost *= GetKillComboCount();
@@ -1887,13 +1886,6 @@ float CTFWeaponBase::ApplyFireDelay( float flDelay ) const
 
 	// Haste Powerup Rune adds multiplier to fire delay time. Flare guns get double boost
 	CTFPlayer *pPlayer = ToTFPlayer( GetPlayerOwner() );
-	float flReducedHealthBonus = 1.0f;
-	CALL_ATTRIB_HOOK_FLOAT(flReducedHealthBonus, mult_postfiredelay_with_reduced_health);
-	if (flReducedHealthBonus != 1.0f)
-	{
-		flReducedHealthBonus = RemapValClamped(pPlayer->HealthFraction(), 0.2f, 0.9f, flReducedHealthBonus, 1.0f);
-		flDelayMult *= flReducedHealthBonus;
-	}
 	if ( pPlayer && pPlayer->m_Shared.GetCarryingRuneType() == RUNE_HASTE )
 	{
 		if ( pPlayer->IsPlayerClass( TF_CLASS_PYRO ) && GetWeaponID() == TF_WEAPON_FLAREGUN )
@@ -2096,9 +2088,9 @@ void CTFWeaponBase::IncrementAmmo( void )
 		}
 		else if ( !CheckReloadMisfire() ) 
 		{
-			if ( pPlayer && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) > 0 )
+			if ( pPlayer && pPlayer->GetAmmoCount( m_iPrimaryAmmoType ) > 0 && ( m_iClip1 < GetMaxClip1() ) )
 			{
-				m_iClip1 = MIN( ( m_iClip1 + 1 ), GetMaxClip1() );
+				m_iClip1++;
 				pPlayer->RemoveAmmo( 1, m_iPrimaryAmmoType );
 			}
 		}
@@ -2684,7 +2676,7 @@ bool CTFWeaponBase::WeaponShouldBeLowered( void )
 bool CTFWeaponBase::Ready( void )
 {
 	// If we don't have the anim, just hide for now
-	if ( SelectWeightedSequence( ACT_VM_IDLE_LOWERED ) == ACTIVITY_NOT_AVAILABLE )
+	if ( SelectWeightedSequenceForViewModel( this, ACT_VM_IDLE_LOWERED ) == ACTIVITY_NOT_AVAILABLE )
 	{
 		RemoveEffects( EF_NODRAW );
 	}
@@ -2706,7 +2698,7 @@ bool CTFWeaponBase::Lower( void )
 	AbortReload();
 
 	// If we don't have the anim, just hide for now
-	if ( SelectWeightedSequence( ACT_VM_IDLE_LOWERED ) == ACTIVITY_NOT_AVAILABLE )
+	if ( SelectWeightedSequenceForViewModel( this, ACT_VM_IDLE_LOWERED ) == ACTIVITY_NOT_AVAILABLE )
 	{
 		AddEffects( EF_NODRAW );
 	}
@@ -4612,35 +4604,35 @@ void CTFWeaponBase::OnControlStunned( void )
 
 #if defined( CLIENT_DLL )
 
-static ConVar	cl_bobcycle("cl_bobcycle", "0.8", FCVAR_CHEAT);
-static ConVar	cl_bobup("cl_bobup", "0.5", FCVAR_CHEAT);
+static ConVar	cl_bobcycle( "cl_bobcycle","0.8", FCVAR_CHEAT );
+static ConVar	cl_bobup( "cl_bobup","0.5", FCVAR_CHEAT );
 
 //-----------------------------------------------------------------------------
 // Purpose: Helper function to calculate head bob
 //-----------------------------------------------------------------------------
-float CalcViewModelBobHelper(CBasePlayer* player, BobState_t* pBobState)
+float CalcViewModelBobHelper( CBasePlayer *player, BobState_t *pBobState )
 {
-	Assert(pBobState);
-	if (!pBobState)
+	Assert( pBobState );
+	if ( !pBobState )
 		return 0;
 
 	float	cycle;
 
 	// Don't allow zeros, because we divide by them.
 	float flBobup = cl_bobup.GetFloat();
-	if (flBobup <= 0)
+	if ( flBobup <= 0 )
 	{
 		flBobup = 0.01;
 	}
 	float flBobCycle = cl_bobcycle.GetFloat();
-	if (flBobCycle <= 0)
+	if ( flBobCycle <= 0 )
 	{
 		flBobCycle = 0.01;
 	}
 
 	//NOTENOTE: For now, let this cycle continue when in the air, because it snaps badly without it
 
-	if ((!gpGlobals->frametime) || (player == NULL))
+	if ( ( !gpGlobals->frametime ) || ( player == NULL ) )
 	{
 		//NOTENOTE: We don't use this return value in our case (need to restructure the calculation function setup!)
 		return 0.0f;// just use old value
@@ -4648,56 +4640,56 @@ float CalcViewModelBobHelper(CBasePlayer* player, BobState_t* pBobState)
 
 	//Find the speed of the player
 	float speed = player->GetLocalVelocity().Length2D();
-	float flmaxSpeedDelta = MAX(0, (gpGlobals->curtime - pBobState->m_flLastBobTime) * 320.0f);
+	float flmaxSpeedDelta = MAX( 0, (gpGlobals->curtime - pBobState->m_flLastBobTime ) * 320.0f );
 
 	// don't allow too big speed changes
-	speed = clamp(speed, pBobState->m_flLastSpeed - flmaxSpeedDelta, pBobState->m_flLastSpeed + flmaxSpeedDelta);
-	speed = clamp(speed, -320.f, 320.f);
+	speed = clamp( speed, pBobState->m_flLastSpeed-flmaxSpeedDelta, pBobState->m_flLastSpeed+flmaxSpeedDelta );
+	speed = clamp( speed, -320.f, 320.f );
 
 	pBobState->m_flLastSpeed = speed;
 
 	//FIXME: This maximum speed value must come from the server.
 	//		 MaxSpeed() is not sufficient for dealing with sprinting - jdw
 
-	float bob_offset = RemapVal(speed, 0, 320, 0.0f, 1.0f);
+	float bob_offset = RemapVal( speed, 0, 320, 0.0f, 1.0f );
 
-	pBobState->m_flBobTime += (gpGlobals->curtime - pBobState->m_flLastBobTime) * bob_offset;
+	pBobState->m_flBobTime += ( gpGlobals->curtime - pBobState->m_flLastBobTime ) * bob_offset;
 	pBobState->m_flLastBobTime = gpGlobals->curtime;
 
 	//Calculate the vertical bob
-	cycle = pBobState->m_flBobTime - (int)(pBobState->m_flBobTime / flBobCycle) * flBobCycle;
+	cycle = pBobState->m_flBobTime - (int)(pBobState->m_flBobTime/flBobCycle)*flBobCycle;
 	cycle /= flBobCycle;
 
-	if (cycle < flBobup)
+	if ( cycle < flBobup )
 	{
 		cycle = M_PI * cycle / flBobup;
 	}
 	else
 	{
-		cycle = M_PI + M_PI * (cycle - flBobup) / (1.0 - flBobup);
+		cycle = M_PI + M_PI*(cycle-flBobup)/(1.0 - flBobup);
 	}
 
-	pBobState->m_flVerticalBob = speed * 0.005f;
-	pBobState->m_flVerticalBob = pBobState->m_flVerticalBob * 0.3 + pBobState->m_flVerticalBob * 0.7 * sin(cycle);
+	pBobState->m_flVerticalBob = speed*0.005f;
+	pBobState->m_flVerticalBob = pBobState->m_flVerticalBob*0.3 + pBobState->m_flVerticalBob*0.7*sin(cycle);
 
-	pBobState->m_flVerticalBob = clamp(pBobState->m_flVerticalBob, -7.0f, 4.0f);
+	pBobState->m_flVerticalBob = clamp( pBobState->m_flVerticalBob, -7.0f, 4.0f );
 
 	//Calculate the lateral bob
-	cycle = pBobState->m_flBobTime - (int)(pBobState->m_flBobTime / flBobCycle * 2) * flBobCycle * 2;
-	cycle /= flBobCycle * 2;
+	cycle = pBobState->m_flBobTime - (int)(pBobState->m_flBobTime/flBobCycle*2)*flBobCycle*2;
+	cycle /= flBobCycle*2;
 
-	if (cycle < flBobup)
+	if ( cycle < flBobup )
 	{
 		cycle = M_PI * cycle / flBobup;
 	}
 	else
 	{
-		cycle = M_PI + M_PI * (cycle - flBobup) / (1.0 - flBobup);
+		cycle = M_PI + M_PI*(cycle-flBobup)/(1.0 - flBobup);
 	}
 
-	pBobState->m_flLateralBob = speed * 0.005f;
-	pBobState->m_flLateralBob = pBobState->m_flLateralBob * 0.3 + pBobState->m_flLateralBob * 0.7 * sin(cycle);
-	pBobState->m_flLateralBob = clamp(pBobState->m_flLateralBob, -7.0f, 4.0f);
+	pBobState->m_flLateralBob = speed*0.005f;
+	pBobState->m_flLateralBob = pBobState->m_flLateralBob*0.3 + pBobState->m_flLateralBob*0.7*sin(cycle);
+	pBobState->m_flLateralBob = clamp( pBobState->m_flLateralBob, -7.0f, 4.0f );
 
 	//NOTENOTE: We don't use this return value in our case (need to restructure the calculation function setup!)
 	return 0.0f;
@@ -4706,27 +4698,27 @@ float CalcViewModelBobHelper(CBasePlayer* player, BobState_t* pBobState)
 //-----------------------------------------------------------------------------
 // Purpose: Helper function to add head bob
 //-----------------------------------------------------------------------------
-void AddViewModelBobHelper(Vector& origin, QAngle& angles, BobState_t* pBobState)
+void AddViewModelBobHelper( Vector &origin, QAngle &angles, BobState_t *pBobState )
 {
-	Assert(pBobState);
-	if (!pBobState)
+	Assert( pBobState );
+	if ( !pBobState )
 		return;
 
 	Vector	forward, right;
-	AngleVectors(angles, &forward, &right, NULL);
+	AngleVectors( angles, &forward, &right, NULL );
 
 	// Apply bob, but scaled down to 40%
-	VectorMA(origin, pBobState->m_flVerticalBob * 0.4f, forward, origin);
+	VectorMA( origin, pBobState->m_flVerticalBob * 0.4f, forward, origin );
 
 	// Z bob a bit more
 	origin[2] += pBobState->m_flVerticalBob * 0.1f;
 
 	// bob the angles
-	angles[ROLL] += pBobState->m_flVerticalBob * 0.5f;
-	angles[PITCH] -= pBobState->m_flVerticalBob * 0.4f;
-	angles[YAW] -= pBobState->m_flLateralBob * 0.3f;
+	angles[ ROLL ]	+= pBobState->m_flVerticalBob * 0.5f;
+	angles[ PITCH ]	-= pBobState->m_flVerticalBob * 0.4f;
+	angles[ YAW ]	-= pBobState->m_flLateralBob  * 0.3f;
 
-	VectorMA(origin, pBobState->m_flLateralBob * 0.2f, right, origin);
+	VectorMA( origin, pBobState->m_flLateralBob * 0.2f, right, origin );
 }
 
 //-----------------------------------------------------------------------------
@@ -4977,7 +4969,7 @@ void CTFWeaponBase::ApplyOnHitAttributes( CBaseEntity *pVictimBaseEntity, CTFPla
 		if ( pVictim && 
 			 pVictim->IsPlayerClass( TF_CLASS_SPY ) && 
 			 pVictim->m_Shared.InCond( TF_COND_DISGUISED ) && 
-			 (pVictim->m_Shared.GetDisguiseTeam() != pVictim->GetTeamNumber()) &&
+			 ( pVictim->m_Shared.GetDisguiseTeam() != pVictim->GetTeamNumber() ) &&
 			 !( pVictim->m_Shared.IsStealthed() || pVictim->m_Shared.InCond( TF_COND_STEALTHED_BLINK ) ) )
 		{
 			flPercentage = 0.0f;
@@ -5039,7 +5031,7 @@ void CTFWeaponBase::ApplyOnHitAttributes( CBaseEntity *pVictimBaseEntity, CTFPla
 		}
 
 		// On hit attributes don't work when you shoot disguised spies
-		if ( pVictim->m_Shared.InCond( TF_COND_DISGUISED ) && pVictim->m_Shared.GetDisguiseTeam() != pVictim->GetTeamNumber() )
+		if ( pVictim->m_Shared.InCond( TF_COND_DISGUISED ) && ( pVictim->m_Shared.GetDisguiseTeam() != pVictim->GetTeamNumber() ) )
 			return;
 	}
 
@@ -5602,7 +5594,7 @@ bool CTFWeaponBase::IsViewModelFlipped( void )
 		return true;
 	}
 #else
-	if ( m_bFlipViewModel != cl_flipviewmodels.GetBool() )
+	if ( m_bFlipViewModel != TeamFortress_ShouldFlipClientViewModel() )
 	{
 		return true;
 	}
@@ -6783,7 +6775,7 @@ void CTFWeaponBase::AddStatTrakModel( CEconItemView *pItem, int nStatTrakType, A
 				pStatTrakEnt->m_nSkin = nSkin;
 				m_viewmodelStatTrakAddon = pStatTrakEnt;
 				
-				if ( cl_flipviewmodels.GetBool() )
+				if ( TeamFortress_ShouldFlipClientViewModel() )
 				{
 					pStatTrakEnt->SetBodygroup( 1, 1 ); // use a special mirror-image stattrak module that appears correct for lefties
 					flScale *= -1.0f;					// flip scale

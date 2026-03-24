@@ -1475,7 +1475,7 @@ void CWeaponRPG::PrimaryAttack( void )
 #endif
 
 	DecrementAmmo( GetOwner() );
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 	WeaponSound( SINGLE );
 
 	// player "shoot" animation

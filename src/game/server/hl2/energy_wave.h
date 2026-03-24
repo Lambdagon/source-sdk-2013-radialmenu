@@ -23,7 +23,7 @@ class CEnergyWave : public CBaseEntity
 	DECLARE_DATADESC();
 public:
 	DECLARE_CLASS( CEnergyWave, CBaseEntity );
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 public:
 	void Spawn( void );

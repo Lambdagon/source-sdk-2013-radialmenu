@@ -14,6 +14,7 @@
 #include "filesystem.h"
 #include "mp_shareddefs.h"
 #include "utlbuffer.h"
+#include "cs_shareddefs.h"
 
 #ifdef CLIENT_DLL
 
@@ -332,6 +333,7 @@ bool CMultiplayRules::Init()
 }
 
 
+
 #ifdef CLIENT_DLL
 
 
@@ -343,6 +345,57 @@ bool CMultiplayRules::Init()
 	#define WEAPON_RESPAWN_TIME	20
 	#define AMMO_RESPAWN_TIME	20
 
+	//-----------------------------------------------------------------------------
+	// Purpose: 
+	//-----------------------------------------------------------------------------
+	void CMultiplayRules::ShutdownCustomResponseRulesDicts()
+	{
+		DestroyCustomResponseSystems();
+
+		if (m_ResponseRules.Count() != 0)
+		{
+			int nRuleCount = m_ResponseRules.Count();
+			for (int iRule = 0; iRule < nRuleCount; ++iRule)
+			{
+				m_ResponseRules[iRule].m_ResponseSystems.Purge();
+			}
+			m_ResponseRules.Purge();
+		}
+	}
+
+	//-----------------------------------------------------------------------------
+	// Purpose: 
+	//-----------------------------------------------------------------------------
+	void CMultiplayRules::InitCustomResponseRulesDicts()
+	{
+		MEM_ALLOC_CREDIT();
+
+		// Clear if necessary.
+		ShutdownCustomResponseRulesDicts();
+
+		// Initialize the response rules for TF.
+		m_ResponseRules.AddMultipleToTail(8);
+
+		char szName[512];
+		for (int iClass = 0; iClass < 8; ++iClass)
+		{
+			m_ResponseRules[iClass].m_ResponseSystems.AddMultipleToTail(MP_TF_CONCEPT_COUNT);
+
+			for (int iConcept = 0; iConcept < MP_TF_CONCEPT_COUNT; ++iConcept)
+			{
+				AI_CriteriaSet criteriaSet;
+				criteriaSet.AppendCriteria("Who", g_aPlayerClassNames_NonLocalized[iClass]);
+				criteriaSet.AppendCriteria("Concept", g_pszMPConcepts[iConcept]);
+
+				// 1 point for player class and 1 point for concept.
+				float flCriteriaScore = 2.0f;
+
+				// Name.
+				V_sprintf_safe(szName, "%s_%s\n", g_aPlayerClassNames_NonLocalized[iClass], g_pszMPConcepts[iConcept]);
+				m_ResponseRules[iClass].m_ResponseSystems[iConcept] = BuildCustomResponseSystemGivenCriteria("scripts/talker/terror_player.txt", szName, criteriaSet, flCriteriaScore);
+			}
+		}
+	}
 	//=========================================================
 	//=========================================================
 	void CMultiplayRules::RefreshSkillData( bool forceUpdate )
@@ -723,7 +776,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 	{
 		if ( pKiller)
 		{
-			if ( pKiller->Classify() == CLASS_PLAYER || pKiller->Classify() == CLASS_COMBINE )
+			if ( pKiller->GetFlags() & FL_CLIENT )
 				return (CBasePlayer*)pKiller;
 
 			// Killing entity might be specifying a scorer player

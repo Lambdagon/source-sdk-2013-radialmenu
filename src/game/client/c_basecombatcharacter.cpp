@@ -12,6 +12,7 @@
 //=============================================================================//
 #include "cbase.h"
 #include "c_basecombatcharacter.h"
+#include "c_baseplayer.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -29,6 +30,8 @@ C_BaseCombatCharacter::C_BaseCombatCharacter()
 	{
 		m_iAmmo.Set( i, 0 );
 	}
+
+	m_hPreviousActiveWeapon = NULL;
 
 #ifdef GLOWS_ENABLE
 	m_pGlowEffect = NULL;
@@ -63,6 +66,7 @@ int	C_BaseCombatCharacter::GetAmmoCount( char *szName ) const
 //-----------------------------------------------------------------------------
 void C_BaseCombatCharacter::OnPreDataChanged( DataUpdateType_t updateType )
 {
+	m_hPreviousActiveWeapon = m_hActiveWeapon;
 	BaseClass::OnPreDataChanged( updateType );
 
 #ifdef GLOWS_ENABLE

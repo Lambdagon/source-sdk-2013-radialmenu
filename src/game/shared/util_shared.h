@@ -568,67 +568,230 @@ private:
 	float Now( void ) const;		// work-around since client header doesn't like inlined gpGlobals->curtime
 };
 
+//--------------------------------------------------------------------------------------------------------------
+/**
+ * Compute the closest point on the ray to 'pos' and return it in 'pointOnRay'.
+ * If point projects beyond the ends of the ray, return false - but clamp 'pointOnRay' to the correct endpoint.
+ */
+inline bool ClosestPointOnRay(const Vector& pos, const Vector& rayStart, const Vector& rayEnd, Vector* pointOnRay)
+{
+	Vector to = pos - rayStart;
+	Vector dir = rayEnd - rayStart;
+	float length = dir.NormalizeInPlace();
+
+	float rangeAlong = DotProduct(dir, to);
+
+	if (rangeAlong < 0.0f)
+	{
+		// off start point
+		*pointOnRay = rayStart;
+		return false;
+	}
+	else if (rangeAlong > length)
+	{
+		// off end point
+		*pointOnRay = rayEnd;
+		return false;
+	}
+	else // within ray bounds
+	{
+		Vector onRay = rayStart + rangeAlong * dir;
+		*pointOnRay = onRay;
+		return true;
+	}
+}
+
 
 //--------------------------------------------------------------------------------------------------------------
 /**
  * Simple class for counting down a short interval of time.
  * Upon creation, the timer is invalidated.  Invalidated countdown timers are considered to have elapsed.
  */
+
+ //--------------------------------------------------------------------------------------------------------------
+ /**
+  * Simple class for counting down a short interval of time.
+  * Upon creation, the timer is invalidated.  Invalidated countdown timers are considered to have elapsed.
+  */
 class CountdownTimer
 {
 public:
-	CountdownTimer( void )
+	DECLARE_CLASS_NOBASE(CountdownTimer);
+	DECLARE_EMBEDDED_NETWORKVAR();
+
+	CountdownTimer(void)
 	{
 		m_timestamp = -1.0f;
 		m_duration = 0.0f;
 	}
 
-	void Reset( void )
+	void Reset(void)
 	{
 		m_timestamp = Now() + m_duration;
-	}		
+	}
 
-	void Start( float duration )
+	void Start(float duration)
 	{
 		m_timestamp = Now() + duration;
 		m_duration = duration;
 	}
 
-	void Invalidate( void )
+	void StartFromTime(float startTime, float duration)
+	{
+		m_timestamp = startTime + duration;
+		m_duration = duration;
+	}
+
+	void Invalidate(void)
 	{
 		m_timestamp = -1.0f;
-	}		
+	}
 
-	bool HasStarted( void ) const
+	bool HasStarted(void) const
 	{
 		return (m_timestamp > 0.0f);
 	}
 
-	bool IsElapsed( void ) const
+	bool IsElapsed(void) const
 	{
 		return (Now() > m_timestamp);
 	}
 
-	float GetElapsedTime( void ) const
+	float GetElapsedTime(void) const
 	{
 		return Now() - m_timestamp + m_duration;
 	}
 
-	float GetRemainingTime( void ) const
+	float GetRemainingTime(void) const
 	{
 		return (m_timestamp - Now());
 	}
 
+	float GetTargetTime() const
+	{
+		return m_timestamp;
+	}
+
 	/// return original countdown time
-	float GetCountdownDuration( void ) const
+	float GetCountdownDuration(void) const
 	{
 		return (m_timestamp > 0.0f) ? m_duration : 0.0f;
 	}
 
+	/// 1.0 for newly started, 0.0 for elapsed
+	float GetRemainingRatio(void) const
+	{
+		if (HasStarted())
+		{
+			float left = GetRemainingTime() / m_duration;
+			if (left < 0.0f)
+				return 0.0f;
+			if (left > 1.0f)
+				return 1.0f;
+			return left;
+		}
+
+		return 0.0f;
+	}
+
+	float GetElapsedRatio() const
+	{
+		if (HasStarted())
+		{
+			float elapsed = GetElapsedTime() / m_duration;
+			if (elapsed < 0.0f)
+				return 0.0f;
+			if (elapsed > 1.0f)
+				return 1.0f;
+			return elapsed;
+		}
+
+		return 1.0f;
+	}
+
+	// Usage:
+	//    Declaration: CountdownTimer mTimer;
+	//    Think function:
+	//        while(mTimer.RunEvery( timerInterval ))
+	//        {
+	//			  do fixed-rate stuff
+	//        }
+	//
+	//        nextThinkTime = min(nextThinkTime, mTimer.GetTargetTime());
+	//
+	// This avoids 'losing' ticks on a repeating timer when
+	// the think rate is not a multiple of the timer duration,
+	// especially since SetNextThink rounds ticks up/down, causing
+	// even a timer that is running exactly at the think rate of
+	// the underlying class to not elapse correctly.
+	// 
+	// It also makes sure that ticks are never lost
+	bool RunEvery(float amount = -1.0f)
+	{
+		// First call starts the timer
+		if (!HasStarted())
+		{
+			if (amount > 0.0f)
+				Start(amount);
+
+			return false;
+		}
+
+		if (IsElapsed())
+		{
+			if (amount > 0.0f)
+				m_duration = amount;
+
+			m_timestamp += m_duration;
+			return true;
+		}
+
+		return false;
+	}
+
+	// Same as RunEvery() but only returns true once per 'tick', then guarantees being non-elapsed.
+	// Useful when "do fixed rate stuff" is idempotent, like updating something to match
+	// the current time.
+	bool Interval(float amount = -1.0f)
+	{
+		// First call starts the timer
+		if (!HasStarted())
+		{
+			if (amount > 0.0f)
+				Start(amount);
+
+			return false;
+		}
+
+		if (IsElapsed())
+		{
+			if (amount > 0.0f)
+				m_duration = amount;
+
+			m_timestamp += m_duration;
+
+			// If we are still expired, add a multiple of the interval 
+			// until we become non-elapsed
+			float remaining = GetRemainingTime();
+			if (remaining < 0.0f)
+			{
+				float numIntervalsRequired = -floorf(remaining / m_duration);
+				m_timestamp += m_duration * numIntervalsRequired;
+			}
+
+			// We should no longer be elapsed
+			Assert(!IsElapsed());
+
+			return true;
+		}
+
+		return false;
+	}
+
+	virtual float Now(void) const;		// work-around since client header doesn't like inlined gpGlobals->curtime
 private:
-	float m_duration;
-	float m_timestamp;
-	virtual float Now( void ) const;		// work-around since client header doesn't like inlined gpGlobals->curtime
+	CNetworkVar(float, m_duration);
+	CNetworkVar(float, m_timestamp);
 };
 
 class RealTimeCountdownTimer : public CountdownTimer
@@ -694,10 +857,10 @@ const char		   *UTIL_GetActiveOperationString();
 const char *GetCleanMapName( const char *pszUnCleanMapName, char (&pszTmp)[256] );
 
 inline bool	MapHasPrefix( const char *pszUnCleanMapName, const char *prefix )
-{ 
-	char maptmp[256];
+{
+	char maptmp[ 256 ];
 	const char *pszCleanMapName = GetCleanMapName( pszUnCleanMapName, maptmp );
 
-	return StringHasPrefix(pszCleanMapName, prefix);
+	return StringHasPrefix( pszCleanMapName, prefix );
 }
 #endif // UTIL_SHARED_H

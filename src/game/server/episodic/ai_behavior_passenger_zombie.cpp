@@ -32,6 +32,7 @@ BEGIN_DATADESC( CAI_PassengerBehaviorZombie )
 
 END_DATADESC();
 
+extern int AE_PASSENGER_PHYSICS_PUSH;
 
 //==============================================================================================
 // Passenger damage table
@@ -340,7 +341,7 @@ void CAI_PassengerBehaviorZombie::Event_Killed( const CTakeDamageInfo &info )
 	if ( m_hVehicle )
 	{
 		// Stop taking messages from the vehicle
-		//m_hVehicle->RemovePhysicsChild( GetOuter() );
+		m_hVehicle->RemovePhysicsChild( GetOuter() );
 		m_hVehicle->NPC_RemovePassenger( GetOuter() );
 		m_hVehicle->NPC_FinishedExitVehicle( GetOuter(), false );
 	}
@@ -413,7 +414,7 @@ void CAI_PassengerBehaviorZombie::StartDismount( void )
 	GetOuter()->SetIdealActivity( ACT_SCRIPT_CUSTOM_MOVE );
 
 	// This removes the NPC from the vehicle's handling and fires all necessary outputs
-	//m_hVehicle->RemovePhysicsChild( GetOuter() );
+	m_hVehicle->RemovePhysicsChild( GetOuter() );
 	m_hVehicle->NPC_RemovePassenger( GetOuter() );
 	m_hVehicle->NPC_FinishedExitVehicle( GetOuter(), (IsPassengerHostile()==false) );
 
@@ -735,6 +736,14 @@ void CAI_PassengerBehaviorZombie::GatherVehicleStateConditions( void )
 //-----------------------------------------------------------------------------
 void CAI_PassengerBehaviorZombie::HandleAnimEvent( animevent_t *pEvent )
 {
+	if ( pEvent->event == AE_PASSENGER_PHYSICS_PUSH )
+	{
+		// Add a push into the vehicle
+		float flForce = (float) atof( pEvent->options );
+		AddPhysicsPush( flForce * 0.75f );
+		return;
+	}
+
 	BaseClass::HandleAnimEvent( pEvent );
 }
 

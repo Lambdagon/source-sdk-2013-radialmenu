@@ -31,7 +31,7 @@ class CWeaponShotgun : public CBaseHLCombatWeapon
 public:
 	DECLARE_CLASS( CWeaponShotgun, CBaseHLCombatWeapon );
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 private:
 	bool	m_bNeedPump;		// When emptied completely
@@ -90,7 +90,6 @@ public:
 
 IMPLEMENT_SERVERCLASS_ST(CWeaponShotgun, DT_WeaponShotgun)
 END_SEND_TABLE()
-
 
 LINK_ENTITY_TO_CLASS( weapon_shotgun, CWeaponShotgun );
 PRECACHE_WEAPON_REGISTER(weapon_shotgun);
@@ -181,7 +180,7 @@ void CWeaponShotgun::FireNPCPrimaryAttack( CBaseCombatCharacter *pOperator, bool
 	else 
 	{
 		vecShootOrigin = pOperator->Weapon_ShootPosition();
-		vecShootDir = npc->GetShootEnemyDir( vecShootOrigin );
+		vecShootDir = npc->GetActualShootTrajectory( vecShootOrigin );
 	}
 
 	pOperator->FireBullets( 8, vecShootOrigin, vecShootDir, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType, 0 );

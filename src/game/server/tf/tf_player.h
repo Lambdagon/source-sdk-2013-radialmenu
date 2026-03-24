@@ -148,7 +148,6 @@ public:
 	virtual void		InitialSpawn();
 	static void			PrecacheMvM();
 	static void			PrecacheKart();
-	void AddItem(const char* pszItemName);
 private:
 	static void			PrecachePlayerModels();
 	static void			PrecacheTFPlayer();
@@ -954,6 +953,8 @@ public:
 	CTFWeaponBase		*Weapon_OwnsThisID( int iWeaponID ) const;
 	CTFWeaponBase		*Weapon_GetWeaponByType( int iType );
 
+	virtual void		PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
+
 	medigun_charge_types	GetChargeEffectBeingProvided( void );
 
 	// Achievements
@@ -983,7 +984,7 @@ public:
 
 	int					m_iOldStunFlags;
 
-	bool				m_bFlipViewModels;
+	CNetworkVar( bool, m_bFlipViewModels );
 	int					m_iBlastJumpState;
 	float				m_flBlastJumpLandTime;
 	bool				m_bTakenBlastDamageSinceLastMovement;

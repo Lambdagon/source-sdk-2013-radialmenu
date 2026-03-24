@@ -225,7 +225,7 @@ class CNPC_AntlionGuard : public CAI_BlendedNPC
 {
 public:
 	DECLARE_CLASS( CNPC_AntlionGuard, CAI_BlendedNPC );
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 	CNPC_AntlionGuard( void );
@@ -641,7 +641,6 @@ CNPC_AntlionGuard::CNPC_AntlionGuard( void )
 
 LINK_ENTITY_TO_CLASS( npc_antlionguard, CNPC_AntlionGuard );
 
-
 IMPLEMENT_SERVERCLASS_ST(CNPC_AntlionGuard, DT_NPC_AntlionGuard)
 	SendPropBool( SENDINFO( m_bCavernBreed ) ),
 	SendPropBool( SENDINFO( m_bInCavern ) ),
@@ -650,7 +649,6 @@ IMPLEMENT_SERVERCLASS_ST(CNPC_AntlionGuard, DT_NPC_AntlionGuard)
 	SendPropInt(  SENDINFO( m_iBleedingLevel ), 2, SPROP_UNSIGNED ),
 #endif
 END_SEND_TABLE()
-
 
 
 //-----------------------------------------------------------------------------

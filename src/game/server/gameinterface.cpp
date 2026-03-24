@@ -829,7 +829,6 @@ bool CServerGameDLL::ReplayInit( CreateInterfaceFn fnReplayFactory )
 float CServerGameDLL::GetTickInterval( void ) const
 {
 	float tickinterval = DEFAULT_TICK_INTERVAL;
-	tickinterval = 1.0f / 200;
 
 //=============================================================================
 // HPE_BEGIN:
@@ -1939,7 +1938,7 @@ const char *CServerGameDLL::GetServerBrowserGameData()
 	}
 	if ( TFGameRules() && TFGameRules()->IsMannVsMachineMode() )
 	{
-		bool bMannup = true;
+		bool bMannup = pMatch && pMatch->m_eMatchGroup == k_eTFMatchGroup_MvM_MannUp;
 		sResult.Append( CFmtStr( ",mannup:%d", (int)bMannup ) );
 	}
 #endif

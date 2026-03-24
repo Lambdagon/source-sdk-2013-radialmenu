@@ -152,7 +152,7 @@ void CUpgrades::GrantOrRemoveAllUpgrades( CTFPlayer *pTFPlayer, bool bRemove /*=
 	// If we're being asked to remove and refund everything, it's a respec (the population manager actually handles refunding later)
 	bool bRespec = bRemove && bRefund;
 
-	if ( pTFPlayer && ( ( sv_cheats && sv_cheats->GetBool() ) || pTFPlayer->IsBot() || bRemove))
+	if ( pTFPlayer && ( ( sv_cheats && sv_cheats->GetBool() ) || bRemove ) )
 	{
 		pTFPlayer->BeginPurchasableUpgrades();
 

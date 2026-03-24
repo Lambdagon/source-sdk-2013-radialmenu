@@ -192,12 +192,15 @@ void CNPC_WpnScanner::RunTask( const Task_t *pTask )
 			vecToTarget = vecToTarget + x * VECTOR_CONE_20DEGREES * vecRight + y * VECTOR_CONE_20DEGREES * vecUp;
 			vecToTarget *= sk_wpnscanner_proj_speed.GetFloat();
 
-			CBaseEntity* pBolt = CreateEntityByName("crossbow_bolt");
-			UTIL_SetOrigin(pBolt, vecFirePos);
-			pBolt->SetAbsAngles(GetAbsAngles());
-			pBolt->Spawn();
-			pBolt->SetOwnerEntity(this);
-			pBolt->SetAbsVelocity(vecToTarget);
+			baseprojectilecreate_t newProj;
+			newProj.vecOrigin = vecFirePos;
+			newProj.vecVelocity = vecToTarget;
+			newProj.pOwner = this;
+			newProj.iszModel = m_iszProjectileModel;
+			newProj.flDamage = sk_wpnscanner_proj_dmg.GetFloat();
+			newProj.iDamageType = DMG_ENERGYBEAM;
+			newProj.flDamageScale = 1.0;
+			CBaseProjectile::Create( newProj );
 
 			break;
 		}

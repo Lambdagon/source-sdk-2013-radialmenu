@@ -19,6 +19,7 @@
 #include <KeyValues.h>
 #include "hltvcamera.h"
 #ifdef TF_CLIENT_DLL
+	#include "c_tf_player.h"
 	#include "tf_weaponbase.h"
 #endif
 
@@ -91,6 +92,22 @@ void FormatViewModelAttachment( Vector &vOrigin, bool bInverse )
 	vOrigin = pViewSetup->origin + vOut;
 }
 
+#ifdef TF_CLIENT_DLL
+bool TeamFortress_ShouldFlipClientViewModel( void )
+{
+	if ( IsLocalPlayerSpectator() )
+	{
+		// Use spectated client's handedness preference
+		C_TFPlayer *pSpecTarget = ToTFPlayer( UTIL_PlayerByIndex( GetSpectatorTarget() ) );
+		if ( pSpecTarget )
+		{
+			return pSpecTarget->m_bFlipViewModels;
+		}
+	}
+
+	return cl_flipviewmodels.GetBool();
+}
+#endif //TF_CLIENT_DLL
 
 void C_BaseViewModel::FormatViewModelAttachment( int nAttachment, matrix3x4_t &attachmentToWorld )
 {
@@ -152,7 +169,26 @@ bool C_BaseViewModel::Interpolate( float currentTime )
 	// Make sure we reset our animation information if we've switch sequences
 	UpdateAnimationParity();
 
+	// The server drives non-idle viewmodel animations via a single animation layer.
+	// Mirror that layer state clientside so server-only transitions (like deploy)
+	// still animate for the local player.
+	if ( m_nOldViewModelLayerParity != m_nViewModelLayerParity )
+	{
+		m_nOldViewModelLayerParity = m_nViewModelLayerParity;
+
+		if ( m_nViewModelLayerSequence < 0 )
+		{
+			ClearViewModelAnimationLayer();
+		}
+		else
+		{
+			EnsureViewModelIdleSequence();
+			AddViewModelAnimationLayer( m_nViewModelLayerSequence );
+		}
+	}
+
 	bool bret = BaseClass::Interpolate( currentTime );
+	AdvanceViewModelAnimationLayer( currentTime );
 
 	// Hack to extrapolate cycle counter for view model
 	float elapsed_time = currentTime - m_flAnimTime;
@@ -211,7 +247,7 @@ bool C_BaseViewModel::ShouldFlipViewModel()
 	CBaseCombatWeapon *pWeapon = m_hWeapon.Get();
 	if ( pWeapon )
 	{
-		return pWeapon->m_bFlipViewModel != cl_flipviewmodels.GetBool();
+		return pWeapon->m_bFlipViewModel != TeamFortress_ShouldFlipClientViewModel();
 	}
 #endif
 
@@ -343,6 +379,10 @@ int C_BaseViewModel::DrawModel( int flags )
 		{
 			pWeapon->ViewModelDrawn( this );
 		}
+
+		// Note: Viewmodel layer animations are driven by the server-selected sequence (m_nViewModelLayerSequence).
+		// Starting the layer from the activity would potentially re-select a different weighted sequence and
+		// restart it every frame, appearing "frozen".
 	}
 
 	return ret;

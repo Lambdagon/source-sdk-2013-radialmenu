@@ -753,6 +753,21 @@ void CTriggerWateryDeath::StartTouch(CBaseEntity *pOther)
 			m_flEntityKillTimes.AddToTail( gpGlobals->curtime + WD_KILLTIME_NEXT_BITE );
 		}
 	}
+
+#ifdef HL2_DLL
+	if ( pOther->IsPlayer() )
+	{
+		SpawnLeeches( pOther );
+
+		CHL2_Player *pHL2Player = dynamic_cast<CHL2_Player*>( pOther );
+
+		if ( pHL2Player )
+		{
+			pHL2Player->StartWaterDeathSounds();
+		}
+	}
+#endif
+	
 }
 
 
@@ -790,6 +805,20 @@ void CTriggerWateryDeath::EndTouch( CBaseEntity *pOther )
 
 		if ( m_hLeeches.Count() > 0 )
 			 m_hLeeches.Purge();
+
+		CHL2_Player *pHL2Player = dynamic_cast<CHL2_Player*>( pOther );
+
+		if ( pHL2Player )
+		{
+			//Adrian: Hi, you might be wondering why I'm doing this, yes?
+			//        Well, EndTouch is called not only when the player leaves
+			//		  the trigger, but also on level shutdown. We can't let the
+			//		  soundpatch fade the sound out since we'll hit a nasty assert
+			//        cause it'll try to fade out a sound using an entity that might
+			//        be gone since we're shutting down the server.
+			if ( !(pHL2Player->GetFlags() & FL_DONTTOUCH ) )
+				  pHL2Player->StopWaterDeathSounds();
+		}
 	}
 #endif
 

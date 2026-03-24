@@ -37,7 +37,6 @@
 
 extern ConVar tf_bot_health_ok_ratio;
 extern ConVar tf_bot_health_critical_ratio;
-extern ConVar tf_mvm_versus_enabled;
 
 ConVar tf_bot_force_jump( "tf_bot_force_jump", "0", FCVAR_CHEAT, "Force bots to continuously jump" );
 
@@ -254,7 +253,7 @@ ActionResult< CTFBot >	CTFBotTacticalMonitor::Update( CTFBot *me, float interval
 	// check if we need to get to cover
 	QueryResultType shouldRetreat = me->GetIntentionInterface()->ShouldRetreat( me );
 
-	if ( TFGameRules()->IsMannVsMachineMode() && me->GetTeamNumber() == TF_TEAM_PVE_INVADERS )
+	if ( TFGameRules()->IsMannVsMachineMode() )
 	{
 		// never retreat in MvM mode
 		shouldRetreat = ANSWER_NO;
@@ -319,7 +318,7 @@ ActionResult< CTFBot >	CTFBotTacticalMonitor::Update( CTFBot *me, float interval
 
 		bool shouldDestroySentries = true;
 
-		if ( TFGameRules()->IsMannVsMachineMode() && me->GetTeamNumber() == TF_TEAM_PVE_INVADERS && !tf_mvm_versus_enabled.GetBool() )
+		if ( TFGameRules()->IsMannVsMachineMode() )
 		{
 			shouldDestroySentries = false;
 		}

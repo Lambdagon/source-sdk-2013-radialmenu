@@ -466,9 +466,14 @@ void CBaseServerVehicle::SetPassenger( int nRole, CBaseCombatCharacter *pPasseng
 
 #ifdef HL2_DLL
 			// Stop the player sprint and flashlight.
-			CBasePlayer *pHL2Player = pPlayer;
+			CHL2_Player *pHL2Player = dynamic_cast<CHL2_Player*>( pPlayer );
 			if ( pHL2Player )
 			{
+				if ( pHL2Player->IsSprinting() )
+				{
+					pHL2Player->StopSprinting();
+				}
+
 				if ( pHL2Player->FlashlightIsOn() )
 				{
 					pHL2Player->FlashlightTurnOff();
@@ -1375,6 +1380,9 @@ int CBaseServerVehicle::GetExitAnimToUse( Vector &vecEyeExitEndpoint, bool &bAll
 
 		if ( tr.fraction != 1.0 )
 		{
+#ifdef HL2_EPISODIC
+			if ( ShouldVehicleIgnoreEntity( GetVehicleEnt(), tr.m_pEnt ) == false )
+#endif //HL2_EPISODIC
 			{
 				if ( g_debug_vehicleexit.GetBool() )
 				{

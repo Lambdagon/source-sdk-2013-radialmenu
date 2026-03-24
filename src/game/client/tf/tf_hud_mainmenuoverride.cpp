@@ -721,9 +721,21 @@ void CHudMainMenuOverride::LoadCharacterImageFile( void )
 					iWeight = 0;
 				}
 			}
+			else if ( eHoliday != kHoliday_None )
+			{
+				iWeight = UTIL_IsHolidayActive( eHoliday ) ? MAX( iWeight, 6 ) : 0;
+			}
 			else if ( bActiveOperation && !bIsOperationCharacter )
 			{
 				iWeight = 0;
+			}
+			else
+			{
+				// special cases for summer, halloween, fullmoon, and christmas...turn off anything not covered above
+				if ( UTIL_IsHolidayActive( kHoliday_Summer ) || UTIL_IsHolidayActive( kHoliday_HalloweenOrFullMoon ) || UTIL_IsHolidayActive( kHoliday_Christmas ) )
+				{
+					iWeight = 0;
+				}
 			}
 
 			for ( int i = 0; i < iWeight; i++ )
@@ -1892,7 +1904,7 @@ void CHudMainMenuOverride::OnCommand( const char *command )
 	}
 	else if ( !Q_stricmp( command, "offlinepractice" ) )
 	{
-		GetClientModeTFNormal()->GameUI()->SendMainMenuCommand( "engine gamemenucommand opennewgamedialog" );
+		GetClientModeTFNormal()->GameUI()->SendMainMenuCommand( "engine training_showdlg" );
 	}
 	else if ( !Q_stricmp( command, "armory_open" ) )
 	{

@@ -11,6 +11,12 @@
 #pragma once
 #endif
 
+#if defined( CLIENT_DLL )
+#include "c_baseanimatingoverlay.h"
+#else
+#include "BaseAnimatingOverlay.h"
+#endif
+
 #include "predictable_entity.h"
 #include "utlvector.h"
 #include "baseplayer_shared.h"
@@ -28,9 +34,9 @@ class CVGuiScreen;
 
 #define VIEWMODEL_INDEX_BITS 1
 
-class CBaseViewModel : public CBaseAnimating, public IHasOwner
+class CBaseViewModel : public CBaseAnimatingOverlay, public IHasOwner
 {
-	DECLARE_CLASS( CBaseViewModel, CBaseAnimating );
+	DECLARE_CLASS( CBaseViewModel, CBaseAnimatingOverlay);
 public:
 
 	DECLARE_NETWORKCLASS();
@@ -51,6 +57,9 @@ public:
 	// Weapon client handling
 	virtual void			SendViewModelMatchingSequence( int sequence );
 	virtual void			SetWeaponModel( const char *pszModelname, CBaseCombatWeapon *weapon );
+	void					SetPlaybackRate( float flPlaybackRate );
+	bool					IsViewModelSequenceFinished();
+	float					GetViewModelSequenceDuration();
 
 	virtual void			CalcViewModelLag( Vector& origin, QAngle& angles, QAngle& original_angles );
 	virtual void			CalcViewModelView( CBasePlayer *owner, const Vector& eyePosition, 
@@ -88,6 +97,12 @@ public:
 
 	Vector					m_vecLastFacing;
 
+	void					SetViewModelBaseSequence(int sequence);
+	void					EnsureViewModelIdleSequence();
+	void					ClearViewModelAnimationLayer();
+	void					AddViewModelAnimationLayer(int sequence);
+	bool					HasViewModelAnimationLayer();
+	CNetworkVar(Activity, m_nViewModelLayerActivity);
 	// Only support prediction in TF2 for now
 #if defined( INVASION_DLL ) || defined( INVASION_CLIENT_DLL )
 	// All predicted weapons need to implement and return true
@@ -174,6 +189,9 @@ public:
 #endif
 
 private:
+#if defined( CLIENT_DLL )
+	void					AdvanceViewModelAnimationLayer( float currentTime );
+#endif
 	CBaseViewModel( const CBaseViewModel & ); // not defined, not accessible
 
 #endif
@@ -190,13 +208,20 @@ private:
 	// Used to force restart on client, only needs a few bits
 	CNetworkVar( int, m_nAnimationParity );
 
+	// Viewmodel animation layer state (networked).
+	// This is used to tell clients to start/stop the single "viewmodel layer" sequence (deploy, etc).
+	CNetworkVar( int, m_nViewModelLayerSequence );	// -1 means no layer
+	CNetworkVar( int, m_nViewModelLayerParity );
+
 	// Weapon art
 	string_t				m_sVMName;			// View model of this weapon
 	string_t				m_sAnimationPrefix;		// Prefix of the animations that should be used by the player carrying this weapon
 
 #if defined( CLIENT_DLL )
 	int						m_nOldAnimationParity;
+	int						m_nOldViewModelLayerParity;
 #endif
+	int						m_nAnimationLayerIndex;
 
 
 	typedef CHandle< CBaseCombatWeapon > CBaseCombatWeaponHandle;

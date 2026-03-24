@@ -26,7 +26,7 @@ class CWeaponBugBait : public CBaseHLCombatWeapon
 	DECLARE_CLASS( CWeaponBugBait, CBaseHLCombatWeapon );
 public:
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	CWeaponBugBait( void );
 
@@ -82,7 +82,7 @@ BEGIN_DATADESC( CWeaponBugBait )
 	DEFINE_FIELD( m_bEmitSpores,		FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bDrawBackFinished,	FIELD_BOOLEAN ),
 
-	//DEFINE_FUNCTION( BugbaitStickyTouch ),
+	DEFINE_FUNCTION( BugbaitStickyTouch ),
 
 END_DATADESC()
 
@@ -248,7 +248,7 @@ void CWeaponBugBait::SecondaryAttack( void )
 		g_AntlionMakerManager.BroadcastFollowGoal( GetOwner() );
 	}
 
-	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+	SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 	m_flNextSecondaryAttack = gpGlobals->curtime + SequenceDuration();
 
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );

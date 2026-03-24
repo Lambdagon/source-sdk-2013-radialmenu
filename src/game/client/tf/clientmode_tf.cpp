@@ -105,8 +105,6 @@
 extern ConVar cl_steamscreenshots;
 #endif
 
-vgui::HScheme g_hVGuiCombineScheme = 0;
-
 extern ISoundEmitterSystemBase *soundemitterbase;
 
 static Color colorEyeballBossText( 134, 80, 172, 255 );
@@ -543,13 +541,6 @@ void ClientModeTFNormal::InitViewport()
 {
 	m_pViewport = new TFViewport();
 	m_pViewport->Start( gameuifuncs, gameeventmanager );
-
-	// Load up the combine control panel scheme
-	g_hVGuiCombineScheme = vgui::scheme()->LoadSchemeFromFileEx(enginevgui->GetPanel(PANEL_CLIENTDLL), IsXbox() ? "resource/ClientScheme.res" : "resource/CombinePanelScheme.res", "CombineScheme");
-	if (!g_hVGuiCombineScheme)
-	{
-		Warning("Couldn't load combine panel scheme!\n");
-	}
 }
 
 
@@ -2398,7 +2389,6 @@ USER_MESSAGE( RDTeamPointsChanged )
 USER_MESSAGE( PlayerLoadoutUpdated )
 {
 	int iPlayerEntIndex = (int)msg.ReadByte();
-
 	C_TFPlayer *pPlayer = ToTFPlayer( UTIL_PlayerByIndex( iPlayerEntIndex ) );
 	if ( pPlayer )
 	{

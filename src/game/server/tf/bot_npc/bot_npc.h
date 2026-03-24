@@ -6,6 +6,7 @@
 #ifndef BOT_NPC_H
 #define BOT_NPC_H
 
+#ifdef OBSOLETE_USE_BOSS_ALPHA
 
 #include "NextBot.h"
 #include "NextBotBehavior.h"
@@ -149,6 +150,9 @@ public:
 
 	virtual bool IsPotentiallyChaseable( CTFPlayer *victim );
 
+	void SetSpawner( CTFSpawnerBoss *spawner );				// remember the spawner that created us
+	CTFSpawnerBoss *GetSpawner( void ) const;				// return the spawner that created us
+
 	void Break( void );		// bust into gibs
 
 	struct AttackerInfo
@@ -268,6 +272,8 @@ private:
 	CBotNPCBody *m_body;
 	CBotNPCVision *m_vision;
 
+	CHandle< CTFSpawnerBoss > m_spawner;
+
 	CBaseAnimating *m_axe;
 	CBaseAnimating *m_shield;
 
@@ -321,6 +327,16 @@ inline bool CBotNPC::HasAbility( Ability ability ) const
 	const int myAbilities = CAN_BE_STUNNED | CAN_NUKE | CAN_ENRAGE | CAN_FIRE_ROCKETS | CAN_LAUNCH_STICKIES | CAN_LAUNCH_MINIONS;
 
 	return myAbilities & ability ? true : false;
+}
+
+inline void CBotNPC::SetSpawner( CTFSpawnerBoss *spawner )
+{
+	m_spawner = spawner;
+}
+
+inline CTFSpawnerBoss *CBotNPC::GetSpawner( void ) const
+{
+	return m_spawner;
 }
 
 inline bool CBotNPC::IsAttackTarget( CBaseCombatCharacter *target ) const
@@ -452,22 +468,22 @@ inline const CUtlVector< CBotNPC::AttackerInfo > &CBotNPC::GetAttackerVector( vo
 class CBotNPCPathCost : public IPathCost
 {
 public:
-	CBotNPCPathCost(CBotNPC* me)
+	CBotNPCPathCost( CBotNPC *me )
 	{
 		m_me = me;
 	}
 
 	// return the cost (weighted distance between) of moving from "fromArea" to "area", or -1 if the move is not allowed
-	virtual float operator()(CNavArea* area, CNavArea* fromArea, const CNavLadder* ladder, const CFuncElevator* elevator, float length) const
+	virtual float operator()( CNavArea *area, CNavArea *fromArea, const CNavLadder *ladder, const CFuncElevator *elevator, float length ) const
 	{
-		if (fromArea == NULL)
+		if ( fromArea == NULL )
 		{
 			// first area in path, no cost
 			return 0.0f;
 		}
 		else
 		{
-			if (!m_me->GetLocomotionInterface()->IsAreaTraversable(area))
+			if ( !m_me->GetLocomotionInterface()->IsAreaTraversable( area ) )
 			{
 				// our locomotor says we can't move here
 				return -1.0f;
@@ -476,27 +492,27 @@ public:
 			// compute distance traveled along path so far
 			float dist;
 
-			if (ladder)
+			if ( ladder )
 			{
 				dist = ladder->m_length;
 			}
-			else if (length > 0.0)
+			else if ( length > 0.0 )
 			{
 				// optimization to avoid recomputing length
 				dist = length;
 			}
 			else
 			{
-				dist = (area->GetCenter() - fromArea->GetCenter()).Length();
+				dist = ( area->GetCenter() - fromArea->GetCenter() ).Length();
 			}
 
 			float cost = dist + fromArea->GetCostSoFar();
 
 			// check height change
-			float deltaZ = fromArea->ComputeAdjacentConnectionHeightChange(area);
-			if (deltaZ >= m_me->GetLocomotionInterface()->GetStepHeight())
+			float deltaZ = fromArea->ComputeAdjacentConnectionHeightChange( area );
+			if ( deltaZ >= m_me->GetLocomotionInterface()->GetStepHeight() )
 			{
-				if (deltaZ >= m_me->GetLocomotionInterface()->GetMaxJumpHeight())
+				if ( deltaZ >= m_me->GetLocomotionInterface()->GetMaxJumpHeight() )
 				{
 					// too high to reach
 					return -1.0f;
@@ -506,7 +522,7 @@ public:
 				const float jumpPenalty = 5.0f;
 				cost += jumpPenalty * dist;
 			}
-			else if (deltaZ < -m_me->GetLocomotionInterface()->GetDeathDropHeight())
+			else if ( deltaZ < -m_me->GetLocomotionInterface()->GetDeathDropHeight() )
 			{
 				// too far to drop
 				return -1.0f;
@@ -516,7 +532,10 @@ public:
 		}
 	}
 
-	CBotNPC* m_me;
+	CBotNPC *m_me;
 };
+
+
+#endif // #ifdef OBSOLETE_USE_BOSS_ALPHA
 
 #endif // BOT_NPC_H

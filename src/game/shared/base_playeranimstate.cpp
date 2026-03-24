@@ -307,6 +307,12 @@ void CBasePlayerAnimState::UpdateAimSequenceLayers(
 	)
 {
 	float flAimSequenceWeight = 1;
+
+	if (m_pOuter && m_pOuter->GetMoveType() == MOVETYPE_LADDER)
+		return;
+
+	if (GetOuter()->GetTeamNumber() == 3) 
+		return;
 	int iAimSequence = CalcAimLayerSequence( &flCycle, &flAimSequenceWeight, bForceIdle );
 	if ( iAimSequence == -1 )
 		iAimSequence = 0;
@@ -546,12 +552,7 @@ void CBasePlayerAnimState::ComputePlaybackRate()
 	{
 		// When using a 9-way blend, playback rate is always 1 and we just scale the pose params
 		// to speed up or slow down the animation.
-		bool bIsMoving;
-		float flRate = CalcMovementPlaybackRate( &bIsMoving );
-		if ( bIsMoving )
-			GetOuter()->SetPlaybackRate( flRate );
-		else
-			GetOuter()->SetPlaybackRate( 1 );
+		GetOuter()->SetPlaybackRate( 1 );
 	}
 }
 
@@ -656,8 +657,8 @@ void CBasePlayerAnimState::ComputePoseParam_MoveYaw( CStudioHdr *pStudioHdr )
 
 		if ( bIsMoving )
 		{
-			vCurMovePose.x = cos( DEG2RAD( flYaw ) ) * flPlaybackRate;
-			vCurMovePose.y = -sin( DEG2RAD( flYaw ) ) * flPlaybackRate;
+			vCurMovePose.x = cos( DEG2RAD( flYaw ) );
+			vCurMovePose.y = -sin( DEG2RAD( flYaw ) );
 		}
 
 		GetOuter()->SetPoseParameter( pStudioHdr, iMoveX, vCurMovePose.x );

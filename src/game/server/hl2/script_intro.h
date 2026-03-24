@@ -22,7 +22,7 @@ class CScriptIntro : public CBaseEntity
 	DECLARE_CLASS(CScriptIntro, CBaseEntity);
 public:
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	virtual void	Spawn( void );
 	virtual void	Precache();

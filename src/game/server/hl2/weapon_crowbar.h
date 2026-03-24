@@ -29,7 +29,7 @@ class CWeaponCrowbar : public CBaseHLBludgeonWeapon
 public:
 	DECLARE_CLASS( CWeaponCrowbar, CBaseHLBludgeonWeapon );
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_ACTTABLE();
 
 	CWeaponCrowbar();

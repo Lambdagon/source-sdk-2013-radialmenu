@@ -81,11 +81,18 @@ void CThirdPersonManager::Update( void )
 	// If cheats have been disabled, pull us back out of third-person view.
 	if ( sv_cheats && !sv_cheats->GetBool() && GameRules() && GameRules()->AllowThirdPersonCamera() == false )
 	{
-		if ( (bool)input->CAM_IsThirdPerson() == true )
+		// Allow game-forced/overriding third person even when cheats are off.
+		if ( m_bForced || IsOverridingThirdPerson() )
+		{
+			// Keep camera as-is.
+		}
+		else if ( (bool)input->CAM_IsThirdPerson() == true )
 		{
 			input->CAM_ToFirstPerson();
 		}
-		return;
+
+		if ( !m_bForced && !IsOverridingThirdPerson() )
+			return;
 	}
 
 	if ( IsOverridingThirdPerson() == false )

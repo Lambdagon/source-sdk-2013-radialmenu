@@ -2416,8 +2416,9 @@ bool CGameMovement::CheckJumpButton( void )
 
 	// In the air now.
     SetGroundEntity( NULL );
-	
-	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true );
+
+	player->PlayStepSound((Vector&)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true);
+	player->PlayStepSound((Vector&)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true);
 	
 	MoveHelper()->PlayerSetAnimation( PLAYER_JUMP );
 
@@ -2857,6 +2858,7 @@ bool CGameMovement::LadderMove( void )
 	Vector floor;
 	Vector wishdir;
 	Vector end;
+	float dismountPose = 0.0f;
 
 	if ( player->GetMoveType() == MOVETYPE_NOCLIP )
 		return false;
@@ -3008,6 +3010,76 @@ bool CGameMovement::LadderMove( void )
 			mv->m_vecVelocity.Init();
 		}
 	}
+
+	// Ladder dismount pose parameter: as we approach the end of the ladder while climbing, ramp from 0..1.
+	if ( player->GetMoveType() == MOVETYPE_LADDER )
+	{
+		Vector ladderNormal = player->m_vecLadderNormal;
+		ladderNormal.NormalizeInPlace();
+
+		Vector perp;
+		CrossProduct( Vector( 0, 0, 1 ), ladderNormal, perp );
+
+		if ( perp.NormalizeInPlace() > 0.001f )
+		{
+			Vector ladderUp;
+			CrossProduct( ladderNormal, perp, ladderUp );
+			ladderUp.NormalizeInPlace();
+
+			const float alongSpeed = DotProduct( mv->m_vecVelocity, ladderUp );
+			if ( fabs( alongSpeed ) > 1.0f )
+			{
+				const Vector probeDir = ( alongSpeed > 0.0f ) ? ladderUp : -ladderUp;
+
+				const float rampDist = 64.0f;
+				const float step = 16.0f;
+				const int steps = 4;
+
+				const Vector curPos = mv->GetAbsOrigin();
+				for ( int i = 1; i <= steps; ++i )
+				{
+					const float dist = i * step;
+					const Vector testPos = curPos + probeDir * dist;
+
+					trace_t tr;
+					Vector checkEnd;
+					VectorMA( testPos, LadderDistance(), wishdir, checkEnd );
+					TracePlayerBBox( testPos, checkEnd, LadderMask(), COLLISION_GROUP_PLAYER_MOVEMENT, tr );
+
+					if ( ( tr.fraction == 1.0f ) || !OnLadder( tr ) )
+					{
+						float lo = ( i - 1 ) * step;
+						float hi = dist;
+
+						// Refine the boundary a bit so the pose parameter ramps smoothly.
+						for ( int it = 0; it < 2; ++it )
+						{
+							const float mid = 0.5f * ( lo + hi );
+
+							const Vector midPos = curPos + probeDir * mid;
+							VectorMA( midPos, LadderDistance(), wishdir, checkEnd );
+							TracePlayerBBox( midPos, checkEnd, LadderMask(), COLLISION_GROUP_PLAYER_MOVEMENT, tr );
+
+							if ( ( tr.fraction != 1.0f ) && OnLadder( tr ) )
+							{
+								lo = mid;
+							}
+							else
+							{
+								hi = mid;
+							}
+						}
+
+						const float distToEnd = clamp( lo, 0.0f, rampDist );
+						dismountPose = 1.0f - ( distToEnd / rampDist );
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	player->SetPoseParameter( "dismount", dismountPose );
 
 	return true;
 }
@@ -4012,6 +4084,18 @@ void CGameMovement::PlayerRoughLandingEffects( float fvol )
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: Reset interpolation when player duck state changes
+// Input  : direction - 
+//-----------------------------------------------------------------------------
+void CGameMovement::ResetDuckLatched()
+{
+#ifdef CLIENT_DLL
+	if ( !player->InFirstPersonView() )
+		player->ResetLatched();
+#endif
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Use for ease-in, ease-out style interpolation (accel/decel)  Used by ducking code.
 // Input  : value - 
 //			scale - 
@@ -4133,9 +4217,7 @@ void CGameMovement::FinishUnDuck( void )
 
 	mv->SetAbsOrigin( newOrigin );
 
-#ifdef CLIENT_DLL
-	player->ResetLatched();
-#endif // CLIENT_DLL
+	ResetDuckLatched();
 
 	// Recategorize position since ducking can change origin
 	CategorizePosition();
@@ -4232,9 +4314,7 @@ void CGameMovement::FinishDuck( void )
    		VectorAdd( mv->GetAbsOrigin(), viewDelta, out );
 		mv->SetAbsOrigin( out );
 
-#ifdef CLIENT_DLL
-		player->ResetLatched();
-#endif // CLIENT_DLL
+		ResetDuckLatched();
 	}
 
 	// See if we are stuck?
@@ -4618,7 +4698,7 @@ void CGameMovement::PlayerMove( void )
 
 	m_nOnLadder = 0;
 
-	player->UpdateStepSound( player->m_pSurfaceData, mv->GetAbsOrigin(), mv->m_vecVelocity );
+	//player->UpdateStepSound( player->m_pSurfaceData, mv->GetAbsOrigin(), mv->m_vecVelocity );
 
 	UpdateDuckJumpEyeOffset();
 	Duck();
@@ -4640,6 +4720,7 @@ void CGameMovement::PlayerMove( void )
 				// It will be reset immediately again next frame if necessary
 				player->SetMoveType( MOVETYPE_WALK );
 				player->SetMoveCollide( MOVECOLLIDE_DEFAULT );
+				player->SetPoseParameter( "dismount", 0.0f );
 			}
 		}
 	}
@@ -4940,4 +5021,3 @@ void  CGameMovement::TryTouchGround( const Vector& start, const Vector& end, con
 	ray.Init( start, end, mins, maxs );
 	UTIL_TraceRay( ray, fMask, mv->m_nPlayerHandle.Get(), collisionGroup, &pm );
 }
-

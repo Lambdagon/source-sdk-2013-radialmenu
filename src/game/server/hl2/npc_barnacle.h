@@ -68,7 +68,7 @@ class CNPC_Barnacle : public CAI_BaseNPC
 {
 	DECLARE_CLASS( CNPC_Barnacle, CAI_BaseNPC );
 public:
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 	CNPC_Barnacle();

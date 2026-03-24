@@ -34,7 +34,7 @@ class CPropJeep : public CPropVehicleDriveable
 public:
 	DECLARE_CLASS( CPropJeep, CPropVehicleDriveable );
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 	CPropJeep( void );

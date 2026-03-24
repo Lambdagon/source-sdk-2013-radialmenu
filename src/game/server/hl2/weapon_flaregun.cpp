@@ -72,7 +72,6 @@ BEGIN_DATADESC( CFlare )
 END_DATADESC()
 
 //Data-tables
-
 IMPLEMENT_SERVERCLASS_ST( CFlare, DT_Flare )
 	SendPropFloat( SENDINFO( m_flTimeBurnOut ), 0,	SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_flScale ), 0, SPROP_NOSCALE ),
@@ -699,7 +698,7 @@ void CFlaregun::PrimaryAttack( void )
 
 	m_iClip1 = m_iClip1 - 1;
 
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 	pOwner->m_flNextAttack = gpGlobals->curtime + 1;
 
 	CFlare *pFlare = CFlare::Create( pOwner->Weapon_ShootPosition(), pOwner->EyeAngles(), pOwner, FLARE_DURATION );
@@ -734,7 +733,7 @@ void CFlaregun::SecondaryAttack( void )
 
 	m_iClip1 = m_iClip1 - 1;
 
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 	pOwner->m_flNextAttack = gpGlobals->curtime + 1;
 
 	CFlare *pFlare = CFlare::Create( pOwner->Weapon_ShootPosition(), pOwner->EyeAngles(), pOwner, FLARE_DURATION );

@@ -46,7 +46,7 @@ class CNPC_Barney : public CNPC_PlayerCompanion
 {
 public:
 	DECLARE_CLASS( CNPC_Barney, CNPC_PlayerCompanion );
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 	virtual void Precache()
@@ -93,7 +93,6 @@ LINK_ENTITY_TO_CLASS( npc_barney, CNPC_Barney );
 //---------------------------------------------------------
 // 
 //---------------------------------------------------------
-
 IMPLEMENT_SERVERCLASS_ST(CNPC_Barney, DT_NPC_Barney)
 END_SEND_TABLE()
 

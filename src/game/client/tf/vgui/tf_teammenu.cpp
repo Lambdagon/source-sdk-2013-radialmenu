@@ -752,8 +752,6 @@ void CTFTeamMenu::SetHighlanderTeamsFullPanels( bool bTeamsFull, bool bForce /* 
 	}
 }
 
-extern ConVar tf_mvm_versus_enabled;
-
 //-----------------------------------------------------------------------------
 // Frame-based update
 //-----------------------------------------------------------------------------
@@ -824,7 +822,7 @@ void CTFTeamMenu::OnTick()
 	if ( ( bUnbalanced && iHeavyTeam == TF_TEAM_BLUE ) || 
 		 ( pRules->WouldChangeUnbalanceTeams( TF_TEAM_BLUE, iCurrentTeam ) ) ||
 		 ( bHighlander && GetGlobalTeam( TF_TEAM_BLUE )->GetNumPlayers() >= TF_LAST_NORMAL_CLASS - 1 ) ||
-		 ( pRules->IsMannVsMachineMode() && !tf_mvm_versus_enabled.GetBool() ) )
+		 ( pRules->IsMannVsMachineMode() ) )
 	{
 		m_bBlueDisabled = true;
 	}

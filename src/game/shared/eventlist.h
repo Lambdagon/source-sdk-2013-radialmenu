@@ -97,6 +97,10 @@ typedef enum
 	AE_SV_EXCLUDE_PLAYER_SOUND, // Plays a sound for everyone except the player doing the animation
 	AE_CL_EXCLUDE_PLAYER_SOUND,
 
+	AE_FOOTSTEP_LEFT,
+	AE_FOOTSTEP_RIGHT,
+	AE_ATTACK_HIT,
+
 	LAST_SHARED_ANIMEVENT,
 } Animevent;
 

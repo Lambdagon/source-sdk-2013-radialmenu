@@ -23,7 +23,6 @@ BEGIN_DATADESC( CCitadelEnergyCore )
 	DEFINE_INPUTFUNC( FIELD_FLOAT, "Stop", InputStop ),
 END_DATADESC()
 
-
 IMPLEMENT_SERVERCLASS_ST( CCitadelEnergyCore, DT_CitadelEnergyCore )
 	SendPropFloat( SENDINFO(m_flScale), 0, SPROP_NOSCALE),
 	SendPropInt( SENDINFO(m_nState), 8, SPROP_UNSIGNED),

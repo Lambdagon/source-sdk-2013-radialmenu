@@ -721,7 +721,6 @@ bool CFourWheelVehiclePhysics::Think()
 
 	m_pVehicle->Update( gpGlobals->frametime, m_controls);
 
-	/*
 	// boost sounds
 	if( IsBoosting() && !m_bLastBoost )
 	{
@@ -738,8 +737,6 @@ bool CFourWheelVehiclePhysics::Think()
 
 	m_fLastBoost = carState.boostDelay;
 	m_nBoostTimeLeft =  carState.boostTimeLeft;
-
-	*/
 
 	// UNDONE: Use skid info from the physics system?
 	// Only check wheels if we're not being carried by a dropship

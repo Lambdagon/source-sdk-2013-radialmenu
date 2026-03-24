@@ -21,7 +21,12 @@ ConVar tf_boss_alpha_stunned_duration( "tf_boss_alpha_stunned_duration", "10" );
 //---------------------------------------------------------------------------------------------
 Action< CBossAlpha > *CBossAlphaTacticalMonitor::InitialContainedAction( CBossAlpha *me )	
 {
-	return new CBossAlphaWaitForPlayers;
+	if ( TFGameRules()->IsBossBattleMode() )
+	{
+		return new CBossAlphaWaitForPlayers;
+	}
+
+	return NULL;
 }
 
 

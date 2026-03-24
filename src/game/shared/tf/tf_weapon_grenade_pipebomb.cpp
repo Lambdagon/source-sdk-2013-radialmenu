@@ -1141,7 +1141,6 @@ void CTFGrenadePipebombProjectile::DetonateThink( void )
 
 void CTFGrenadePipebombProjectile::PreArmThink( void )
 {
-	CSoundEnt::InsertSound(SOUND_DANGER, GetAbsOrigin() + GetAbsVelocity() * 0.5, 200, 0.2, this, SOUNDENT_CHANNEL_REPEATED_DANGER);
 	SetContextThink( &CTFGrenadePipebombProjectile::ArmThink, gpGlobals->curtime + GetLiveTime(), "ARM_THINK" );
 }
 

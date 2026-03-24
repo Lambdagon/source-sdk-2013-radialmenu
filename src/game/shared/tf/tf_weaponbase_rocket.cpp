@@ -172,8 +172,6 @@ void CTFBaseRocket::Spawn( void )
 	m_flDestroyableTime = gpGlobals->curtime + TF_ROCKET_DESTROYABLE_TIMER;
 	m_bCritical = false;
 
-	CSoundEnt::InsertSound(SOUND_DANGER, GetAbsOrigin() + GetAbsVelocity() * 0.5, 200, 0.2, this, SOUNDENT_CHANNEL_REPEATED_DANGER);
-
 #endif
 }
 

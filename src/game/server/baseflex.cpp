@@ -61,6 +61,14 @@ IMPLEMENT_SERVERCLASS_ST(CBaseFlex, DT_BaseFlex)
 	SendPropArray3	(SENDINFO_ARRAY3(m_flexWeight), SendPropFloat(SENDINFO_ARRAY(m_flexWeight), 12, SPROP_ROUNDDOWN, 0.0f, 1.0f ) /*, SendProxy_FlexWeights*/ ),
 	SendPropInt		(SENDINFO(m_blinktoggle), 1, SPROP_UNSIGNED ),
 	SendPropVector	(SENDINFO(m_viewtarget), -1, SPROP_COORD),
+#ifdef HL2_DLL
+	SendPropFloat	( SENDINFO_VECTORELEM(m_vecViewOffset, 0), 0, SPROP_NOSCALE ),
+	SendPropFloat	( SENDINFO_VECTORELEM(m_vecViewOffset, 1), 0, SPROP_NOSCALE ),
+	SendPropFloat	( SENDINFO_VECTORELEM(m_vecViewOffset, 2), 0, SPROP_NOSCALE ),
+
+	SendPropVector	( SENDINFO(m_vecLean), -1, SPROP_COORD ),
+	SendPropVector	( SENDINFO(m_vecShift), -1, SPROP_COORD ),
+#endif
 
 END_SEND_TABLE()
 
@@ -77,6 +85,13 @@ BEGIN_DATADESC( CBaseFlex )
 	// DEFINE_FIELD( m_LocalToGlobal, CUtlRBTree < FS_LocalToGlobal_t , unsigned short > ),
 	//						m_bUpdateLayerPriorities
 	DEFINE_FIELD( m_flLastFlexAnimationTime, FIELD_TIME ),
+
+#ifdef HL2_DLL
+	//DEFINE_FIELD( m_vecPrevOrigin, FIELD_POSITION_VECTOR ),
+	//DEFINE_FIELD( m_vecPrevVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_vecLean, FIELD_VECTOR ),
+	DEFINE_FIELD( m_vecShift, FIELD_VECTOR ),
+#endif
 
 END_DATADESC()
 
@@ -989,6 +1004,10 @@ public:
 		FindSceneFile( NULL, "phonemes", true );
 		FindSceneFile( NULL, "phonemes_weak", true );
 		FindSceneFile( NULL, "phonemes_strong", true );
+#if defined( HL2_DLL )
+		FindSceneFile( NULL, "random", true );
+		FindSceneFile( NULL, "randomAlert", true );
+#endif
 		return true;
 	}
 
@@ -2122,6 +2141,12 @@ bool CBaseFlex::IsSuppressedFlexAnimation( CSceneEventInfo *info )
 void CBaseFlex::Teleport( const Vector *newPosition, const QAngle *newAngles, const Vector *newVelocity )
 {
 	BaseClass::Teleport( newPosition, newAngles, newVelocity );
+#ifdef HL2_DLL
+
+	// clear out Body Lean
+	m_vecPrevOrigin = vec3_origin;
+
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -2130,6 +2155,65 @@ void CBaseFlex::Teleport( const Vector *newPosition, const QAngle *newAngles, co
 
 void CBaseFlex::DoBodyLean( void )
 {
+#ifdef HL2_DLL
+	CAI_BaseNPC *myNpc = MyNPCPointer( );
+
+	if (myNpc)
+	{
+		Vector vecDelta;
+		Vector vecPos;
+		Vector vecOrigin = GetAbsOrigin();
+
+		if (m_vecPrevOrigin == vec3_origin)
+		{
+			m_vecPrevOrigin = vecOrigin;
+		}
+
+		vecDelta = vecOrigin - m_vecPrevOrigin;
+		vecDelta.x = clamp( vecDelta.x, -50, 50 );
+		vecDelta.y = clamp( vecDelta.y, -50, 50 );
+		vecDelta.z = clamp( vecDelta.z, -50, 50 );
+
+		float dt = gpGlobals->curtime - GetLastThink();
+		bool bSkip = ((GetFlags() & (FL_FLY | FL_SWIM)) != 0) || (GetMoveParent() != NULL) || (GetGroundEntity() == NULL) || (GetGroundEntity()->IsMoving());
+		bSkip |= myNpc->TaskRanAutomovement() || (myNpc->GetVehicleEntity() != NULL);
+
+		if (!bSkip)
+		{
+			if (vecDelta.LengthSqr() > m_vecPrevVelocity.LengthSqr())
+			{
+				float decay =  ExponentialDecay( 0.6, 0.1, dt );
+				m_vecPrevVelocity = m_vecPrevVelocity * (decay) + vecDelta * (1.f - decay);
+			}
+			else
+			{
+				float decay =  ExponentialDecay( 0.4, 0.1, dt );
+				m_vecPrevVelocity = m_vecPrevVelocity * (decay) + vecDelta * (1.f - decay);
+			}
+
+			vecPos = m_vecPrevOrigin + m_vecPrevVelocity;
+
+			float decay =  ExponentialDecay( 0.5, 0.1, dt );
+			m_vecShift = m_vecShift * (decay) + (vecOrigin - vecPos) * (1.f - decay); // FIXME: Scale this
+			m_vecLean = (vecOrigin - vecPos) * 1.0; // FIXME: Scale this
+		}
+		else
+		{
+			m_vecPrevVelocity = vecDelta;
+			float decay =  ExponentialDecay( 0.5, 0.1, dt );
+			m_vecShift = m_vecLean * decay;
+			m_vecLean = m_vecShift * decay;
+ 		}
+
+		m_vecPrevOrigin = vecOrigin;
+
+		/*
+		DevMsg( "%.2f %.2f %.2f  (%.2f %.2f %.2f)\n", 
+			m_vecLean.Get().x, m_vecLean.Get().y, m_vecLean.Get().z,
+			vecDelta.x, vecDelta.y, vecDelta.z );
+		*/
+	}
+#endif
 }
 
 

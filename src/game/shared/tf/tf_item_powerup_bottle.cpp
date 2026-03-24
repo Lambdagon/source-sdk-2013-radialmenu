@@ -12,11 +12,6 @@
 #include "tf_player.h"
 #include "tf_obj_sentrygun.h"
 #include "tf_weapon_medigun.h"
-#include "npc_vortigaunt_episodic.h"
-#include "ai_behavior_follow.h"
-#include "npc_citizen17.h"
-#include "npc_antlion.h"
-#include "globalstate.h"
 #endif
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -372,100 +367,6 @@ void CTFPowerupBottle::ReapplyProvision( void )
 					}
 				}
 			}
-			
-			int iHasVort = 0;
-			CALL_ATTRIB_HOOK_INT(iHasVort, vortigaunt_backup);
-			if (iHasVort)
-			{
-
-				pTFPlayer->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_HELP);
-				// Create NPC
-				CNPC_Vortigaunt* pVort = dynamic_cast<CNPC_Vortigaunt*>(
-					CreateEntityByName("npc_vortigaunt")
-					);
-
-				if (pVort)
-				{
-					// Place it near the player
-					Vector spawnPos = pTFPlayer->GetAbsOrigin() + Vector(80, 0, 0);
-					pVort->SetAbsOrigin(spawnPos);
-					pVort->SetAbsAngles(QAngle(0, pTFPlayer->EyeAngles().y, 0));
-
-					// Spawn + activate 
-					DispatchSpawn(pVort);
-					pVort->Activate();
-
-					// Make it friendly to the player
-					pVort->AddEntityRelationship(pTFPlayer, D_LI, 99);
-				}
-			}
-
-			int iHasRebel = 0;
-			CALL_ATTRIB_HOOK_INT(iHasRebel, rebel_backup);
-			if (iHasRebel)
-			{
-				pTFPlayer->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_HELP);
-				// Create NPC
-				CAI_BaseNPC* pRebel = dynamic_cast<CAI_BaseNPC*>(
-					CreateEntityByName("npc_citizen")
-					);
-
-				if (pRebel)
-				{
-					// Cast to citizen class
-					CNPC_Citizen* pCitizen = dynamic_cast<CNPC_Citizen*>(pRebel);
-
-					// Place it near the player
-					Vector spawnPos = pTFPlayer->GetAbsOrigin() + Vector(80, 0, 0);
-					pRebel->SetAbsOrigin(spawnPos);
-					pRebel->SetAbsAngles(QAngle(0, pTFPlayer->EyeAngles().y, 0));
-
-					// Setup as proper Rebel
-					if (pCitizen)
-					{
-						pCitizen->SetName(NULL_STRING);
-					}
-
-					// Set keyvalues before spawn (weapon & type)
-					pRebel->KeyValue("citizentype", "3"); // 3 = Rebel
-					pRebel->KeyValue("additionalequipment", "weapon_smg1");
-
-					// Spawn + activate
-					DispatchSpawn(pRebel);
-					pRebel->Activate();
-
-					// Make friendly to the player
-					pRebel->AddEntityRelationship(pTFPlayer, D_LI, 99);
-				}
-			}
-
-			int iHasAntlion = 0;
-			CALL_ATTRIB_HOOK_INT(iHasAntlion, antlion_backup);
-			if (iHasAntlion)
-			{
-				pTFPlayer->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_HELP);
-				GlobalEntity_SetState(MAKE_STRING("antlion_allied"), GLOBAL_ON);
-				// Create NPC
-				CNPC_Antlion* pVort = dynamic_cast<CNPC_Antlion*>(
-					CreateEntityByName("npc_antlion")
-					);
-
-				if (pVort)
-				{
-					// Place it near the player
-					Vector spawnPos = pTFPlayer->GetAbsOrigin() + Vector(80, 0, 0);
-					pVort->SetAbsOrigin(spawnPos);
-					pVort->SetAbsAngles(QAngle(0, pTFPlayer->EyeAngles().y, 0));
-
-					// Spawn + activate
-					DispatchSpawn(pVort);
-					pVort->Activate();
-
-					// Make it friendly to the player
-					pVort->AddEntityRelationship(pTFPlayer, D_LI, 99);
-				}
-			}
-
 
 			// ACHIEVEMENT_TF_MVM_MEDIC_SHARE_BOTTLES
 			if ( bBottleShared )

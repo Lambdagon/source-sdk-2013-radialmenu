@@ -14,7 +14,6 @@
 #include <vgui_controls/ImagePanel.h>
 #include "steam/steam_api.h"
 #include "c_baseplayer.h"
-#include "gifhelper.h"
 
 // size of the friend background frame (see texture ico_friend_indicator_avatar)
 #define FRIEND_ICON_SIZE_X	(55)	
@@ -27,6 +26,7 @@
 // size of the standard avatar icon (unless override by SetAvatarSize)
 #define DEFAULT_AVATAR_SIZE		(32)
 
+
 //=============================================================================
 // HPE_CHANGE:
 // [pfreese] Refactored these classes so that the CAvatarImage supports a
@@ -37,13 +37,13 @@
 struct AvatarImagePair_t
 {
 	AvatarImagePair_t() { m_iAvatar = 0; }
-	AvatarImagePair_t(CSteamID steamID, int av) { m_SteamID = steamID; m_iAvatar = av; }
-	bool operator<(const AvatarImagePair_t& rhs) const
+	AvatarImagePair_t( CSteamID steamID, int av ) { m_SteamID = steamID; m_iAvatar = av; }
+	bool operator<( const AvatarImagePair_t &rhs ) const
 	{
-		return m_SteamID.ConvertToUint64() < rhs.m_SteamID.ConvertToUint64() ||
-			(m_SteamID.ConvertToUint64() == rhs.m_SteamID.ConvertToUint64() && m_iAvatar < rhs.m_iAvatar);
-	}
-
+		return m_SteamID.ConvertToUint64() < rhs.m_SteamID.ConvertToUint64() || 
+		( m_SteamID.ConvertToUint64() == rhs.m_SteamID.ConvertToUint64() && m_iAvatar < rhs.m_iAvatar );
+	}	
+					  
 	CSteamID m_SteamID;
 	int m_iAvatar;
 };
@@ -65,23 +65,23 @@ enum EAvatarSize
 class CAvatarImage : public vgui::IImage
 {
 public:
-	CAvatarImage(void);
+	CAvatarImage( void );
 
 	// Call this to set the steam ID associated with the avatar
 	//=============================================================================
 	// HPE_BEGIN:
 	// [tj] Added parameter to specify size. Default is 32x32.
 	//=============================================================================
-	bool SetAvatarSteamID(CSteamID steamIDUser, EAvatarSize avatarSize = k_EAvatarSize32x32);
+	bool SetAvatarSteamID( CSteamID steamIDUser, EAvatarSize avatarSize = k_EAvatarSize32x32 );
 	//=============================================================================
 	// HPE_END
 	//=============================================================================
-	void UpdateFriendStatus(void);
-	void ClearAvatarSteamID(void);
+	void UpdateFriendStatus( void );
+	void ClearAvatarSteamID( void );
 
 	// Call to Paint the image
 	// Image will draw within the current panel context at the specified position
-	virtual void Paint(void);
+	virtual void Paint( void );
 
 	// Set the position of the image
 	virtual void SetPos(int x, int y)
@@ -91,16 +91,16 @@ public:
 	}
 
 	// Gets the size of the content
-	virtual void GetContentSize(int& wide, int& tall)
+	virtual void GetContentSize(int &wide, int &tall)
 	{
 		wide = m_wide;
 		tall = m_tall;
 	}
 
 	// Get the size the image will actually draw in (usually defaults to the content size)
-	virtual void GetSize(int& wide, int& tall)
+	virtual void GetSize(int &wide, int &tall)
 	{
-		GetContentSize(wide, tall);
+		GetContentSize( wide, tall );
 	}
 
 	// Sets the size of the image
@@ -136,42 +136,20 @@ public:
 
 	virtual bool Evict();
 	virtual int GetNumFrames();
-	virtual void SetFrame(int nFrame);
+	virtual void SetFrame( int nFrame );
 	virtual vgui::HTexture GetID();
-	virtual void SetRotation(int iRotation) { return; }
+	virtual void SetRotation( int iRotation ) { return; }
 
 protected:
-	void InitFromRGBA(int iAvatar, const byte* rgba, int width, int height);
+	void InitFromRGBA( int iAvatar, const byte *rgba, int width, int height );
 
 private:
 	void UpdateAvatarImageSize();
 
-	void LoadAnimatedAvatar();
-	void LoadStaticAvatar();
-
 	void LoadAvatarImage();
 
-	class CAnimatedAvatar
-	{
-	public:
-		CAnimatedAvatar(void) : m_unUrlHashed(0), m_nRefCount(0) {}
-
-		CGIFHelper m_gif;
-		CUtlVector< int > m_textureIDs;
-
-		uint32 m_unUrlHashed;
-
-	private:
-		friend class CRefCountAccessor;
-
-		void AddRef(void);
-		void Release(void);
-
-		int m_nRefCount;
-	};
-
 	Color m_Color;
-	int m_iStaticTextureID; // texture ID of the static version of the avatar
+	int m_iTextureID;
 	int m_nX, m_nY;
 	int m_wide, m_tall;
 	int	m_avatarWide, m_avatarTall;
@@ -182,10 +160,8 @@ private:
 	float m_fNextLoadTime;	// used to throttle load attempts
 
 	EAvatarSize m_AvatarSize;
-	CHudTexture* m_pFriendIcon;
+	CHudTexture *m_pFriendIcon;
 	CSteamID	m_SteamID;
-
-	CSmartPtr< CAnimatedAvatar > m_pAnimatedAvatar;
 
 	//=============================================================================
 	// HPE_BEGIN:
@@ -201,17 +177,12 @@ private:
 	// HPE_END
 	//=============================================================================
 
-	static CUtlMap< AvatarImagePair_t, int > s_staticAvatarCache;
-	static CUtlMap< uint32, CAnimatedAvatar* > s_animatedAvatarCache;
+	static CUtlMap< AvatarImagePair_t, int > s_AvatarImageCache;
 	static bool m_sbInitializedAvatarCache;
+
 	CCallback<CAvatarImage, PersonaStateChange_t, false> m_sPersonaStateChangedCallback;
-	void OnPersonaStateChanged(PersonaStateChange_t* info);
 
-	CCallResult<CAvatarImage, EquippedProfileItems_t> m_sEquippedProfileItemsRequestedCallback;
-	void OnEquippedProfileItemsRequested(EquippedProfileItems_t* pInfo, bool bIOFailure);
-
-	CCallResult<CAvatarImage, HTTPRequestCompleted_t> m_sHTTPRequestCompletedCallback;
-	void OnHTTPRequestCompleted(HTTPRequestCompleted_t* pInfo, bool bIOFailure);
+	void OnPersonaStateChanged( PersonaStateChange_t *info );
 };
 
 //-----------------------------------------------------------------------------
@@ -220,9 +191,9 @@ private:
 class CAvatarImagePanel : public vgui::Panel
 {
 public:
-	DECLARE_CLASS_SIMPLE(CAvatarImagePanel, vgui::Panel);
+	DECLARE_CLASS_SIMPLE( CAvatarImagePanel, vgui::Panel );
 
-	CAvatarImagePanel(vgui::Panel* parent, const char* name);
+	CAvatarImagePanel( vgui::Panel *parent, const char *name );
 
 	// Set the player that this Avatar should display for
 	//=============================================================================
@@ -236,23 +207,23 @@ public:
 	// reset the image to its default value, clearing any info retrieved from Steam
 	void ClearAvatar();
 
-	void SetPlayer(C_BasePlayer* pPlayer, EAvatarSize avatarSize = k_EAvatarSize32x32);
+	void SetPlayer( C_BasePlayer *pPlayer, EAvatarSize avatarSize = k_EAvatarSize32x32 );
 
 	// [tj] Overloaded function to go straight to entity index
-	void SetPlayer(int entityIndex, EAvatarSize avatarSize = k_EAvatarSize32x32);
+	void SetPlayer( int entityIndex, EAvatarSize avatarSize = k_EAvatarSize32x32 );
 
 	// [tj] lower level function that expects a steam ID instead of a player
-	void SetPlayer(CSteamID steamIDForPlayer, EAvatarSize avatarSize);
+	void SetPlayer(CSteamID steamIDForPlayer, EAvatarSize avatarSize	);
 
 	// sets whether or not the image should scale to fit the size of the ImagePanel (defaults to false)
-	void SetShouldScaleImage(bool bScaleImage);
+	void SetShouldScaleImage( bool bScaleImage );
 
 	// sets whether to automatically draw the friend icon behind the avatar for Steam friends
-	void SetShouldDrawFriendIcon(bool bDrawFriend);
+	void SetShouldDrawFriendIcon( bool bDrawFriend );
 
 	// specify the size of the avatar portion of the image (the actual image may be larger than this
 	// when it incorporates the friend icon)
-	void SetAvatarSize(int width, int height);
+	void SetAvatarSize( int width, int height);
 
 	// specify a fallback image to use
 	void SetDefaultAvatar(vgui::IImage* pDefaultAvatar);
@@ -268,16 +239,16 @@ public:
 	virtual void PaintBackground();
 	bool	IsValid() { return (m_pImage->IsValid()); }
 
-	void SetClickable(bool bClickable) { m_bClickable = bClickable; }
+	void SetClickable( bool bClickable ) { m_bClickable = bClickable; }
 
 protected:
-	CPanelAnimationVar(Color, m_clrOutline, "color_outline", "Black");
-	virtual void ApplySettings(KeyValues* inResourceData);
+	CPanelAnimationVar( Color, m_clrOutline, "color_outline", "Black" );
+	virtual void ApplySettings(KeyValues *inResourceData);
 
 	void UpdateSize();
 
 private:
-	CAvatarImage* m_pImage;
+	CAvatarImage *m_pImage;
 	bool m_bScaleImage;
 	bool m_bSizeDirty;
 	bool m_bClickable;

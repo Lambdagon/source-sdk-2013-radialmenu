@@ -340,6 +340,23 @@ void CNPC_CombineS::Event_Killed( const CTakeDamageInfo &info )
 		}
 
 		CHalfLife2 *pHL2GameRules = static_cast<CHalfLife2 *>(g_pGameRules);
+
+		// Attempt to drop health
+		if ( pHL2GameRules->NPC_ShouldDropHealth( pPlayer ) )
+		{
+			DropItem( "item_healthvial", WorldSpaceCenter()+RandomVector(-4,4), RandomAngle(0,360) );
+			pHL2GameRules->NPC_DroppedHealth();
+		}
+		
+		if ( HasSpawnFlags( SF_COMBINE_NO_GRENADEDROP ) == false )
+		{
+			// Attempt to drop a grenade
+			if ( pHL2GameRules->NPC_ShouldDropGrenade( pPlayer ) )
+			{
+				DropItem( "weapon_frag", WorldSpaceCenter()+RandomVector(-4,4), RandomAngle(0,360) );
+				pHL2GameRules->NPC_DroppedGrenade();
+			}
+		}
 	}
 
 	BaseClass::Event_Killed( info );

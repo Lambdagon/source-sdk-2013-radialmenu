@@ -500,7 +500,7 @@ bool CWeaponStriderBuster::StickToEntity( CBaseEntity *pOther )
 					return false;
 
 				// Notify the strider we're attaching to him
-				//pStrider->StriderBusterAttached( this );
+				pStrider->StriderBusterAttached( this );
 				
 				m_OnAttachToStrider.FireOutput( this, this );
 
@@ -728,7 +728,7 @@ int CWeaponStriderBuster::OnTakeDamage( const CTakeDamageInfo &info )
 
 					CNPC_Strider *pStrider = dynamic_cast<CNPC_Strider *>(GetOwnerEntity());
 					Assert( pStrider != NULL );
-					//pStrider->StriderBusterDetached( this );
+					pStrider->StriderBusterDetached( this );
 					DestroyConstraint();
 
 					// Amplify some lateral force.

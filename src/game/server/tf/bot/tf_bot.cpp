@@ -708,6 +708,9 @@ DEFINE_SCRIPTFUNC_WRAPPED( SetBehaviorFlag, "Set the given behavior flag(s) for 
 DEFINE_SCRIPTFUNC_WRAPPED( ClearBehaviorFlag, "Clear the given behavior flag(s) for this bot" )
 DEFINE_SCRIPTFUNC_WRAPPED( IsBehaviorFlagSet, "Return true if the given behavior flag(s) are set for this bot" )
 
+DEFINE_SCRIPTFUNC_WRAPPED( SetActionPoint, "Set the given action point for this bot" )
+DEFINE_SCRIPTFUNC_WRAPPED( GetActionPoint, "Get the given action point for this bot" )
+
 END_SCRIPTDESC();
 
 //-----------------------------------------------------------------------------------------------------
@@ -1353,7 +1356,6 @@ void CTFBot::Spawn()
 	SetBrokenFormation( false );
 
 	GetVisionInterface()->ForgetAllKnownEntities();
-
 }
 
 
@@ -1438,7 +1440,6 @@ void CTFBot::PhysicsSimulate( void )
 	}
 }
 
-extern ConVar tf_mvm_versus_enabled;
 
 //-----------------------------------------------------------------------------------------------------
 void CTFBot::Touch( CBaseEntity *pOther )
@@ -1451,7 +1452,7 @@ void CTFBot::Touch( CBaseEntity *pOther )
 		if ( them->m_Shared.IsStealthed() || them->m_Shared.InCond( TF_COND_DISGUISED ) )
 		{
 			// bumped a spy - they are discovered!
-			if ( TFGameRules()->IsMannVsMachineMode() && GetTeamNumber() == TF_TEAM_PVE_INVADERS && !tf_mvm_versus_enabled.GetBool())	// we have to build up to knowing that they are a spy in MvM
+			if ( TFGameRules()->IsMannVsMachineMode() )	// we have to build up to knowing that they are a spy in MvM
 			{
 				SuspectSpy( them );
 			}
@@ -3067,30 +3068,10 @@ float CTFBot::GetThreatDanger( CBaseCombatCharacter *who ) const
 		}
 	}
 
-	// find the flag in the map
-	CCaptureFlag* pFlag = NULL;
-	for (int i = 0; i < ICaptureFlagAutoList::AutoList().Count(); ++i)
-	{
-		pFlag = static_cast<CCaptureFlag*>(ICaptureFlagAutoList::AutoList()[i]);
-		if (!pFlag->IsDisabled())
-		{
-			break;
-		}
-	}
-
 	if ( who->IsPlayer() )
 	{
 		CTFPlayer *player = ToTFPlayer( who );
 
-		// make sure it's being carried by one of the teams
-		if (pFlag && pFlag->IsStolen() && TFGameRules()->IsMannVsMachineMode())
-		{
-			CTFPlayer* pFlagCarrier = ToTFPlayer(pFlag->GetOwnerEntity());
-			if (pFlagCarrier == who)
-			{
-				return 10.0f; // immediate deadly danger
-			}
-		}
 		// ubers are scary
 		if ( player->m_Shared.IsInvulnerable() )
 			return 1.0f;
@@ -3313,9 +3294,8 @@ void CTFBot::EquipBestWeaponForThreat( const CKnownEntity *threat )
 			Weapon_Switch( Weapon_GetSlot( TF_WPN_TYPE_SECONDARY ) );
 			return;
 		}
-		if ( this->GetTeamNumber() == TF_TEAM_PVE_INVADERS && !tf_mvm_versus_enabled.GetBool() ) {
-			secondary = NULL;
-		}
+
+		secondary = NULL;
 	}
 
 	CTFWeaponBase *melee = dynamic_cast< CTFWeaponBase *>( Weapon_GetSlot( TF_WPN_TYPE_MELEE ) );
@@ -3338,7 +3318,7 @@ void CTFBot::EquipBestWeaponForThreat( const CKnownEntity *threat )
 		gun = melee;
 	}
 
-	if ( IsDifficulty( CTFBot::EASY ) && !tf_mvm_versus_enabled.GetBool())
+	if ( IsDifficulty( CTFBot::EASY ) )
 	{
 		// easy bots always use their primary weapon if they have one
 		if ( gun )
@@ -3453,7 +3433,7 @@ void CTFBot::EquipBestWeaponForThreat( const CKnownEntity *threat )
 bool CTFBot::EquipLongRangeWeapon( void )
 {
 	// no secondary weapons in MvM
-	if ( TFGameRules()->IsMannVsMachineMode() && GetTeamNumber() == TF_TEAM_PVE_INVADERS && !tf_mvm_versus_enabled.GetBool() )
+	if ( TFGameRules()->IsMannVsMachineMode() )
 		return false;
 
 	if ( IsPlayerClass( TF_CLASS_SOLDIER ) || 
@@ -4125,7 +4105,7 @@ bool CTFBot::ShouldFireCompressionBlast( void )
 		}
 	}
 
-	bool shouldPushPlayers = !TFGameRules()->IsMannVsMachineMode() || (TFGameRules()->IsMannVsMachineMode() && GetTeamNumber() == TF_TEAM_PVE_DEFENDERS) || (TFGameRules()->IsMannVsMachineMode() && tf_mvm_versus_enabled.GetBool());
+	bool shouldPushPlayers = !TFGameRules()->IsMannVsMachineMode();
 
 	if ( shouldPushPlayers )
 	{
@@ -4611,13 +4591,13 @@ Action< CTFBot > *CTFBot::OpportunisticallyUseWeaponAbilities( void )
 			if ( lunchbox->HasAmmo() )
 			{
 				// scout lunchboxes are also gated by their energy drink meter
-				if ( !IsPlayerClass( TF_CLASS_SCOUT ) && 2 * GetHealth() < GetMaxHealth() || IsPlayerClass(TF_CLASS_SCOUT) && m_Shared.GetScoutEnergyDrinkMeter() >= 100 )
+				if ( !IsPlayerClass( TF_CLASS_SCOUT ) || m_Shared.GetScoutEnergyDrinkMeter() >= 100 )
 				{
 					return new CTFBotUseItem( lunchbox );
 				}
 			}
 		}
-		else if ( weapon->GetWeaponID() == TF_WEAPON_BAT_WOOD || weapon->GetWeaponID() == TF_WEAPON_BAT_GIFTWRAP )
+		else if ( ( weapon->GetWeaponID() == TF_WEAPON_BAT_WOOD ) || ( weapon->GetWeaponID() == TF_WEAPON_BAT_GIFTWRAP ) )
 		{
 			// sandman or wrap assassin
 			if ( GetAmmoCount( TF_AMMO_GRENADES1 ) > 0 )
@@ -4832,7 +4812,7 @@ void CTFBot::OnEventChangeAttributes( const CTFBot::EventChangeAttributes_t* pEv
 
 		SetMaxVisionRangeOverride( pEvent->m_maxVisionRange );
 
-		if ( TFGameRules()->IsMannVsMachineMode() && GetTeamNumber() == TF_TEAM_PVE_INVADERS )
+		if ( TFGameRules()->IsMannVsMachineMode() )
 		{
 			SetAttribute( CTFBot::BECOME_SPECTATOR_ON_DEATH );
 			SetAttribute( CTFBot::RETAIN_BUILDINGS );

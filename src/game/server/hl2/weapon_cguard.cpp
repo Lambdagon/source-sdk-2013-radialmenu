@@ -26,7 +26,7 @@ class CTEConcussiveExplosion : public CTEParticleSystem
 {
 public:
 	DECLARE_CLASS( CTEConcussiveExplosion, CTEParticleSystem );
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	CTEConcussiveExplosion( const char *name );
 	virtual	~CTEConcussiveExplosion( void );
@@ -43,7 +43,6 @@ IMPLEMENT_SERVERCLASS_ST( CTEConcussiveExplosion, DT_TEConcussiveExplosion )
 	SendPropInt( SENDINFO(m_nRadius), 32, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_nMagnitude), 32, SPROP_UNSIGNED ),
 END_SEND_TABLE()
-
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
@@ -425,7 +424,7 @@ void CWeaponCGuard::DelayedFire( void )
 
 	// To make the firing framerate independent, we may have to fire more than one bullet here on low-framerate systems, 
 	// especially if the weapon we're firing has a really fast rate of fire.
-	if ( GetSequence() != SelectWeightedSequence( ACT_VM_PRIMARYATTACK ) )
+	if ( GetSequence() != SelectWeightedSequenceForViewModel( this, ACT_VM_PRIMARYATTACK ) )
 	{
 		m_flNextPrimaryAttack = gpGlobals->curtime;
 	}

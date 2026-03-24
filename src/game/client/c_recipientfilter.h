@@ -26,41 +26,41 @@ class C_Team;
 class C_RecipientFilter : public IRecipientFilter
 {
 public:
-	C_RecipientFilter();
+					C_RecipientFilter();
 	virtual			~C_RecipientFilter();
 
-	virtual bool	IsReliable(void) const;
+	virtual bool	IsReliable( void ) const;
 
-	virtual int		GetRecipientCount(void) const;
-	virtual int		GetRecipientIndex(int slot) const;
+	virtual int		GetRecipientCount( void ) const;
+	virtual int		GetRecipientIndex( int slot ) const;
 
-	virtual bool	IsInitMessage(void) const { return false; };
+	virtual bool	IsInitMessage( void ) const { return false; };
 
 public:
 
-	void			CopyFrom(const C_RecipientFilter& src);
+	void			CopyFrom( const C_RecipientFilter& src );
 
-	void			Reset(void);
+	void			Reset( void );
 
-	void			MakeReliable(void);
+	void			MakeReliable( void );
+		
+	void			AddAllPlayers( void );
+	void			AddRecipientsByPVS( const Vector& origin );
+	void			AddRecipientsByPAS( const Vector& origin );
+	void			AddRecipient( C_BasePlayer *player );
+	void			RemoveRecipient( C_BasePlayer *player );
+	void			AddRecipientsByTeam( C_Team *team );
+	void			RemoveRecipientsByTeam( C_Team *team );
 
-	void			AddAllPlayers(void);
-	void			AddRecipientsByPVS(const Vector& origin);
-	void			AddRecipientsByPAS(const Vector& origin);
-	void			AddRecipient(C_BasePlayer* player);
-	void			RemoveRecipient(C_BasePlayer* player);
-	void			AddRecipientsByTeam(C_Team* team);
-	void			RemoveRecipientsByTeam(C_Team* team);
+	void			UsePredictionRules( void );
+	bool			IsUsingPredictionRules( void ) const;
 
-	void			UsePredictionRules(void);
-	bool			IsUsingPredictionRules(void) const;
+	bool			IgnorePredictionCull( void ) const;
+	void			SetIgnorePredictionCull( bool ignore );
 
-	bool			IgnorePredictionCull(void) const;
-	void			SetIgnorePredictionCull(bool ignore);
+	void			AddPlayersFromBitMask( CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits );
 
-	void			AddPlayersFromBitMask(CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits);
-
-	//private:
+//private:
 
 	bool				m_bReliable;
 	bool				m_bInitMessage;
@@ -78,9 +78,9 @@ public:
 class CSingleUserRecipientFilter : public C_RecipientFilter
 {
 public:
-	CSingleUserRecipientFilter(C_BasePlayer* player)
+	CSingleUserRecipientFilter( C_BasePlayer *player )
 	{
-		AddRecipient(player);
+		AddRecipient( player );
 	}
 };
 
@@ -90,7 +90,7 @@ public:
 class CBroadcastRecipientFilter : public C_RecipientFilter
 {
 public:
-	CBroadcastRecipientFilter(void)
+	CBroadcastRecipientFilter( void )
 	{
 		AddAllPlayers();
 	}
@@ -102,7 +102,7 @@ public:
 class CReliableBroadcastRecipientFilter : public CBroadcastRecipientFilter
 {
 public:
-	CReliableBroadcastRecipientFilter(void)
+	CReliableBroadcastRecipientFilter( void )
 	{
 		MakeReliable();
 	}
@@ -114,9 +114,9 @@ public:
 class CPASFilter : public C_RecipientFilter
 {
 public:
-	CPASFilter(const Vector& origin)
+	CPASFilter( const Vector& origin )
 	{
-		AddRecipientsByPAS(origin);
+		AddRecipientsByPAS( origin );
 	}
 };
 
@@ -126,33 +126,33 @@ public:
 class CPASAttenuationFilter : public CPASFilter
 {
 public:
-	CPASAttenuationFilter(C_BaseEntity* entity, float attenuation = ATTN_NORM) :
-		CPASFilter(entity->GetAbsOrigin())
+	CPASAttenuationFilter( C_BaseEntity *entity, float attenuation = ATTN_NORM ) :
+		CPASFilter( entity->GetAbsOrigin() )
 	{
 	}
 
-	CPASAttenuationFilter(const Vector& origin, float attenuation = ATTN_NORM) :
-		CPASFilter(origin)
+	CPASAttenuationFilter( const Vector& origin, float attenuation = ATTN_NORM ) :
+		CPASFilter( origin )
 	{
 	}
 
-	CPASAttenuationFilter(C_BaseEntity* entity, const char* lookupSound) :
-		CPASFilter(entity->GetAbsOrigin())
+	CPASAttenuationFilter( C_BaseEntity *entity, const char *lookupSound ) :
+		CPASFilter( entity->GetAbsOrigin() )
 	{
 	}
 
-	CPASAttenuationFilter(const Vector& origin, const char* lookupSound) :
-		CPASFilter(origin)
+	CPASAttenuationFilter( const Vector& origin, const char *lookupSound ) :
+		CPASFilter( origin )
 	{
 	}
 
-	CPASAttenuationFilter(C_BaseEntity* entity, const char* lookupSound, HSOUNDSCRIPTHANDLE& handle) :
-		CPASFilter(entity->GetAbsOrigin())
+	CPASAttenuationFilter( C_BaseEntity *entity, const char *lookupSound, HSOUNDSCRIPTHANDLE& handle ) :
+		CPASFilter( entity->GetAbsOrigin() )
 	{
 	}
 
-	CPASAttenuationFilter(const Vector& origin, const char* lookupSound, HSOUNDSCRIPTHANDLE& handle) :
-		CPASFilter(origin)
+	CPASAttenuationFilter( const Vector& origin, const char *lookupSound, HSOUNDSCRIPTHANDLE& handle ) :
+		CPASFilter( origin )
 	{
 	}
 };
@@ -163,25 +163,25 @@ public:
 class CPVSFilter : public C_RecipientFilter
 {
 public:
-	CPVSFilter(const Vector& origin)
+	CPVSFilter( const Vector& origin )
 	{
-		AddRecipientsByPVS(origin);
+		AddRecipientsByPVS( origin );
 	}
 };
 
 class CLocalPlayerFilter : public C_RecipientFilter
 {
 public:
-	CLocalPlayerFilter(void);
+	CLocalPlayerFilter( void );
 };
 
 class CUIFilter : public C_RecipientFilter
 {
 public:
-	CUIFilter(void)
+	CUIFilter( void )
 	{
-		m_Recipients.AddToTail(1);
-		//		AddRecipient( 0 );
+		m_Recipients.AddToTail( 1 );
+//		AddRecipient( 0 );
 	}
 };
 

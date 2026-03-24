@@ -126,10 +126,10 @@ const char g_szPlayerRobotModels[][MAX_PATH] =
 	"models/bots/sniper/bot_sniper_human_anim.mdl",
 	"models/bots/soldier/bot_soldier_human_anim.mdl",
 	"models/bots/demo/bot_demo_human_anim.mdl",
-	"models/bots/medic/bot_medic_human_anim.mdl",
-	"models/bots/heavy/bot_heavy_human_anim.mdl",
+	"models/bots/medic/bot_medic_human_anims.mdl",
+	"models/bots/heavy/bot_heavy_human_anims.mdl",
 	"models/bots/pyro/bot_pyro_human_anim.mdl",
-	"models/bots/spy/bot_spy_human_anim.mdl",
+	"models/bots/spy/bot_spy_human_anims.mdl",
 	"models/bots/engineer/bot_engineer_human_anim.mdl",
 };
 
@@ -915,6 +915,7 @@ const char *g_szSpecialDamageNames[] =
 	"TF_DMG_CUSTOM_AXTINGUISHER_BOOSTED",
 	"TF_DMG_CUSTOM_KRAMPUS_MELEE",
 	"TF_DMG_CUSTOM_KRAMPUS_RANGED",
+	"TF_DMG_CUSTOM_TAUNTATK_TRICKSHOT",
 };
 COMPILE_TIME_ASSERT( ARRAYSIZE( g_szSpecialDamageNames ) == TF_DMG_CUSTOM_END );
 
@@ -1053,6 +1054,7 @@ static const char* taunt_attack_name[] =
 	"TAUNTATK_ALLCLASS_GUITAR_RIFF",
 	"TAUNTATK_MEDIC_HEROIC_TAUNT",
 	"TAUNTATK_PYRO_GASBLAST",
+	"TAUNTATK_ENGINEER_TRICKSHOT",
 
 	//
 	// INSERT NEW ITEMS HERE TO AVOID BREAKING DEMOS

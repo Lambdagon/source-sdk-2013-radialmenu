@@ -35,8 +35,8 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		pPlayer->SetHealth(pPlayer->GetHealth() + 15);
-		return true;
+		CHL2_Player *pHL2Player = dynamic_cast<CHL2_Player *>( pPlayer );
+		return ( pHL2Player && pHL2Player->ApplyBattery() );
 	}
 };
 

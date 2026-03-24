@@ -610,6 +610,22 @@ bool CNPC_Zombine::AllowedToSprint( void )
 
 	int iChance = SPRINT_CHANCE_VALUE;
 
+	CHL2_Player *pPlayer = dynamic_cast <CHL2_Player*> ( AI_GetSinglePlayer() );
+
+	if ( pPlayer )
+	{
+		if ( HL2GameRules()->IsAlyxInDarknessMode() && pPlayer->FlashlightIsOn() == false )
+		{
+			iChance = SPRINT_CHANCE_VALUE_DARKNESS;
+		}
+
+		//Bigger chance of this happening if the player is not looking at the zombie
+		if ( pPlayer->FInViewCone( this ) == false )
+		{
+			iChance *= 2;
+		}
+	}
+
 	if ( HasGrenade() ) 
 	{
 		iChance *= 4;

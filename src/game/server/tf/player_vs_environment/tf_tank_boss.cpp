@@ -135,7 +135,7 @@ void CTFTankDestruction::Spawn( void )
 	DispatchParticleEffect( "fluidSmokeExpl_ring_mvm", GetAbsOrigin(), GetAbsAngles() );
 
 	StopSound( "MVM.TankEngineLoop" );
-	AddFlag(FL_OBJECT);
+
 	CBroadcastRecipientFilter filter;
 	const Vector originVector = GetAbsOrigin();
 	CBaseEntity::EmitSound( filter, SOUND_FROM_WORLD, "MVM.TankExplodes", &originVector );

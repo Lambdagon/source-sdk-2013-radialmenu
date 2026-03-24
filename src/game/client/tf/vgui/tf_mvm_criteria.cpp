@@ -53,7 +53,7 @@ Color s_colorChallengeHeader( 250, 114, 45, 255 );
 static bool BIsCurrentCriteriaMannUp()
 {
 	// UI-Wise, we care what *we* are looking at
-	return true;
+	return GTFPartyClient()->GetLocalUIState().match_group() == k_eTFMatchGroup_MvM_MannUp;
 }
 
 static bool BIsCurrentCriteriaMvM()

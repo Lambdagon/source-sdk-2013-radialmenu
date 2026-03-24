@@ -216,7 +216,7 @@ void CEnvMicrophone::InputDisable( inputdata_t &inputdata )
 	m_bDisabled = true;
 	if ( m_hSpeaker )
 	{
-		CBaseEntity::StopSound( m_hSpeaker->entindex(), CHAN_VOICE2, m_szLastSound );
+		CBaseEntity::StopSound( m_hSpeaker->entindex(), CHAN_STATIC, m_szLastSound );
 		m_szLastSound[0] = 0;
 
 		// Remove ourselves from the list of active mics
@@ -480,7 +480,7 @@ MicrophoneResult_t CEnvMicrophone::SoundPlayed( int entindex, const char *soundn
 	CPASAttenuationFilter filter( m_hSpeaker );
 
 	EmitSound_t ep;
-	ep.m_nChannel = CHAN_VOICE2;
+	ep.m_nChannel = CHAN_STATIC;
 	ep.m_pSoundName = soundname;
 	ep.m_flVolume = flVolume;
 	ep.m_SoundLevel = soundlevel;

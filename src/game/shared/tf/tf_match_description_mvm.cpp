@@ -186,5 +186,5 @@ REGISTER_MATCH_GROUP_TYPE( k_eTFMatchGroup_MvM_Practice,
                                                           /* bStrictAbandons */ false ) );
 REGISTER_MATCH_GROUP_TYPE( k_eTFMatchGroup_MvM_MannUp,
                            new CMvMMatchGroupDescription( k_eTFMatchGroup_MvM_Practice, "server_mannup.cfg",
-                                                          false, "#TF_MvM_MannUp", "MannUp",
-                                                          false ) );
+                                                          /* bTrustedOnly */ true, "#TF_MvM_MannUp", "MannUp",
+                                                          /* bStrictAbandons */ true ) );

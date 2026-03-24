@@ -82,16 +82,16 @@ ConVar hud_combattext_batching( "hud_combattext_batching", "0", FCVAR_USERINFO |
 ConVar hud_combattext_batching_window( "hud_combattext_batching_window", "0.2", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX, "Maximum delay between damage events in order to batch numbers.", true, 0.1, true, 2.0 );
 ConVar hud_combattext_doesnt_block_overhead_text( "hud_combattext_doesnt_block_overhead_text", "1", FCVAR_USERINFO | FCVAR_ARCHIVE, "If set to 1, allow text like \"CRIT\" to still show over a victim's head." );
 ConVar hud_combattext_red( "hud_combattext_red", "255", FCVAR_USERINFO | FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX );
-ConVar hud_combattext_green( "hud_combattext_green", "255", FCVAR_USERINFO | FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX );
+ConVar hud_combattext_green( "hud_combattext_green", "0", FCVAR_USERINFO | FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX );
 ConVar hud_combattext_blue( "hud_combattext_blue", "0", FCVAR_USERINFO | FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBOX );
 
-ConVar tf_dingalingaling( "tf_dingalingaling", "1", FCVAR_ARCHIVE, "If set to 1, play a sound everytime you injure an enemy. The sound can be customized by replacing the 'tf/sound/ui/hitsound.wav' file." );
+ConVar tf_dingalingaling( "tf_dingalingaling", "0", FCVAR_ARCHIVE, "If set to 1, play a sound everytime you injure an enemy. The sound can be customized by replacing the 'tf/sound/ui/hitsound.wav' file." );
 ConVar tf_dingaling_volume( "tf_dingaling_volume", "0.75", FCVAR_ARCHIVE, "Desired volume of the hit sound.", true, 0.0, true, 1.0 );
 ConVar tf_dingaling_pitchmindmg( "tf_dingaling_pitchmindmg", "100", FCVAR_ARCHIVE, "Desired pitch of the hit sound when a minimal damage hit (<= 10 health) is done.", true, 1, true, 255 );
 ConVar tf_dingaling_pitchmaxdmg( "tf_dingaling_pitchmaxdmg", "100", FCVAR_ARCHIVE, "Desired pitch of the hit sound when a maximum damage hit (>= 150 health) is done.", true, 1, true, 255 );
 ConVar tf_dingaling_pitch_override( "tf_dingaling_pitch_override", "-1", FCVAR_NONE, "If set, pitch for all hit sounds." );
 
-ConVar tf_dingalingaling_lasthit( "tf_dingalingaling_lasthit", "1", FCVAR_ARCHIVE, "If set to 1, play a sound whenever one of your attacks kills an enemy. The sound can be customized by replacing the 'tf/sound/ui/killsound.wav' file." );
+ConVar tf_dingalingaling_lasthit( "tf_dingalingaling_lasthit", "0", FCVAR_ARCHIVE, "If set to 1, play a sound whenever one of your attacks kills an enemy. The sound can be customized by replacing the 'tf/sound/ui/killsound.wav' file." );
 ConVar tf_dingaling_lasthit_volume( "tf_dingaling_lasthit_volume", "0.75", FCVAR_ARCHIVE, "Desired volume of the last hit sound.", true, 0.0, true, 1.0 );
 ConVar tf_dingaling_lasthit_pitchmindmg( "tf_dingaling_lasthit_pitchmindmg", "100", FCVAR_ARCHIVE, "Desired pitch of the last hit sound when a minimal damage hit (<= 10 health) is done.", true, 1, true, 255 );
 ConVar tf_dingaling_lasthit_pitchmaxdmg( "tf_dingaling_lasthit_pitchmaxdmg", "100", FCVAR_ARCHIVE, "Desired pitch of the last hit sound when a maximum damage hit (>= 150 health) is done.", true, 1, true, 255 );
@@ -198,7 +198,7 @@ public:
 	virtual const char *GetResFileName( void ) { return "resource/UI/HudAccountPanel.res"; }
 
 protected:
-	virtual Color GetColor( const account_delta_t::eAccountDeltaType_t& type, const int iDeltaValue = 0 );
+	virtual Color GetColor( const account_delta_t::eAccountDeltaType_t &type, const int iDeltaValue = 0 );
 
 	CUtlVector <account_delta_t> m_AccountDeltaItems;
 
@@ -599,7 +599,6 @@ public:
 							EmitSound_t es( params );
 							es.m_nPitch = pHitSound->GetPitchFromDamage( iDamage, bLastHit );
 							es.m_flVolume = tf_dingaling_lasthit_volume.GetFloat();
-							pLocalPlayer->StopSound(pszSound);
 							pLocalPlayer->EmitSound( filter, pLocalPlayer->entindex(), es );
 						}
 					}
@@ -612,7 +611,6 @@ public:
 							EmitSound_t es( params );
 							es.m_nPitch = pHitSound->GetPitchFromDamage( iDamage, false );
 							es.m_flVolume = tf_dingaling_volume.GetFloat();
-							pLocalPlayer->StopSound(pszSound);
 							pLocalPlayer->EmitSound( filter, pLocalPlayer->entindex(), es );
 						}
 					}
@@ -1040,7 +1038,7 @@ account_delta_t *CAccountPanel::OnAccountValueChanged( int iOldValue, int iNewVa
 	return NULL;
 }
 
-Color CAccountPanel::GetColor( const account_delta_t::eAccountDeltaType_t& type, const int iDeltaValue )
+Color CAccountPanel::GetColor( const account_delta_t::eAccountDeltaType_t &type, const int iDeltaValue )
 {
 	if ( type == account_delta_t::ACCOUNT_DELTA_BONUS_POINTS )
 	{
@@ -1048,7 +1046,7 @@ Color CAccountPanel::GetColor( const account_delta_t::eAccountDeltaType_t& type,
 	}
 	else if ( type == account_delta_t::ACCOUNT_DELTA_HEALING )
 	{
-		return iDeltaValue < 0 ? m_DeltaNegativeColor : m_DeltaPositiveColor;
+		return ( iDeltaValue < 0 ) ? m_DeltaNegativeColor : m_DeltaPositiveColor;
 	}
 	else if ( type == account_delta_t::ACCOUNT_DELTA_DAMAGE )
 	{

@@ -668,7 +668,7 @@ void CWeaponCrossbow::FireBolt( void )
 	WeaponSound( SINGLE );
 	WeaponSound( SPECIAL2 );
 
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 
 	if ( !m_iClip1 && pOwner->GetAmmoCount( m_iPrimaryAmmoType ) <= 0 )
 	{

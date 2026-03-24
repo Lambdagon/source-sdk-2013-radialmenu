@@ -632,7 +632,6 @@ void CTFMinigun::AttackEnemyProjectiles( void )
 					pProjectile->Destroy( false, true );
 
 					EmitSound( "Halloween.HeadlessBossAxeHitWorld" );
-					pPlayer->SpeakConceptIfAllowed(MP_CONCEPT_ROCKET_DESTOYED);
 
 					CTF_GameStats.Event_PlayerAwardBonusPoints( pPlayer, NULL, 2 );
 

@@ -13,8 +13,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern ConVar BreenCastAudio;
-
 static IPredictionSystem g_RecipientFilterPredictionSystem;
 
 //-----------------------------------------------------------------------------
@@ -33,7 +31,7 @@ CRecipientFilter::~CRecipientFilter()
 // Purpose: 
 // Input  : src - 
 //-----------------------------------------------------------------------------
-void CRecipientFilter::CopyFrom(const CRecipientFilter& src)
+void CRecipientFilter::CopyFrom( const CRecipientFilter& src )
 {
 	m_bReliable = src.IsReliable();
 	m_bInitMessage = src.IsInitMessage();
@@ -42,281 +40,281 @@ void CRecipientFilter::CopyFrom(const CRecipientFilter& src)
 	m_bIgnorePredictionCull = src.IgnorePredictionCull();
 
 	int c = src.GetRecipientCount();
-	for (int i = 0; i < c; ++i)
+	for ( int i = 0; i < c; ++i )
 	{
-		m_Recipients.AddToTail(src.GetRecipientIndex(i));
+		m_Recipients.AddToTail( src.GetRecipientIndex( i ) );
 	}
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CRecipientFilter::Reset(void)
+void CRecipientFilter::Reset( void )
 {
-	m_bReliable = false;
-	m_bInitMessage = false;
+	m_bReliable			= false;
+	m_bInitMessage		= false;
 	m_Recipients.RemoveAll();
 	m_bUsingPredictionRules = false;
 	m_bIgnorePredictionCull = false;
 }
 
-void CRecipientFilter::MakeReliable(void)
+void CRecipientFilter::MakeReliable( void )
 {
 	m_bReliable = true;
 }
 
-bool CRecipientFilter::IsReliable(void) const
+bool CRecipientFilter::IsReliable( void ) const
 {
 	return m_bReliable;
 }
 
-int CRecipientFilter::GetRecipientCount(void) const
+int CRecipientFilter::GetRecipientCount( void ) const
 {
 	return m_Recipients.Size();
 }
 
-int	CRecipientFilter::GetRecipientIndex(int slot) const
+int	CRecipientFilter::GetRecipientIndex( int slot ) const
 {
-	if (slot < 0 || slot >= GetRecipientCount())
+	if ( slot < 0 || slot >= GetRecipientCount() )
 		return -1;
 
-	return m_Recipients[slot];
+	return m_Recipients[ slot ];
 }
 
-void CRecipientFilter::AddAllPlayers(void)
+void CRecipientFilter::AddAllPlayers( void )
 {
 	m_Recipients.RemoveAll();
 
 	int i;
-	for (i = 1; i <= gpGlobals->maxClients; i++)
+	for ( i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-		if (!pPlayer)
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+		if ( !pPlayer )
 		{
 			continue;
 		}
 
-		AddRecipient(pPlayer);
+		AddRecipient( pPlayer );
 	}
 }
 
-void CRecipientFilter::AddRecipient(CBasePlayer* player)
+void CRecipientFilter::AddRecipient( const CBasePlayer *player )
 {
-	Assert(player);
+	Assert( player );
 
-	if (!player)
+	if ( !player )
 		return;
 
 	int index = player->entindex();
 
 	// If we're predicting and this is not the first time we've predicted this sound
 	//  then don't send it to the local player again.
-	if (m_bUsingPredictionRules)
+	if ( m_bUsingPredictionRules )
 	{
 		// Only add local player if this is the first time doing prediction
-		if (g_RecipientFilterPredictionSystem.GetSuppressHost() == player)
+		if ( g_RecipientFilterPredictionSystem.GetSuppressHost() == player )
 		{
 			return;
 		}
 	}
 
 	// Already in list
-	if (m_Recipients.Find(index) != m_Recipients.InvalidIndex())
+	if ( m_Recipients.Find( index ) != m_Recipients.InvalidIndex() )
 		return;
 
-	m_Recipients.AddToTail(index);
+	m_Recipients.AddToTail( index );
 }
 
-void CRecipientFilter::RemoveAllRecipients(void)
+void CRecipientFilter::RemoveAllRecipients( void )
 {
 	m_Recipients.RemoveAll();
 }
 
-void CRecipientFilter::RemoveRecipient(CBasePlayer* player)
+void CRecipientFilter::RemoveRecipient( CBasePlayer *player )
 {
-	Assert(player);
-	if (player)
+	Assert( player );
+	if ( player )
 	{
 		int index = player->entindex();
 
 		// Remove it if it's in the list
-		m_Recipients.FindAndRemove(index);
+		m_Recipients.FindAndRemove( index );
 	}
 }
 
-void CRecipientFilter::RemoveRecipientByPlayerIndex(int playerindex)
+void CRecipientFilter::RemoveRecipientByPlayerIndex( int playerindex )
 {
-	Assert(playerindex >= 1 && playerindex <= ABSOLUTE_PLAYER_LIMIT);
+	Assert( playerindex >= 1 && playerindex <= ABSOLUTE_PLAYER_LIMIT );
 
-	m_Recipients.FindAndRemove(playerindex);
+	m_Recipients.FindAndRemove( playerindex );
 }
 
-void CRecipientFilter::AddRecipientsByTeam(CTeam* team)
+void CRecipientFilter::AddRecipientsByTeam( CTeam *team )
 {
-	Assert(team);
+	Assert( team );
 
 	int i;
 	int c = team->GetNumPlayers();
-	for (i = 0; i < c; i++)
+	for ( i = 0 ; i < c ; i++ )
 	{
-		CBasePlayer* player = team->GetPlayer(i);
-		if (!player)
+		CBasePlayer *player = team->GetPlayer( i );
+		if ( !player )
 			continue;
 
-		AddRecipient(player);
+		AddRecipient( player );
 	}
 }
 
-void CRecipientFilter::RemoveRecipientsByTeam(CTeam* team)
+void CRecipientFilter::RemoveRecipientsByTeam( CTeam *team )
 {
-	Assert(team);
+	Assert( team );
 
 	int i;
 	int c = team->GetNumPlayers();
-	for (i = 0; i < c; i++)
+	for ( i = 0 ; i < c ; i++ )
 	{
-		CBasePlayer* player = team->GetPlayer(i);
-		if (!player)
+		CBasePlayer *player = team->GetPlayer( i );
+		if ( !player )
 			continue;
 
-		RemoveRecipient(player);
+		RemoveRecipient( player );
 	}
 }
 
-void CRecipientFilter::RemoveRecipientsNotOnTeam(CTeam* team)
+void CRecipientFilter::RemoveRecipientsNotOnTeam( CTeam *team )
 {
-	Assert(team);
+	Assert( team );
 
 	int i;
-	for (i = 1; i <= gpGlobals->maxClients; i++)
+	for ( i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer* player = UTIL_PlayerByIndex(i);
-		if (!player)
+		CBasePlayer *player = UTIL_PlayerByIndex( i );
+		if ( !player )
 			continue;
 
-		if (player->GetTeam() != team)
+		if ( player->GetTeam() != team )
 		{
-			RemoveRecipient(player);
+			RemoveRecipient( player );
 		}
 	}
 }
 
-void CRecipientFilter::AddPlayersFromBitMask(CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits)
+void CRecipientFilter::AddPlayersFromBitMask( CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits )
 {
-	int index = playerbits.FindNextSetBit(0);
+	int index = playerbits.FindNextSetBit( 0 );
 
-	while (index > -1)
+	while ( index > -1 )
 	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(index + 1);
-		if (pPlayer)
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( index + 1 );
+		if ( pPlayer )
 		{
-			AddRecipient(pPlayer);
+			AddRecipient( pPlayer );
 		}
 
-		index = playerbits.FindNextSetBit(index + 1);
+		index = playerbits.FindNextSetBit( index + 1 );
 	}
 }
 
-void CRecipientFilter::RemovePlayersFromBitMask(CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits)
+void CRecipientFilter::RemovePlayersFromBitMask( CBitVec< ABSOLUTE_PLAYER_LIMIT >& playerbits )
 {
-	int index = playerbits.FindNextSetBit(0);
+	int index = playerbits.FindNextSetBit( 0 );
 
-	while (index > -1)
+	while ( index > -1 )
 	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(index + 1);
-		if (pPlayer)
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( index + 1 );
+		if ( pPlayer )
 		{
-			RemoveRecipient(pPlayer);
+			RemoveRecipient( pPlayer );
 		}
 
-		index = playerbits.FindNextSetBit(index + 1);
+		index = playerbits.FindNextSetBit( index + 1 );
 	}
 }
 
-void CRecipientFilter::AddRecipientsByPVS(const Vector& origin)
+void CRecipientFilter::AddRecipientsByPVS( const Vector& origin )
 {
-	if (gpGlobals->maxClients == 1)
+	if ( gpGlobals->maxClients == 1 )
 	{
 		AddAllPlayers();
 	}
 	else
 	{
 		CBitVec< ABSOLUTE_PLAYER_LIMIT > playerbits;
-		engine->Message_DetermineMulticastRecipients(false, origin, playerbits);
-		AddPlayersFromBitMask(playerbits);
+		engine->Message_DetermineMulticastRecipients( false, origin, playerbits );
+		AddPlayersFromBitMask( playerbits );
 	}
 }
 
-void CRecipientFilter::RemoveRecipientsByPVS(const Vector& origin)
+void CRecipientFilter::RemoveRecipientsByPVS( const Vector& origin )
 {
-	if (gpGlobals->maxClients == 1)
+	if ( gpGlobals->maxClients == 1 )
 	{
 		m_Recipients.RemoveAll();
 	}
 	else
 	{
 		CBitVec< ABSOLUTE_PLAYER_LIMIT > playerbits;
-		engine->Message_DetermineMulticastRecipients(false, origin, playerbits);
-		RemovePlayersFromBitMask(playerbits);
+		engine->Message_DetermineMulticastRecipients( false, origin, playerbits );
+		RemovePlayersFromBitMask( playerbits );
 	}
 }
 
 
 
-void CRecipientFilter::AddRecipientsByPAS(const Vector& origin)
+void CRecipientFilter::AddRecipientsByPAS( const Vector& origin )
 {
-	if (gpGlobals->maxClients == 1)
+	if ( gpGlobals->maxClients == 1 )
 	{
 		AddAllPlayers();
 	}
 	else
 	{
 		CBitVec< ABSOLUTE_PLAYER_LIMIT > playerbits;
-		engine->Message_DetermineMulticastRecipients(true, origin, playerbits);
-		AddPlayersFromBitMask(playerbits);
+		engine->Message_DetermineMulticastRecipients( true, origin, playerbits );
+		AddPlayersFromBitMask( playerbits );
 	}
 }
 
-bool CRecipientFilter::IsInitMessage(void) const
+bool CRecipientFilter::IsInitMessage( void ) const
 {
 	return m_bInitMessage;
 }
 
-void CRecipientFilter::MakeInitMessage(void)
+void CRecipientFilter::MakeInitMessage( void )
 {
 	m_bInitMessage = true;
 }
 
-void CRecipientFilter::UsePredictionRules(void)
+void CRecipientFilter::UsePredictionRules( void )
 {
-	if (m_bUsingPredictionRules)
+	if ( m_bUsingPredictionRules )
 		return;
 
 	m_bUsingPredictionRules = true;
 
 	// Cull list now, if needed
-	if (GetRecipientCount() == 0)
+	if ( GetRecipientCount() == 0 )
 		return;
 
-	CBasePlayer* pPlayer = ToBasePlayer((CBaseEntity*)g_RecipientFilterPredictionSystem.GetSuppressHost());
+	CBasePlayer *pPlayer = ToBasePlayer( (CBaseEntity*)g_RecipientFilterPredictionSystem.GetSuppressHost() );
 
-	if (pPlayer)
+	if ( pPlayer)
 	{
-		RemoveRecipient(pPlayer);
+		RemoveRecipient( pPlayer );
 	}
 }
 
-bool CRecipientFilter::IsUsingPredictionRules(void) const
+bool CRecipientFilter::IsUsingPredictionRules( void ) const
 {
 	return m_bUsingPredictionRules;
 }
 
-bool CRecipientFilter::IgnorePredictionCull(void) const
+bool CRecipientFilter::	IgnorePredictionCull( void ) const
 {
 	return m_bIgnorePredictionCull;
 }
 
-void CRecipientFilter::SetIgnorePredictionCull(bool ignore)
+void CRecipientFilter::SetIgnorePredictionCull( bool ignore )
 {
 	m_bIgnorePredictionCull = ignore;
 }
@@ -324,30 +322,30 @@ void CRecipientFilter::SetIgnorePredictionCull(bool ignore)
 //-----------------------------------------------------------------------------
 // Purpose: Simple class to create a filter for all players on a given team 
 //-----------------------------------------------------------------------------
-CTeamRecipientFilter::CTeamRecipientFilter(int team, bool isReliable)
+CTeamRecipientFilter::CTeamRecipientFilter( int team, bool isReliable )
 {
 	if (isReliable)
 		MakeReliable();
 
 	RemoveAllRecipients();
 
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
 
-		if (!pPlayer)
+		if ( !pPlayer )
 		{
 			continue;
 		}
 
-		if (pPlayer->GetTeamNumber() != team)
+		if ( pPlayer->GetTeamNumber() != team )
 		{
 			//If we're in the spectator team then we should be getting whatever messages the person I'm spectating gets.
-			if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR && (pPlayer->GetObserverMode() == OBS_MODE_IN_EYE || pPlayer->GetObserverMode() == OBS_MODE_CHASE))
+			if ( pPlayer->GetTeamNumber() == TEAM_SPECTATOR && (pPlayer->GetObserverMode() == OBS_MODE_IN_EYE || pPlayer->GetObserverMode() == OBS_MODE_CHASE || pPlayer->GetObserverMode() == OBS_MODE_POI) )
 			{
-				if (pPlayer->GetObserverTarget())
+				if ( pPlayer->GetObserverTarget() )
 				{
-					if (pPlayer->GetObserverTarget()->GetTeamNumber() != team)
+					if ( pPlayer->GetObserverTarget()->GetTeamNumber() != team )
 						continue;
 				}
 			}
@@ -357,7 +355,7 @@ CTeamRecipientFilter::CTeamRecipientFilter(int team, bool isReliable)
 			}
 		}
 
-		AddRecipient(pPlayer);
+		AddRecipient( pPlayer );
 	}
 }
 
@@ -366,23 +364,14 @@ CTeamRecipientFilter::CTeamRecipientFilter(int team, bool isReliable)
 // Input  : origin - 
 //			ATTN_NORM - 
 //-----------------------------------------------------------------------------
-void CPASAttenuationFilter::Filter(const Vector& origin, float attenuation /*= ATTN_NORM*/)
+void CPASAttenuationFilter::Filter( const Vector& origin, float attenuation /*= ATTN_NORM*/ )
 {
-
-	//SecobMod__Information: Try as we might, this was the only fix for getting breencasts.
-	// Don't crop for attenuation 
-	if (gpGlobals->maxClients >= 1)
-	{
-		AddAllPlayers();
-		return;
-	}
-
 	// Don't crop for attenuation in single player
-	if (gpGlobals->maxClients == 1)
+	if ( gpGlobals->maxClients == 1 )
 		return;
 
 	// CPASFilter adds them by pure PVS in constructor
-	if (attenuation <= 0)
+	if ( attenuation <= 0 )
 		return;
 
 	// Now remove recipients that are outside sound radius
@@ -390,37 +379,37 @@ void CPASAttenuationFilter::Filter(const Vector& origin, float attenuation /*= A
 	Vector vecRelative;
 
 	int c = GetRecipientCount();
-
-	for (int i = c - 1; i >= 0; i--)
+	
+	for ( int i = c - 1; i >= 0; i-- )
 	{
-		int index = GetRecipientIndex(i);
+		int index = GetRecipientIndex( i );
 
-		CBaseEntity* ent = CBaseEntity::Instance(index);
-		if (!ent || !ent->IsPlayer())
+		CBaseEntity *ent = CBaseEntity::Instance( index );
+		if ( !ent || !ent->IsPlayer() )
 		{
-			Assert(0);
+			Assert( 0 );
 			continue;
 		}
 
-		CBasePlayer* player = ToBasePlayer(ent);
-		if (!player)
+		CBasePlayer *player = ToBasePlayer( ent );
+		if ( !player )
 		{
-			Assert(0);
+			Assert( 0 );
 			continue;
 		}
 
 #ifndef _XBOX
 		// never remove the HLTV or Replay bot
-		if (player->IsHLTV() || player->IsReplay())
+		if ( player->IsHLTV() || player->IsReplay() )
 			continue;
 #endif
 
-		VectorSubtract(player->EarPosition(), origin, vecRelative);
-		distance = VectorLength(vecRelative);
-		maxAudible = (2 * SOUND_NORMAL_CLIP_DIST) / attenuation;
-		if (distance <= maxAudible)
+		VectorSubtract( player->EarPosition(), origin, vecRelative );
+		distance = VectorLength( vecRelative );
+		maxAudible = ( 2 * SOUND_NORMAL_CLIP_DIST ) / attenuation;
+		if ( distance <= maxAudible )
 			continue;
 
-		RemoveRecipient(player);
+		RemoveRecipient( player );
 	}
 }

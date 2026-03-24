@@ -12,7 +12,6 @@
 #if defined ( TF_DLL ) || defined ( TF_CLIENT_DLL )
 #include "tf_gamerules.h"
 #endif
-#include "tf_weaponbase.h"
 
 #if defined( CLIENT_DLL )
 
@@ -223,15 +222,119 @@ bool CBasePlayer::UsingStandardWeaponsInVehicle( void )
 	return true;
 }
 
+#if defined( CLIENT_DLL )
+
+void UpdateLocalWeaponPoseParams()
+{
+	C_BasePlayer* ply = C_BasePlayer::GetLocalPlayer();
+	if (!ply || !ply->IsAlive())
+		return;
+
+	C_BaseViewModel* vm = ply->GetViewModel();
+	if (!vm)
+		return;
+
+	C_BaseCombatWeapon* weapon = ply->GetActiveWeapon();
+
+	// --------------------------------------------------
+	// Eye angles
+	// --------------------------------------------------
+
+	QAngle ang = ply->EyeAngles();
+
+	float pitch = AngleNormalize(ang.x);
+	float yawDiff = AngleNormalize(ang.y - ply->GetAbsAngles().y);
+
+	const float pitchMin = -45.0f;
+	const float pitchMax = 90.0f;
+
+	const float yawMin = -45.0f;
+	const float yawMax = 45.0f;
+
+	pitch = clamp(pitch, pitchMin, pitchMax);
+	yawDiff = clamp(yawDiff, yawMin, yawMax);
+
+	float pitchFrac = (pitch - pitchMin) / (pitchMax - pitchMin);
+	float yawFrac = (yawDiff - yawMin) / (yawMax - yawMin);
+
+	// --------------------------------------------------
+	// Vertical aim pose
+	// --------------------------------------------------
+
+	int verPose = vm->LookupPoseParameter("ver_aims");
+	if (verPose >= 0)
+	{
+		float min, max;
+		vm->GetPoseParameterRange(verPose, min, max);
+
+		float value = Lerp(pitchFrac, min, max);
+
+		vm->SetPoseParameter(verPose, value);
+
+		if (weapon)
+			weapon->SetPoseParameter("ver_aims", value);
+	}
+
+	// --------------------------------------------------
+	// Horizontal aim pose
+	// --------------------------------------------------
+
+	int horPose = vm->LookupPoseParameter("hor_aims");
+	if (horPose >= 0)
+	{
+		float min, max;
+		vm->GetPoseParameterRange(horPose, min, max);
+
+		float value = Lerp(yawFrac, min, max);
+
+		vm->SetPoseParameter(horPose, value);
+
+		if (weapon)
+			weapon->SetPoseParameter("hor_aims", value);
+	}
+
+	// --------------------------------------------------
+	// Movement pose
+	// --------------------------------------------------
+
+	Vector vel = ply->GetAbsVelocity();
+
+	bool moving =
+		vel.Length2D() > (50 - 1.0f) &&
+		(ply->GetFlags() & FL_ONGROUND);
+
+	float targetMove = moving ? 1.0f : 0.0f;
+
+	static float moveX = 0.0f;
+
+	float lerpRate = gpGlobals->frametime / 0.5f;
+	moveX = Lerp(lerpRate, moveX, targetMove);
+
+	int movePose = vm->LookupPoseParameter("move_x");
+	if (movePose >= 0)
+	{
+		vm->SetPoseParameter(movePose, moveX);
+
+		if (weapon)
+			weapon->SetPoseParameter("move_x", moveX);
+	}
+}
+
+#endif
 //-----------------------------------------------------------------------------
 // Purpose: Called every usercmd by the player PostThink
 //-----------------------------------------------------------------------------
 void CBasePlayer::ItemPostFrame()
 {
+#if defined( CLIENT_DLL )
+	UpdateLocalWeaponPoseParams();
+#endif
 	VPROF( "CBasePlayer::ItemPostFrame" );
 
 	// Put viewmodels into basically correct place based on new player origin
-	CalcViewModelView( EyePosition(), EyeAngles() );
+	Vector eyeOrigin = EyePosition();
+	eyeOrigin[2] += g_verticalBob;
+	CalcViewModelView( eyeOrigin, EyeAngles() );
 
 	// Don't process items while in a vehicle.
 	if ( GetVehicle() )
@@ -617,37 +720,7 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 
 		SetStepSoundTime( STEPSOUNDTIME_NORMAL, bWalking );
 
-		switch ( psurface->game.material )
-		{
-		default:
-		case CHAR_TEX_CONCRETE:						
-			fvol = bWalking ? 0.2 : 0.5;
-			break;
-
-		case CHAR_TEX_METAL:	
-			fvol = bWalking ? 0.2 : 0.5;
-			break;
-
-		case CHAR_TEX_DIRT:
-			fvol = bWalking ? 0.25 : 0.55;
-			break;
-
-		case CHAR_TEX_VENT:	
-			fvol = bWalking ? 0.4 : 0.7;
-			break;
-
-		case CHAR_TEX_GRATE:
-			fvol = bWalking ? 0.2 : 0.5;
-			break;
-
-		case CHAR_TEX_TILE:	
-			fvol = bWalking ? 0.2 : 0.5;
-			break;
-
-		case CHAR_TEX_SLOSH:
-			fvol = bWalking ? 0.2 : 0.5;
-			break;
-		}
+		fvol = 1.0;
 	}
 	
 	// play the sound
@@ -659,7 +732,6 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 
 	PlayStepSound( feet, psurface, fvol, false );
 }
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : step - 
@@ -680,7 +752,7 @@ void CBasePlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, flo
 	if ( !psurface )
 		return;
 
-	int nSide = m_Local.m_nStepside;
+	int nSide = random->RandomInt(1,2) == 1;
 	unsigned short stepSoundName = nSide ? psurface->sounds.stepleft : psurface->sounds.stepright;
 	if ( !stepSoundName )
 		return;
@@ -855,6 +927,7 @@ bool CBasePlayer::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex 
 		if ( pViewModel )
 			pViewModel->RemoveEffects( EF_NODRAW );
 		ResetAutoaim( );
+
 		return true;
 	}
 	return false;
@@ -1413,7 +1486,7 @@ void CBasePlayer::ViewPunch( const QAngle &angleOffset )
 	if ( IsInAVehicle() )
 		return;
 
-	m_Local.m_vecPunchAngleVel += angleOffset * 20;
+	m_Local.m_vecPunchAngle += angleOffset;
 }
 
 //-----------------------------------------------------------------------------
@@ -1523,13 +1596,69 @@ void CBasePlayer::ResetObserverMode()
 #endif
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : eyeOrigin - 
+//			eyeAngles - 
+//			zNear - 
+//			zFar - 
+//			fov - 
+//-----------------------------------------------------------------------------
+void CBasePlayer::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov )
+{
+#if defined( CLIENT_DLL )
+	IClientVehicle *pVehicle; 
+#else
+	IServerVehicle *pVehicle;
+#endif
+	pVehicle = GetVehicle();
+
+	if ( !pVehicle )
+	{
+#if defined( CLIENT_DLL )
+		if( UseVR() )
+			g_ClientVirtualReality.CancelTorsoTransformOverride();
+#endif
+
+		if ( IsObserver() )
+		{
+			CalcObserverView( eyeOrigin, eyeAngles, fov );
+		}
+		else
+		{
+			CalcPlayerView( eyeOrigin, eyeAngles, fov );
+		}
+	}
+	else
+	{
+		CalcVehicleView( pVehicle, eyeOrigin, eyeAngles, zNear, zFar, fov );
+	}
+	// NVNT update fov on the haptics dll for input scaling.
+#if defined( CLIENT_DLL )
+	if(IsLocalPlayer() && haptics)
+		haptics->UpdatePlayerFOV(fov);
+#endif
+}
+
+
+void CBasePlayer::CalcViewModelView( const Vector& eyeOrigin, const QAngle& eyeAngles)
+{
+	for ( int i = 0; i < MAX_VIEWMODELS; i++ )
+	{
+		CBaseViewModel *vm = GetViewModel( i );
+		if ( !vm )
+			continue;
+	
+		vm->CalcViewModelView( this, eyeOrigin, eyeAngles );
+	}
+}
 
 #define	HL2_BOB_CYCLE_MIN	1.0f
 #define	HL2_BOB_CYCLE_MAX	0.4f
 #define	HL2_BOB			0.01f
 #define	HL2_BOB_UP		0.5f
-extern float	g_lateralBob;
-extern float	g_verticalBob;
+float	g_lateralBob = 0.0f;
+float	g_verticalBob = 0.0f;
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1603,62 +1732,7 @@ float CalcViewmodelBob(CBasePlayer* tfPlayer)
 	//NOTENOTE: We don't use this return value in our case (need to restructure the calculation function setup!)
 	return 0.0f;
 }
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : eyeOrigin - 
-//			eyeAngles - 
-//			zNear - 
-//			zFar - 
-//			fov - 
-//-----------------------------------------------------------------------------
-void CBasePlayer::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov )
-{
-#if defined( CLIENT_DLL )
-	IClientVehicle *pVehicle; 
-#else
-	IServerVehicle *pVehicle;
-#endif
-	pVehicle = GetVehicle();
 
-	if ( !pVehicle )
-	{
-#if defined( CLIENT_DLL )
-		if( UseVR() )
-			g_ClientVirtualReality.CancelTorsoTransformOverride();
-#endif
-
-		if ( IsObserver() )
-		{
-			CalcObserverView( eyeOrigin, eyeAngles, fov );
-		}
-		else
-		{
-			CalcPlayerView( eyeOrigin, eyeAngles, fov );
-		}
-	}
-	else
-	{
-		CalcVehicleView( pVehicle, eyeOrigin, eyeAngles, zNear, zFar, fov );
-	}
-	// NVNT update fov on the haptics dll for input scaling.
-#if defined( CLIENT_DLL )
-	if(IsLocalPlayer() && haptics)
-		haptics->UpdatePlayerFOV(fov);
-#endif
-}
-
-
-void CBasePlayer::CalcViewModelView( const Vector& eyeOrigin, const QAngle& eyeAngles)
-{
-	for ( int i = 0; i < MAX_VIEWMODELS; i++ )
-	{
-		CBaseViewModel *vm = GetViewModel( i );
-		if ( !vm )
-			continue;
-	
-		vm->CalcViewModelView( this, eyeOrigin, eyeAngles );
-	}
-}
 
 void CBasePlayer::CalcPlayerView( Vector& eyeOrigin, QAngle& eyeAngles, float& fov )
 {
@@ -1685,24 +1759,23 @@ void CBasePlayer::CalcPlayerView( Vector& eyeOrigin, QAngle& eyeAngles, float& f
 #endif
 
 #if defined( CLIENT_DLL )
-		
+	if ( !prediction->InPrediction() )
 #endif
 	{
 		SmoothViewOnStairs( eyeOrigin );
 	}
 
+	// Snack off the origin before bob + water offset are applied
+	Vector vecBaseEyePosition = eyeOrigin;
+
 	CalcViewmodelBob(this);
 	// Apply vertical bob
 	eyeOrigin[2] += g_verticalBob;
-
-	// Snack off the origin before bob + water offset are applied
-	Vector vecBaseEyePosition = eyeOrigin;
 
 	CalcViewRoll( eyeAngles );
 
 	// Apply punch angle
 	VectorAdd( eyeAngles, m_Local.m_vecPunchAngle, eyeAngles );
-
 
 #if defined( CLIENT_DLL )
 	if ( !prediction->InPrediction() )

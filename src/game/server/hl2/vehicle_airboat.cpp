@@ -78,7 +78,7 @@ class CPropAirboat : public CPropVehicleDriveable
 
 public:
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
 	// CPropVehicle

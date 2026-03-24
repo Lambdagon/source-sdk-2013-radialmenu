@@ -249,16 +249,7 @@ void CTFHudPlayerClass::OnThink()
 	{
 		bForceEyeUpdate = true;
 		m_nClass = pPlayer->GetPlayerClass()->GetClassIndex();
-		if (TFGameRules() && TFGameRules()->IsMannVsMachineMode() && pPlayer->GetTeamNumber() == TF_TEAM_PVE_INVADERS)
-		{
-			if (m_bUsePlayerModel && m_pPlayerModelPanel && m_pPlayerModelPanelBG)
-			{
-				m_pPlayerModelPanel->SetModelOverride(g_szPlayerRobotModels[m_nClass]);
-			}
-		}
-		else {
-			m_pPlayerModelPanel->SetModelOverride("");
-		}
+
 		if ( m_nClass == TF_CLASS_SPY && pPlayer->m_Shared.InCond( TF_COND_DISGUISED ) )
 		{
 			if ( !pPlayer->m_Shared.InCond( TF_COND_DISGUISING ) )

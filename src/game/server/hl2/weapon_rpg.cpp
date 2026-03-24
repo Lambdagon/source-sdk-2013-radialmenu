@@ -51,15 +51,15 @@ const char *g_pLaserDotThink = "LaserThinkContext";
 //-----------------------------------------------------------------------------
 // Laser Dot
 //-----------------------------------------------------------------------------
-class CHL2LaserDot : public CSprite 
+class CLaserDot : public CSprite 
 {
-	DECLARE_CLASS( CHL2LaserDot, CSprite );
+	DECLARE_CLASS( CLaserDot, CSprite );
 public:
 
-	CHL2LaserDot( void );
-	~CHL2LaserDot( void );
+	CLaserDot( void );
+	~CLaserDot( void );
 
-	static CHL2LaserDot *Create( const Vector &origin, CBaseEntity *pOwner = NULL, bool bVisibleDot = true );
+	static CLaserDot *Create( const Vector &origin, CBaseEntity *pOwner = NULL, bool bVisibleDot = true );
 
 	void	SetTargetEntity( CBaseEntity *pTarget ) { m_hTargetEnt = pTarget; }
 	CBaseEntity *GetTargetEntity( void ) { return m_hTargetEnt; }
@@ -86,13 +86,13 @@ protected:
 
 	DECLARE_DATADESC();
 public:
-	CHL2LaserDot			*m_pNext;
+	CLaserDot			*m_pNext;
 };
 
 // a list of laser dots to search quickly
-CEntityClassList<CHL2LaserDot> g_LaserDotList;
-template <>  CHL2LaserDot *CEntityClassList<CHL2LaserDot>::m_pClassList = NULL;
-CHL2LaserDot *GetLaserDotList()
+CEntityClassList<CLaserDot> g_LaserDotList;
+template <>  CLaserDot *CEntityClassList<CLaserDot>::m_pClassList = NULL;
+CLaserDot *GetLaserDotList()
 {
 	return g_LaserDotList.m_pClassList;
 }
@@ -472,7 +472,7 @@ void CMissile::IgniteThink( void )
 //-----------------------------------------------------------------------------
 // Gets the shooting position 
 //-----------------------------------------------------------------------------
-void CMissile::GetShootPosition( CHL2LaserDot *pLaserDot, Vector *pShootPosition )
+void CMissile::GetShootPosition( CLaserDot *pLaserDot, Vector *pShootPosition )
 {
 	if ( pLaserDot->GetOwnerEntity() != NULL )
 	{
@@ -491,7 +491,7 @@ void CMissile::GetShootPosition( CHL2LaserDot *pLaserDot, Vector *pShootPosition
 //-----------------------------------------------------------------------------
 #define	RPG_HOMING_SPEED	0.125f
 
-void CMissile::ComputeActualDotPosition( CHL2LaserDot *pLaserDot, Vector *pActualDotPosition, float *pHomingSpeed )
+void CMissile::ComputeActualDotPosition( CLaserDot *pLaserDot, Vector *pActualDotPosition, float *pHomingSpeed )
 {
 	*pHomingSpeed = RPG_HOMING_SPEED;
 	if ( pLaserDot->GetTargetEntity() )
@@ -556,7 +556,7 @@ void CMissile::SeekThink( void )
 	}
 
 	//Search for all dots relevant to us
-	for( CHL2LaserDot *pEnt = GetLaserDotList(); pEnt != NULL; pEnt = pEnt->m_pNext )
+	for( CLaserDot *pEnt = GetLaserDotList(); pEnt != NULL; pEnt = pEnt->m_pNext )
 	{
 		if ( !pEnt->IsOn() )
 			continue;
@@ -626,11 +626,11 @@ void CMissile::SeekThink( void )
 		return;
 	}
 
-	CHL2LaserDot *pLaserDot = (CHL2LaserDot *)pBestDot;
+	CLaserDot *pLaserDot = (CLaserDot *)pBestDot;
 	Vector	targetPos;
 
 	float flHomingSpeed; 
-	Vector veCHL2LaserDotPosition;
+	Vector vecLaserDotPosition;
 	ComputeActualDotPosition( pLaserDot, &targetPos, &flHomingSpeed );
 
 	if ( IsSimulatingOnAlternateTicks() )
@@ -1085,7 +1085,7 @@ void CAPCMissile::APCSeekThink( void )
 	bool bFoundDot = false;
 
 	//If we can't find a dot to follow around then just send me wherever I'm facing so I can blow up in peace.
-	for( CHL2LaserDot *pEnt = GetLaserDotList(); pEnt != NULL; pEnt = pEnt->m_pNext )
+	for( CLaserDot *pEnt = GetLaserDotList(); pEnt != NULL; pEnt = pEnt->m_pNext )
 	{
 		if ( !pEnt->IsOn() )
 			continue;
@@ -1222,7 +1222,7 @@ void CAPCMissile::ComputeLeadingPosition( const Vector &vecShootPosition, CBaseE
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CAPCMissile::ComputeActualDotPosition( CHL2LaserDot *pLaserDot, Vector *pActualDotPosition, float *pHomingSpeed )
+void CAPCMissile::ComputeActualDotPosition( CLaserDot *pLaserDot, Vector *pActualDotPosition, float *pHomingSpeed )
 {
 	if ( m_bGuidingDisabled )
 	{
@@ -1377,7 +1377,7 @@ BEGIN_DATADESC( CWeaponRPG )
 
 	DEFINE_FIELD( m_bInitialStateUpdate,FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bGuiding,			FIELD_BOOLEAN ),
-	DEFINE_FIELD( m_vecNPCHL2LaserDot,		FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecNPCLaserDot,		FIELD_POSITION_VECTOR ),
 	DEFINE_FIELD( m_hLaserDot,			FIELD_EHANDLE ),
 	DEFINE_FIELD( m_hMissile,			FIELD_EHANDLE ),
 	DEFINE_FIELD( m_hLaserMuzzleSprite, FIELD_EHANDLE ),
@@ -1388,7 +1388,6 @@ END_DATADESC()
 
 IMPLEMENT_SERVERCLASS_ST(CWeaponRPG, DT_WeaponRPG)
 END_SEND_TABLE()
-
 
 LINK_ENTITY_TO_CLASS( weapon_rpg, CWeaponRPG );
 PRECACHE_WEAPON_REGISTER(weapon_rpg);
@@ -1512,7 +1511,7 @@ void CWeaponRPG::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatChara
 			CAI_BaseNPC *npc = pOperator->MyNPCPointer();
 			ASSERT( npc != NULL );
 
-			Vector vecShootDir = npc->GetShootEnemyDir( muzzlePoint );
+			Vector vecShootDir = npc->GetActualShootTrajectory( muzzlePoint );
 
 			// look for a better launch location
 			Vector altLaunchPoint;
@@ -1663,7 +1662,7 @@ void CWeaponRPG::PrimaryAttack( void )
 		{
 			if( ppAIs[ i ]->m_iClassname == iszStriderClassname )
 			{
-				//ppAIs[ i ]->DispatchInteraction( g_interactionPlayerLaunchedRPG, NULL, m_hMissile );
+				ppAIs[ i ]->DispatchInteraction( g_interactionPlayerLaunchedRPG, NULL, m_hMissile );
 			}
 		}
 	}
@@ -1803,8 +1802,8 @@ void CWeaponRPG::UpdateNPCLaserPosition( const Vector &vecTarget )
 //-----------------------------------------------------------------------------
 void CWeaponRPG::SetNPCLaserPosition( const Vector &vecTarget ) 
 { 
-	m_vecNPCHL2LaserDot = vecTarget; 
-	//NDebugOverlay::Box( m_vecNPCHL2LaserDot, -Vector(10,10,10), Vector(10,10,10), 255,0,0, 8, 3 );
+	m_vecNPCLaserDot = vecTarget; 
+	//NDebugOverlay::Box( m_vecNPCLaserDot, -Vector(10,10,10), Vector(10,10,10), 255,0,0, 8, 3 );
 }
 
 //-----------------------------------------------------------------------------
@@ -1812,7 +1811,7 @@ void CWeaponRPG::SetNPCLaserPosition( const Vector &vecTarget )
 //-----------------------------------------------------------------------------
 const Vector &CWeaponRPG::GetNPCLaserPosition( void )
 {
-	return m_vecNPCHL2LaserDot;
+	return m_vecNPCLaserDot;
 }
 
 //-----------------------------------------------------------------------------
@@ -1984,7 +1983,7 @@ void CWeaponRPG::CreateLaserPointer( void )
 	if ( m_hLaserDot != NULL )
 		return;
 
-	m_hLaserDot = CHL2LaserDot::Create( GetAbsOrigin(), GetOwnerEntity() );
+	m_hLaserDot = CLaserDot::Create( GetAbsOrigin(), GetOwnerEntity() );
 	m_hLaserDot->TurnOff();
 
 	UpdateLaserPosition();
@@ -2037,7 +2036,7 @@ bool CWeaponRPG::WeaponLOSCondition( const Vector &ownerPos, const Vector &targe
 			Vector vecRelativeShootPosition;
 			VectorSubtract( npcOwner->Weapon_ShootPosition(), npcOwner->GetAbsOrigin(), vecRelativeShootPosition );
 			Vector vecMuzzle = ownerPos + vecRelativeShootPosition;
-			Vector vecShootDir = npcOwner->GetShootEnemyDir( vecMuzzle );
+			Vector vecShootDir = npcOwner->GetActualShootTrajectory( vecMuzzle );
 
 			// Make sure I have a good 10 feet of wide clearance in front, or I'll blow my teeth out.
 			AI_TraceHull( vecMuzzle, vecMuzzle + vecShootDir * (10.0f*12.0f), Vector( -24, -24, -24 ), Vector( 24, 24, 24 ), MASK_NPCSOLID, NULL, &tr );
@@ -2087,7 +2086,7 @@ int CWeaponRPG::WeaponRangeAttack1Condition( float flDot, float flDist )
 		trace_t tr;
 
 		Vector vecMuzzle = pOwner->Weapon_ShootPosition();
-		Vector vecShootDir = pOwner->GetShootEnemyDir( vecMuzzle );
+		Vector vecShootDir = pOwner->GetActualShootTrajectory( vecMuzzle );
 
 		// Make sure I have a good 10 feet of wide clearance in front, or I'll blow my teeth out.
 		AI_TraceHull( vecMuzzle, vecMuzzle + vecShootDir * (10.0f*12.0f), Vector( -24, -24, -24 ), Vector( 24, 24, 24 ), MASK_NPCSOLID, NULL, &tr );
@@ -2218,9 +2217,9 @@ void CWeaponRPG::UpdateLaserEffects( void )
 // Laser Dot
 //=============================================================================
 
-LINK_ENTITY_TO_CLASS( env_laserdot, CHL2LaserDot );
+LINK_ENTITY_TO_CLASS( env_laserdot, CLaserDot );
 
-BEGIN_DATADESC( CHL2LaserDot )
+BEGIN_DATADESC( CLaserDot )
 	DEFINE_FIELD( m_vecSurfaceNormal,	FIELD_VECTOR ),
 	DEFINE_FIELD( m_hTargetEnt,			FIELD_EHANDLE ),
 	DEFINE_FIELD( m_bVisibleLaserDot,	FIELD_BOOLEAN ),
@@ -2236,18 +2235,18 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 CBaseEntity *CreateLaserDot( const Vector &origin, CBaseEntity *pOwner, bool bVisibleDot )
 {
-	return CHL2LaserDot::Create( origin, pOwner, bVisibleDot );
+	return CLaserDot::Create( origin, pOwner, bVisibleDot );
 }
 
 void SetLaserDotTarget( CBaseEntity *pLaserDot, CBaseEntity *pTarget )
 {
-	CHL2LaserDot *pDot = assert_cast< CHL2LaserDot* >(pLaserDot );
+	CLaserDot *pDot = assert_cast< CLaserDot* >(pLaserDot );
 	pDot->SetTargetEntity( pTarget );
 }
 
 void EnableLaserDot( CBaseEntity *pLaserDot, bool bEnable )
 {
-	CHL2LaserDot *pDot = assert_cast< CHL2LaserDot* >(pLaserDot );
+	CLaserDot *pDot = assert_cast< CLaserDot* >(pLaserDot );
 	if ( bEnable )
 	{
 		pDot->TurnOn();
@@ -2258,14 +2257,14 @@ void EnableLaserDot( CBaseEntity *pLaserDot, bool bEnable )
 	}
 }
 
-CHL2LaserDot::CHL2LaserDot( void )
+CLaserDot::CLaserDot( void )
 {
 	m_hTargetEnt = NULL;
 	m_bIsOn = true;
 	g_LaserDotList.Insert( this );
 }
 
-CHL2LaserDot::~CHL2LaserDot( void )
+CLaserDot::~CLaserDot( void )
 {
 	g_LaserDotList.Remove( this );
 }
@@ -2274,11 +2273,11 @@ CHL2LaserDot::~CHL2LaserDot( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : &origin - 
-// Output : CHL2LaserDot
+// Output : CLaserDot
 //-----------------------------------------------------------------------------
-CHL2LaserDot *CHL2LaserDot::Create( const Vector &origin, CBaseEntity *pOwner, bool bVisibleDot )
+CLaserDot *CLaserDot::Create( const Vector &origin, CBaseEntity *pOwner, bool bVisibleDot )
 {
-	CHL2LaserDot *pLaserDot = (CHL2LaserDot *) CBaseEntity::Create( "env_laserdot", origin, QAngle(0,0,0) );
+	CLaserDot *pLaserDot = (CLaserDot *) CBaseEntity::Create( "env_laserdot", origin, QAngle(0,0,0) );
 
 	if ( pLaserDot == NULL )
 		return NULL;
@@ -2299,7 +2298,7 @@ CHL2LaserDot *CHL2LaserDot::Create( const Vector &origin, CBaseEntity *pOwner, b
 
 	pLaserDot->SetOwnerEntity( pOwner );
 
-	pLaserDot->SetContextThink( &CHL2LaserDot::LaserThink, gpGlobals->curtime + 0.1f, g_pLaserDotThink );
+	pLaserDot->SetContextThink( &CLaserDot::LaserThink, gpGlobals->curtime + 0.1f, g_pLaserDotThink );
 	pLaserDot->SetSimulatedEveryTick( true );
 
 	if ( !bVisibleDot )
@@ -2313,7 +2312,7 @@ CHL2LaserDot *CHL2LaserDot::Create( const Vector &origin, CBaseEntity *pOwner, b
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHL2LaserDot::LaserThink( void )
+void CLaserDot::LaserThink( void )
 {
 	SetNextThink( gpGlobals->curtime + 0.05f, g_pLaserDotThink );
 
@@ -2331,13 +2330,13 @@ void CHL2LaserDot::LaserThink( void )
 	SetScale( scale );
 }
 
-void CHL2LaserDot::SetLaserPosition( const Vector &origin, const Vector &normal )
+void CLaserDot::SetLaserPosition( const Vector &origin, const Vector &normal )
 {
 	SetAbsOrigin( origin );
 	m_vecSurfaceNormal = normal;
 }
 
-Vector CHL2LaserDot::GetChasePosition()
+Vector CLaserDot::GetChasePosition()
 {
 	return GetAbsOrigin() - m_vecSurfaceNormal * 10;
 }
@@ -2345,7 +2344,7 @@ Vector CHL2LaserDot::GetChasePosition()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHL2LaserDot::TurnOn( void )
+void CLaserDot::TurnOn( void )
 {
 	m_bIsOn = true;
 	if ( m_bVisibleLaserDot )
@@ -2358,7 +2357,7 @@ void CHL2LaserDot::TurnOn( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHL2LaserDot::TurnOff( void )
+void CLaserDot::TurnOff( void )
 {
 	m_bIsOn = false;
 	if ( m_bVisibleLaserDot )
@@ -2371,7 +2370,7 @@ void CHL2LaserDot::TurnOff( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHL2LaserDot::MakeInvisible( void )
+void CLaserDot::MakeInvisible( void )
 {
 	BaseClass::TurnOff();
 }

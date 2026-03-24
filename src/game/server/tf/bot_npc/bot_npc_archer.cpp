@@ -90,7 +90,7 @@ void CBotNPCArcher::Spawn( void )
 	SetHealth( health );
 	SetMaxHealth( health );
 
-	ChangeTeam( TF_TEAM_BLUE );
+	ChangeTeam( TF_TEAM_RED );
 
 	Vector headPos;
 	QAngle headAngles;

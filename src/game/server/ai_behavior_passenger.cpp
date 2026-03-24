@@ -863,7 +863,7 @@ void CAI_PassengerBehavior::DetachFromVehicle( void )
 	GetOuter()->AddFlag( FL_FLY );
 	GetOuter()->SetGroundEntity( NULL );
 	GetOuter()->SetCollisionGroup( COLLISION_GROUP_NPC );
-	//m_hVehicle->RemovePhysicsChild( GetOuter() );
+	m_hVehicle->RemovePhysicsChild( GetOuter() );
 }
 
 //-----------------------------------------------------------------------------
@@ -889,7 +889,7 @@ void CAI_PassengerBehavior::AttachToVehicle( void )
 	GetEntryTarget( &m_vecTargetPosition, &m_vecTargetAngles );
 
 	// Get physics messages from our attached physics object
-	//m_hVehicle->AddPhysicsChild( GetOuter() );
+	m_hVehicle->AddPhysicsChild( GetOuter() );
 }
 
 //-----------------------------------------------------------------------------

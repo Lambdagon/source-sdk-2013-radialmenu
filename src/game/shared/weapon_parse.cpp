@@ -29,7 +29,6 @@ const char *pWeaponSoundCategories[ NUM_SHOOT_SOUND_TYPES ] =
 	"reload_npc",
 	"melee_miss",
 	"melee_hit",
-	"melee_burst",
 	"melee_hit_world",
 	"special1",
 	"special2",

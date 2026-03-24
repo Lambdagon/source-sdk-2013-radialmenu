@@ -62,8 +62,8 @@ CTFViewModel::~CTFViewModel()
 void DrawEconEntityAttachedModels( CBaseAnimating *pEnt, CEconEntity *pAttachedModelSource, const ClientModelRenderInfo_t *pInfo, int iMatchDisplayFlags );
 
 // TODO:  Turning this off by setting interp 0.0 instead of 0.1 for now since we have a timing bug to resolve
-ConVar cl_wpn_sway_interp( "cl_wpn_sway_interp", "0.1", FCVAR_CLIENTDLL );
-ConVar cl_wpn_sway_scale( "cl_wpn_sway_scale", "1.6", FCVAR_CLIENTDLL );
+ConVar cl_wpn_sway_interp( "cl_wpn_sway_interp", "0.0", FCVAR_CLIENTDLL | FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY );
+ConVar cl_wpn_sway_scale( "cl_wpn_sway_scale", "5.0", FCVAR_CLIENTDLL | FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY );
 #endif
 
 //-----------------------------------------------------------------------------
@@ -82,53 +82,40 @@ void CTFViewModel::AddViewModelBob( CBasePlayer *owner, Vector& eyePosition, QAn
 #endif
 }
 
-ConVar sv_wpn_sway_pred_legacy("sv_wpn_sway_pred_legacy", "1", FCVAR_REPLICATED);
-
 void CTFViewModel::CalcViewModelLag( Vector& origin, QAngle& angles, QAngle& original_angles )
 {
-	if (sv_wpn_sway_pred_legacy.GetBool())
+#ifdef CLIENT_DLL
+	if ( prediction->InPrediction() )
 	{
-
-#ifdef CLIENT_DLL
-		if (prediction->InPrediction())
-		{
-			return;
-		}
-
-		if (cl_wpn_sway_interp.GetFloat() <= 0.0f)
-		{
-			return;
-		}
-
-		// Calculate our drift
-		Vector	forward, right, up;
-		AngleVectors(angles, &forward, &right, &up);
-
-		// Add an entry to the history.
-		m_vLagAngles = angles;
-		m_LagAnglesHistory.NoteChanged(gpGlobals->curtime, cl_wpn_sway_interp.GetFloat(), false);
-
-		// Interpolate back 100ms.
-		m_LagAnglesHistory.Interpolate(gpGlobals->curtime, cl_wpn_sway_interp.GetFloat());
-
-		// Now take the 100ms angle difference and figure out how far the forward vector moved in local space.
-		Vector vLaggedForward;
-		QAngle angleDiff = m_vLagAngles - angles;
-		AngleVectors(-angleDiff, &vLaggedForward, 0, 0);
-		Vector vForwardDiff = Vector(1, 0, 0) - vLaggedForward;
-
-		// Now offset the origin using that.
-		vForwardDiff *= cl_wpn_sway_scale.GetFloat();
-		origin += forward * vForwardDiff.x + right * -vForwardDiff.y + up * vForwardDiff.z;
-#endif
-
+		return;
 	}
-	else {
 
-#ifdef CLIENT_DLL
-		BaseClass::CalcViewModelLag(origin, angles, original_angles);
-#endif
+	if ( cl_wpn_sway_interp.GetFloat() <= 0.0f )
+	{
+		return;
 	}
+
+	// Calculate our drift
+	Vector	forward, right, up;
+	AngleVectors( angles, &forward, &right, &up );
+
+	// Add an entry to the history.
+	m_vLagAngles = angles;
+	m_LagAnglesHistory.NoteChanged( gpGlobals->curtime, cl_wpn_sway_interp.GetFloat(), false );
+
+	// Interpolate back 100ms.
+	m_LagAnglesHistory.Interpolate( gpGlobals->curtime, cl_wpn_sway_interp.GetFloat() );
+
+	// Now take the 100ms angle difference and figure out how far the forward vector moved in local space.
+	Vector vLaggedForward;
+	QAngle angleDiff = m_vLagAngles - angles;
+	AngleVectors( -angleDiff, &vLaggedForward, 0, 0 );
+	Vector vForwardDiff = Vector(1,0,0) - vLaggedForward;
+
+	// Now offset the origin using that.
+	vForwardDiff *= cl_wpn_sway_scale.GetFloat();
+	origin += forward*vForwardDiff.x + right*-vForwardDiff.y + up*vForwardDiff.z;
+#endif
 }
 
 #ifdef CLIENT_DLL
@@ -137,7 +124,7 @@ ConVar cl_gunlowerspeed( "cl_gunlowerspeed", "2", FCVAR_CLIENTDLL | FCVAR_CHEAT 
 
 ConVar tf_use_min_viewmodels( "tf_use_min_viewmodels", "0", FCVAR_ARCHIVE, "Use minimized viewmodels." );
 
-ConVar tf_viewmodels_offset_override( "tf_viewmodels_offset_override", "", FCVAR_ARCHIVE, "If set, this will override the position of all viewmodels. Usage 'x y z'" );
+ConVar tf_viewmodels_offset_override( "tf_viewmodels_offset_override", "", FCVAR_CHEAT, "If set, this will override the position of all viewmodels. Usage 'x y z'" );
 #endif
 
 void CTFViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePosition, const QAngle& eyeAngles )
@@ -228,14 +215,9 @@ void CTFViewModel::CalcViewModelView( CBasePlayer *owner, const Vector& eyePosit
 			{
 				viewmodelOffset = pWeapon->GetViewmodelOffset();
 			}
-			if ((viewmodelOffset.x < -10 || viewmodelOffset.x > 1 || viewmodelOffset.y < -7 || viewmodelOffset.y > 7 || viewmodelOffset.z < -2 || viewmodelOffset.z > 2)) {
-
-			}
-			else {
-				Vector vOffset = viewmodelOffset.x * forward + viewmodelOffset.y * right + viewmodelOffset.z * up;
-				vOffset *= Gain(1.f - s_inspectInterp, 0.5f);
-				vecNewOrigin += vOffset;
-			}
+			Vector vOffset = viewmodelOffset.x * forward + viewmodelOffset.y * right + viewmodelOffset.z * up;
+			vOffset *= Gain( 1.f - s_inspectInterp, 0.5f );
+			vecNewOrigin += vOffset;
 		}
 	}
 

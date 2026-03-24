@@ -65,9 +65,7 @@ extern ConVar replay_rendersetting_renderglow;
 #include "c_tf_player.h"
 #include "econ_item_description.h"
 #include "c_tf_team.h"
-#include "tf_gamerules.h"
 #endif
-#include "confirm_dialog.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -280,12 +278,6 @@ static void __MsgFunc_VGUIMenu( bf_read &msg )
 		{
 			mode->InfoPanelDisplayed();
 		}
-#ifdef TF_CLIENT_DLL
-		if (TFGameRules() && !TFGameRules()->IsMannVsMachineMode()) 
-		{
-			TFNonMvMIssueDialog()->Show("#TF_MM_Queue_Error_NonMvM_Text", "#TF_MM_Queue_Error_NonMvM_URL");
-		}
-#endif
 	}
 
 	gViewPortInterface->ShowPanel( viewport, bShow );

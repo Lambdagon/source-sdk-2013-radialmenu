@@ -176,7 +176,7 @@ void CHUDAutoAim::OnThink()
 
 	BaseClass::OnThink();
 
-#ifdef TF_CLIENT_DLL
+#if defined (TF_CLIENT_DLL) || defined(CSTRIKE_DLL)
 	if ( true )
 #else
 	// Get the HL2 player
@@ -193,7 +193,7 @@ void CHUDAutoAim::OnThink()
 		return;
 	}
 
-#ifndef TF_CLIENT_DLL
+#if !(defined (TF_CLIENT_DLL) || defined(CSTRIKE_DLL))
 	// Get the autoaim target.
 	CBaseEntity *pTarget = pLocalPlayer->m_HL2Local.m_hAutoAimTarget.Get();
 
@@ -391,88 +391,4 @@ void CHUDAutoAim::OnThink()
 
 void CHUDAutoAim::Paint()
 {
-	if( hud_draw_active_reticle.GetBool() )
-	{
-		int xCenter = m_vecPos.x;
-		int yCenter = m_vecPos.y;
-
-		int width, height;
-		float xMod, yMod;
-
-		vgui::surface()->DrawSetTexture( m_textureID_ActiveReticle );
-		vgui::surface()->DrawSetColor( 255, 255, 255, m_alpha );
-		vgui::surface()->DrawGetTextureSize( m_textureID_ActiveReticle, width, height );
-
-		float uv1 = 0.5f / width, uv2 = 1.0f - uv1;
-
-		vgui::Vertex_t vert[4];	
-
-		Vector2D uv11( uv1, uv1 );
-		Vector2D uv12( uv1, uv2 );
-		Vector2D uv21( uv2, uv1 );
-		Vector2D uv22( uv2, uv2 );
-
-		xMod = width;
-		yMod = height;
-
-		xMod *= m_scale;
-		yMod *= m_scale;
-
-		xMod /= 2;
-		yMod /= 2;
-
-		vert[0].Init( Vector2D( xCenter + xMod, yCenter + yMod ), uv21 );
-		vert[1].Init( Vector2D( xCenter - xMod, yCenter + yMod ), uv11 );
-		vert[2].Init( Vector2D( xCenter - xMod, yCenter - yMod ), uv12 );
-		vert[3].Init( Vector2D( xCenter + xMod, yCenter - yMod ), uv22 );
-		vgui::surface()->DrawTexturedPolygon( 4, vert );
-	}
-
-	if( hud_draw_fixed_reticle.GetBool() )
-	{
-		int width, height;
-		float xMod, yMod;
-
-		vgui::surface()->DrawSetTexture( m_textureID_FixedReticle );
-		vgui::surface()->DrawGetTextureSize( m_textureID_FixedReticle, width, height );
-
-		int xCenter = ScreenWidth() / 2;
-		int yCenter = ScreenHeight() / 2;
-
-		vgui::Vertex_t vert[4];	
-
-		Vector2D uv11( 0, 0 );
-		Vector2D uv12( 0, 1 );
-		Vector2D uv21( 1, 0 );
-		Vector2D uv22( 1, 1 );
-
-		xMod = width;
-		yMod = height;
-
-		xMod /= 2;
-		yMod /= 2;
-
-		vert[0].Init( Vector2D( xCenter + xMod, yCenter + yMod ), uv21 );
-		vert[1].Init( Vector2D( xCenter - xMod, yCenter + yMod ), uv11 );
-		vert[2].Init( Vector2D( xCenter - xMod, yCenter - yMod ), uv12 );
-		vert[3].Init( Vector2D( xCenter + xMod, yCenter - yMod ), uv22 );
-
-		Color	clr;
-		clr = gHUD.m_clrNormal;
-		int r,g,b,a;
-		clr.GetColor( r,g,b,a );
-
-		C_BaseHLPlayer *pLocalPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
-		if( pLocalPlayer && pLocalPlayer->m_HL2Local.m_hAutoAimTarget.Get() )
-		{
-			r = 250; 
-			g = 138;
-			b = 4;
-		}
-
-		clr.SetColor( r,g,b,m_alphaFixed);
-
-		vgui::surface()->DrawSetColor( clr );
-		vgui::surface()->DrawTexturedPolygon( 4, vert );
-	}
 }

@@ -34,7 +34,6 @@
 #include "scripted.h"
 #include "env_debughistory.h"
 #include "team.h"
-#include "util.h"
 
 #ifdef HL2_EPISODIC
 #include "npc_alyx_episodic.h"
@@ -2383,6 +2382,18 @@ bool CSceneEntity::CheckActors()
 					{
 						bShouldWait = true;
 					}
+					
+#ifdef HL2_EPISODIC
+					// HACK: Alyx cannot play scenes when she's in the middle of transitioning					
+					if ( pActor->IsInAVehicle() )
+					{
+						CNPC_Alyx *pAlyx = dynamic_cast<CNPC_Alyx *>(pActor);
+						if ( pAlyx != NULL && ( pAlyx->GetPassengerState() == PASSENGER_STATE_ENTERING || pAlyx->GetPassengerState() == PASSENGER_STATE_EXITING ) )
+						{
+							bShouldWait = true;
+						}
+					}
+#endif // HL2_EPISODIC
 				}
 
 				if ( pActor->GetExpresser() && pActor->GetExpresser()->IsSpeaking() )
@@ -3849,109 +3860,109 @@ CBaseEntity *CSceneEntity::FindNamedEntity( const char *name, CBaseEntity *pActo
 {
 	CBaseEntity *entity = NULL;
 
-	if (!stricmp(name, "Player") || !stricmp(name, "!player"))
+	if ( !stricmp( name, "Player" ) || !stricmp( name, "!player" ))
 	{
-		entity = UTIL_GetNearestPlayer(GetAbsOrigin());
+		entity = ( gpGlobals->maxClients == 1 ) ? ( CBaseEntity * )UTIL_GetLocalPlayer() : NULL;
 	}
-	else if (!stricmp(name, "!target1"))
+	else if ( !stricmp( name, "!target1" ) )
 	{
 		if (m_hTarget1 == NULL)
 		{
-			m_hTarget1 = FindNamedTarget(m_iszTarget1, bBaseFlexOnly);
+			m_hTarget1 = FindNamedTarget( m_iszTarget1, bBaseFlexOnly );
 		}
 		return m_hTarget1;
 	}
-	else if (!stricmp(name, "!target2"))
+	else if ( !stricmp( name, "!target2" ) )
 	{
 		if (m_hTarget2 == NULL)
 		{
-			m_hTarget2 = FindNamedTarget(m_iszTarget2, bBaseFlexOnly);
+			m_hTarget2 = FindNamedTarget( m_iszTarget2, bBaseFlexOnly );
 		}
 		return m_hTarget2;
 	}
-	else if (!stricmp(name, "!target3"))
+	else if ( !stricmp( name, "!target3" ) )
 	{
 		if (m_hTarget3 == NULL)
 		{
-			m_hTarget3 = FindNamedTarget(m_iszTarget3, bBaseFlexOnly);
+			m_hTarget3 = FindNamedTarget( m_iszTarget3, bBaseFlexOnly );
 		}
 		return m_hTarget3;
 	}
-	else if (!stricmp(name, "!target4"))
+	else if ( !stricmp( name, "!target4" ) )
 	{
 		if (m_hTarget4 == NULL)
 		{
-			m_hTarget4 = FindNamedTarget(m_iszTarget4, bBaseFlexOnly);
+			m_hTarget4 = FindNamedTarget( m_iszTarget4, bBaseFlexOnly );
 		}
 		return m_hTarget4;
 	}
-	else if (!stricmp(name, "!target5"))
+	else if ( !stricmp( name, "!target5" ) )
 	{
 		if (m_hTarget5 == NULL)
 		{
-			m_hTarget5 = FindNamedTarget(m_iszTarget5, bBaseFlexOnly);
+			m_hTarget5 = FindNamedTarget( m_iszTarget5, bBaseFlexOnly );
 		}
 		return m_hTarget5;
 	}
-	else if (!stricmp(name, "!target6"))
+	else if ( !stricmp( name, "!target6" ) )
 	{
 		if (m_hTarget6 == NULL)
 		{
-			m_hTarget6 = FindNamedTarget(m_iszTarget6, bBaseFlexOnly);
+			m_hTarget6 = FindNamedTarget( m_iszTarget6, bBaseFlexOnly );
 		}
 		return m_hTarget6;
 	}
-	else if (!stricmp(name, "!target7"))
+	else if ( !stricmp( name, "!target7" ) )
 	{
 		if (m_hTarget7 == NULL)
 		{
-			m_hTarget7 = FindNamedTarget(m_iszTarget7, bBaseFlexOnly);
+			m_hTarget7 = FindNamedTarget( m_iszTarget7, bBaseFlexOnly );
 		}
 		return m_hTarget7;
 	}
-	else if (!stricmp(name, "!target8"))
+	else if ( !stricmp( name, "!target8" ) )
 	{
 		if (m_hTarget8 == NULL)
 		{
-			m_hTarget8 = FindNamedTarget(m_iszTarget8, bBaseFlexOnly);
+			m_hTarget8 = FindNamedTarget( m_iszTarget8, bBaseFlexOnly );
 		}
 		return m_hTarget8;
 	}
 	else if (pActor && pActor->MyNPCPointer())
 	{
-		CSceneFindMarkFilter* pFilter = NULL;
-		if (bUseClear)
+		CSceneFindMarkFilter *pFilter = NULL;
+		if ( bUseClear )
 		{
 			pFilter = new CSceneFindMarkFilter();
-			pFilter->SetActor(pActor);
+			pFilter->SetActor( pActor );
 		}
 
-		entity = pActor->MyNPCPointer()->FindNamedEntity(name, pFilter);
-		if (!entity && pFilter)
+		entity = pActor->MyNPCPointer()->FindNamedEntity( name, pFilter );
+		if ( !entity && pFilter )
 		{
 			entity = pFilter->GetFilterResult();
 		}
-	}
+	}	
 	else
 	{
 		// search for up to 32 entities with the same name and choose one randomly
-		CBaseEntity* entityList[FINDNAMEDENTITY_MAX_ENTITIES];
+		CBaseEntity *entityList[ FINDNAMEDENTITY_MAX_ENTITIES ];
 		int	iCount;
 
 		entity = NULL;
-		for (iCount = 0; iCount < FINDNAMEDENTITY_MAX_ENTITIES; iCount++)
+		for( iCount = 0; iCount < FINDNAMEDENTITY_MAX_ENTITIES; iCount++ )
 		{
-			entity = gEntList.FindEntityByName(entity, name, NULL, pActor);
-			if (!entity)
+			entity = gEntList.FindEntityByName( entity, name, NULL, pActor );
+			if ( !entity )
 			{
 				break;
 			}
-			entityList[iCount] = entity;
+			entityList[ iCount ] = entity;
 		}
 
-		if (iCount > 0)
+		if ( iCount > 0 )
 		{
-			entity = entityList[RandomInt(0, iCount - 1)];
+			entity = entityList[ RandomInt( 0, iCount - 1 ) ];
 		}
 		else
 		{
@@ -3978,7 +3989,7 @@ CBaseEntity *CSceneEntity::FindNamedEntityClosest( const char *name, CBaseEntity
 	} 
 	else if ( !stricmp( name, "Player" ) || !stricmp( name, "!player" ))
 	{
-		entity = UTIL_GetNearestPlayer(GetAbsOrigin());
+		entity = ( gpGlobals->maxClients == 1 ) ? ( CBaseEntity * )UTIL_GetLocalPlayer() : NULL;
 		return entity;
 	}
 	else if ( !stricmp( name, "!target1" ) )

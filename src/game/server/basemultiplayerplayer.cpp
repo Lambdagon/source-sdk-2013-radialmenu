@@ -61,7 +61,6 @@ void CBaseMultiplayerPlayer::PostConstructor( const char *szClassname )
 void CBaseMultiplayerPlayer::ModifyOrAppendCriteria( AI_CriteriaSet& criteriaSet )
 {
 	BaseClass::ModifyOrAppendCriteria( criteriaSet );
-
 	ModifyOrAppendPlayerCriteria( criteriaSet );
 }
 

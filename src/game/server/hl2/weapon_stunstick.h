@@ -24,7 +24,7 @@ public:
 
 	CWeaponStunStick();
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_ACTTABLE();
 
 	virtual void Precache();

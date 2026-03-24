@@ -47,7 +47,7 @@ void CBotNPCMiniRockets::Precache()
 {
 	BaseClass::Precache();
 
-	int model = PrecacheModel( "models/bots/demo/bot_demo.mdl" );
+	int model = PrecacheModel( "models/bots/knight/knight_mini.mdl" );
 	PrecacheGibsForModel( model );
 
 	PrecacheScriptSound( "RobotMiniBoss.LaunchRocket" );
@@ -59,8 +59,7 @@ void CBotNPCMiniRockets::Spawn( void )
 {
 	BaseClass::Spawn();
 
-	SetModel("models/bots/demo/bot_demo.mdl");
-	SetModelScale(1.5f);
+	SetModel( "models/bots/knight/knight_mini.mdl" );
 
 	int health = tf_raid_mini_rocket_boss_health.GetInt();
 	SetHealth( health );
@@ -82,7 +81,7 @@ void CBotNPCMiniNuker::Precache()
 {
 	BaseClass::Precache();
 
-	int model = PrecacheModel("models/bots/demo/bot_demo.mdl");
+	int model = PrecacheModel( "models/bots/knight/knight_mini.mdl" );
 	PrecacheGibsForModel( model );
 }
 
@@ -92,8 +91,8 @@ void CBotNPCMiniNuker::Spawn( void )
 {
 	BaseClass::Spawn();
 
-	SetModel( "models/bots/demo/bot_demo.mdl" );
-	SetModelScale( 1.5f ); 
+	SetModel( "models/bots/knight/knight_mini.mdl" );
+
 	int health = tf_raid_mini_nuker_boss_health.GetInt();
 	SetHealth( health );
 	SetMaxHealth( health );

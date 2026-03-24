@@ -12,7 +12,6 @@
 #include "ammodef.h"
 #include "gamerules.h"
 #include "grenade_molotov.h"
-#include "weapon_brickbat.h"
 #include "soundent.h"
 #include "decals.h"
 #include "fire.h"
@@ -20,6 +19,7 @@
 #include "ndebugoverlay.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
+#include "terror/inferno.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -28,17 +28,13 @@ extern short	g_sModelIndexFireball;
 
 extern ConVar    sk_plr_dmg_molotov;
 extern ConVar    sk_npc_dmg_molotov;
-ConVar    sk_molotov_radius			( "sk_molotov_radius","0");
+ConVar    sk_molotov_radius			( "inferno_max_range","500");
 
 #define MOLOTOV_EXPLOSION_VOLUME	1024
 
 BEGIN_DATADESC( CGrenade_Molotov )
 
 	DEFINE_FIELD( m_pFireTrail, FIELD_CLASSPTR ),
-
-	// Function Pointers
-	DEFINE_FUNCTION( MolotovTouch ),
-	DEFINE_FUNCTION( MolotovThink ),
 
 END_DATADESC()
 
@@ -50,12 +46,12 @@ void CGrenade_Molotov::Spawn( void )
 	SetSolid( SOLID_BBOX ); 
 	SetCollisionGroup( COLLISION_GROUP_PROJECTILE );
 
-	SetModel( "models/weapons/w_molotov.mdl");
+	SetModel( "models/w_models/weapons/w_eq_molotov.mdl");
 
 	UTIL_SetSize(this, Vector( -6, -6, -2), Vector(6, 6, 2));
 
-	SetTouch( MolotovTouch );
-	SetThink( MolotovThink );
+	SetTouch( &CGrenade_Molotov::MolotovTouch );
+	SetThink( &CGrenade_Molotov::MolotovThink );
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
 	m_flDamage		= sk_plr_dmg_molotov.GetFloat();
@@ -97,7 +93,6 @@ void CGrenade_Molotov::Spawn( void )
 //-----------------------------------------------------------------------------
 void CGrenade_Molotov::MolotovTouch( CBaseEntity *pOther )
 {
-	Detonate();
 }
 
 //-----------------------------------------------------------------------------
@@ -130,15 +125,13 @@ void CGrenade_Molotov::Detonate( void )
 		return;
 	}
 
-	EmitSound( "Grenade_Molotov.Detonate");
-
 // Start some fires
 	int i;
 	QAngle vecTraceAngles;
 	Vector vecTraceDir;
 	trace_t firetrace;
 
-	for( i = 0 ; i < 16 ; i++ )
+	for( i = 0 ; i < 1 ; i++ )
 	{
 		// build a little ray
 		vecTraceAngles[PITCH]	= random->RandomFloat(45, 135);
@@ -166,7 +159,13 @@ void CGrenade_Molotov::Detonate( void )
 
 		if( firetrace.fraction != 1.0 )
 		{
-			FireSystem_StartFire( firetrace.endpos, scale, growth, 30.0f, (SF_FIRE_START_ON|SF_FIRE_SMOKELESS|SF_FIRE_NO_GLOW), (CBaseEntity*) this, FIRE_NATURAL );
+			CInferno* inferno = (CInferno*)CBaseEntity::Create("inferno", GetAbsOrigin(), QAngle(0, 0, 0), GetThrower());
+			Vector vBurnDir = GetAbsVelocity();
+			vBurnDir.NormalizeInPlace();
+			vBurnDir *= GetAbsVelocity().Length();
+
+			inferno->SetInfernoType(INFERNO_TYPE_FIRE);
+			inferno->StartBurning(GetAbsOrigin(), firetrace.plane.normal, vBurnDir);
 		}
 	}
 // End Start some fires
@@ -191,7 +190,7 @@ void CGrenade_Molotov::Detonate( void )
 	UTIL_ScreenShake( GetAbsOrigin(), 25.0, 150.0, 1.0, 750, SHAKE_START );
 	CSoundEnt::InsertSound ( SOUND_DANGER, GetAbsOrigin(), BASEGRENADE_EXPLOSION_VOLUME, 3.0 );
 
-	RadiusDamage( CTakeDamageInfo( this, pOwner, m_flDamage, DMG_BLAST ), GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
+	RadiusDamage( CTakeDamageInfo( this, pOwner, m_flDamage, DMG_BURN|DMG_BLAST ), GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
 
 	AddEffects( EF_NODRAW );
 	SetAbsVelocity( vec3_origin );
@@ -229,16 +228,21 @@ void CGrenade_Molotov::MolotovThink( void )
 		}
 	}
 	SetNextThink( gpGlobals->curtime + 0.1f );
+	if (GetFlags() & FL_ONGROUND)
+	{
+		Detonate();
+	}
 }
 
 void CGrenade_Molotov::Precache( void )
 {
 	BaseClass::Precache();
 
-	PrecacheModel("models/weapons/w_bb_bottle.mdl");
+	PrecacheModel("models/w_models/weapons/w_eq_molotov.mdl");
 
 	UTIL_PrecacheOther("_firesmoke");
-
-	PrecacheScriptSound( "Grenade_Molotov.Detonate" );
+	
+	PrecacheScriptSound( "Inferno.Start" );
+	PrecacheScriptSound( "Inferno.StartSweeten" );
 }
 

@@ -264,6 +264,7 @@ public:
 	static CBasePlayer		*CreatePlayer( const char *className, edict_t *ed );
 
 	virtual void			CreateViewModel( int viewmodelindex = 0 );
+	virtual void	        CreateHandModel(int viewmodelindex = 1, int iOtherVm = 0);
 	CBaseViewModel			*GetViewModel( int viewmodelindex = 0, bool bObserverOK = true );
 	void					HideViewModels( void );
 	void					DestroyViewModels( void );
@@ -792,6 +793,7 @@ public:
 
 	surfacedata_t *GetSurfaceData( void ) { return m_pSurfaceData; }
 	void SetLadderNormal( Vector vecLadderNormal ) { m_vecLadderNormal = vecLadderNormal; }
+	const Vector &GetLadderNormal( void ) const { return m_vecLadderNormal; }
 
 	// Here so that derived classes can use the expresser
 	virtual CAI_Expresser *GetExpresser() { return NULL; };
@@ -1249,8 +1251,6 @@ private:
 		CSoundParameters	m_SoundParameters;
 		unsigned short		m_usSoundNameIndex;
 	};
-	// One for left and one for right side of step
-	StepSoundCache_t		m_StepSoundCache[ 2 ];
 
 	CUtlLinkedList< CPlayerSimInfo >  m_vecPlayerSimInfo;
 	CUtlLinkedList< CPlayerCmdInfo >  m_vecPlayerCmdInfo;
@@ -1270,6 +1270,9 @@ public:
 
 	// A voice packet from this client was received by the server
 	virtual void OnVoiceTransmit( void ) {}
+
+	// One for left and one for right side of step
+	StepSoundCache_t		m_StepSoundCache[2];
 };
 
 typedef CHandle<CBasePlayer> CBasePlayerHandle;

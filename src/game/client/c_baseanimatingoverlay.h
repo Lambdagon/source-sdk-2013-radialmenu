@@ -58,10 +58,10 @@ private:
 
 
 EXTERN_RECV_TABLE(DT_BaseAnimatingOverlay);
+EXTERN_RECV_TABLE(DT_OverlayVars);
 
 
 #endif // C_BASEANIMATINGOVERLAY_H
-
 
 
 

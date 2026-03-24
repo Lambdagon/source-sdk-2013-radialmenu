@@ -2872,7 +2872,7 @@ public:
 
 	virtual const char *GetScriptFile( void ) 
 	{
-		return "scripts/talker/response_rules.txt";
+		return "scripts/talker/terror_player.txt";
 	}
 
 	// CAutoServerSystem
@@ -3041,14 +3041,12 @@ CON_COMMAND( rr_reloadresponsesystems, "Reload all response system scripts." )
 
 	defaultresponsesytem.ReloadAllResponseSystems();
 
-#if defined( TF_DLL )
 	// This is kind of hacky, but I need to get it in for now!
 	if( g_pGameRules->IsMultiplayer() )
 	{
 		CMultiplayRules *pMultiplayRules = static_cast<CMultiplayRules*>( g_pGameRules );
 		pMultiplayRules->InitCustomResponseRulesDicts();
 	}
-#endif
 }
 
 static short RESPONSESYSTEM_SAVE_RESTORE_VERSION = 1;

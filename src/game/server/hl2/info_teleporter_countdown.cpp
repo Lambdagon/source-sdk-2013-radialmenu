@@ -16,7 +16,7 @@
 class CInfoTeleporterCountdown : public CPointEntity
 {
 	DECLARE_CLASS( CInfoTeleporterCountdown, CPointEntity );
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
  	DECLARE_DATADESC();
 
 public:
@@ -60,7 +60,6 @@ LINK_ENTITY_TO_CLASS( info_teleporter_countdown, CInfoTeleporterCountdown );
 //-----------------------------------------------------------------------------
 // Networking
 //-----------------------------------------------------------------------------
-
 IMPLEMENT_SERVERCLASS_ST( CInfoTeleporterCountdown, DT_InfoTeleporterCountdown )
 	SendPropInt( SENDINFO( m_bCountdownStarted ), 1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_bDisabled ), 1, SPROP_UNSIGNED ),

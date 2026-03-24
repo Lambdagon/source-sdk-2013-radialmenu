@@ -135,7 +135,7 @@ void CBotNPCMinion::Spawn( void )
 	SetHealth( health );
 	SetMaxHealth( health );
 
-	ChangeTeam( TF_TEAM_BLUE );
+	ChangeTeam( TF_TEAM_RED );
 
 	// this flag lets flamethrowers deflect me
 	AddFlag( FL_GRENADE );
@@ -249,7 +249,7 @@ void CBotNPCMinion::Deflected( CBaseEntity *pDeflectedBy, Vector &vecDir )
 unsigned int CBotNPCMinion::PhysicsSolidMaskForEntity( void ) const
 { 
 	// Only collide with the other team
-	int teamContents = ( GetTeamNumber() == TF_TEAM_BLUE ) ? CONTENTS_REDTEAM : CONTENTS_BLUETEAM;
+	int teamContents = ( GetTeamNumber() == TF_TEAM_RED ) ? CONTENTS_BLUETEAM : CONTENTS_REDTEAM;
 
 	return BaseClass::PhysicsSolidMaskForEntity() | teamContents;
 }
@@ -333,7 +333,7 @@ CTFPlayer *CBotNPCMinion::FindTarget( void )
 	}
 
 	CUtlVector< CTFPlayer * > playerVector;
-	CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS );
+	CollectPlayers( &playerVector, TF_TEAM_BLUE, COLLECT_ONLY_LIVING_PLAYERS );
 
 	CTFPlayer *closeVictim = NULL;
 	float victimRangeSq = FLT_MAX;
@@ -380,7 +380,7 @@ CTFPlayer *CBotNPCMinion::FindTarget( void )
 void CBotNPCMinion::UpdateTarget( void )
 {
 	CUtlVector< CTFPlayer * > playerVector;
-	CollectPlayers( &playerVector, TF_TEAM_RED, COLLECT_ONLY_LIVING_PLAYERS );
+	CollectPlayers( &playerVector, TF_TEAM_BLUE, COLLECT_ONLY_LIVING_PLAYERS );
 
 	CTFPlayer *closestPlayer = NULL;
 	float closestRangeSq = IsAlert() ? FLT_MAX : ( tf_bot_npc_minion_notice_threat_range.GetFloat() * tf_bot_npc_minion_notice_threat_range.GetFloat() );
@@ -511,7 +511,7 @@ ActionResult< CBotNPCMinion > CBotNPCMinionHoldStunVictim::Update( CBotNPCMinion
 		const float stunTime = 1.0f;
 		const float speedReduction = 0.5f;
 
-		int stunFlags = TF_STUN_LOSER_STATE | TF_STUN_MOVEMENT | TF_STUN_CONTROLS | TF_STUN_SOUND;
+		int stunFlags = TF_STUN_LOSER_STATE | TF_STUN_MOVEMENT | TF_STUN_CONTROLS;
 		target->m_Shared.StunPlayer( stunTime + 0.5f, speedReduction, stunFlags, NULL );
 		m_restunTimer.Start( stunTime );
 	}

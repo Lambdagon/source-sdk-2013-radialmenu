@@ -1355,7 +1355,18 @@ void CNPC_BaseScanner::MoveToDivebomb(float flInterval)
 //-----------------------------------------------------------------------------
 bool CNPC_BaseScanner::IsEnemyPlayerInSuit()
 {
-	return true;
+	if( GetEnemy() && GetEnemy()->IsPlayer() )
+	{
+		CHL2_Player *pPlayer = NULL;
+		pPlayer = (CHL2_Player *)GetEnemy();
+
+		if( pPlayer && pPlayer->IsSuitEquipped() )
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 //-----------------------------------------------------------------------------

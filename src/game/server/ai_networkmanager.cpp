@@ -11,6 +11,7 @@
 #include "filesystem/IQueuedLoader.h"
 #include "utlbuffer.h"
 #include "utlrbtree.h"
+#include "utlmap.h"
 #include "editor_sendcommand.h"
 
 #include "ai_networkmanager.h"
@@ -25,6 +26,7 @@
 #include "ndebugoverlay.h"
 #include "ai_hint.h"
 #include "tier0/icommandline.h"
+#include "nav_mesh.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -69,6 +71,152 @@ CON_COMMAND( ai_debug_node_connect, "Debug the attempted connection between two 
 // line to properly override the node graph building.
 
 ConVar g_ai_norebuildgraph( "ai_norebuildgraph", "0" );
+ConVar ai_navmesh_ground_nodes( "ai_navmesh_ground_nodes", "1", FCVAR_GAMEDLL, "If 1 and no .AIN is available, seed the AI node graph with one NODE_GROUND per nav area (at its center) and link nodes using nav area adjacency." );
+
+namespace
+{
+	struct NavAreaListCollector
+	{
+		CUtlVector< CNavArea * > areas;
+
+		bool operator()( CNavArea *area )
+		{
+			if ( area )
+				areas.AddToTail( area );
+			return true;
+		}
+	};
+
+	static bool AddGroundNodesOnNavAreas( CAI_Network *pNetwork, int *outNodesAdded, int *outLinksAdded )
+	{
+		if ( outNodesAdded )
+			*outNodesAdded = 0;
+		if ( outLinksAdded )
+			*outLinksAdded = 0;
+
+		if ( !pNetwork || !g_pBigAINet || pNetwork != g_pBigAINet )
+			return false;
+
+		if ( !TheNavMesh || !TheNavMesh->IsLoaded() || TheNavMesh->IsGenerating() )
+			return false;
+
+		NavAreaListCollector collector;
+		TheNavMesh->ForAllAreas( collector );
+		if ( collector.areas.Count() <= 0 )
+			return false;
+
+		const int maxToAdd = MIN( collector.areas.Count(), MAX_NODES - pNetwork->NumNodes() );
+		if ( maxToAdd <= 0 )
+			return false;
+
+		if ( maxToAdd < collector.areas.Count() )
+		{
+			DevWarning( "Nav mesh has %d areas, but AI node graph is capped at %d nodes; only generating %d nodes.\n", collector.areas.Count(), MAX_NODES, maxToAdd );
+		}
+
+		CUtlMap< unsigned int, int > navIdToNodeId( DefLessFunc( unsigned int ) );
+		navIdToNodeId.EnsureCapacity( maxToAdd );
+
+		for ( int i = 0; i < maxToAdd; ++i )
+		{
+			CNavArea *area = collector.areas[ i ];
+			if ( !area )
+				continue;
+
+			Vector pos = area->GetCenter();
+			pos.z = area->GetZ( pos );
+
+			CAI_Node *pNode = pNetwork->AddNode( pos, 0.0f );
+			if ( !pNode )
+				continue;
+
+			pNode->SetType( NODE_GROUND );
+
+			// Approximate ground-node hull offsets without doing expensive traces.
+			for ( int hull = 0; hull < NUM_HULLS; ++hull )
+			{
+				pNode->m_flVOffset[ hull ] = -NAI_Hull::Mins( hull ).z + 0.1f;
+			}
+
+			navIdToNodeId.Insert( area->GetID(), pNode->GetId() );
+
+			if ( outNodesAdded )
+				++( *outNodesAdded );
+		}
+
+		// Link nodes using nav area adjacency so standard AI can path across the nav mesh layout.
+		for ( int i = 0; i < maxToAdd; ++i )
+		{
+			CNavArea *area = collector.areas[ i ];
+			if ( !area )
+				continue;
+
+			const unsigned int navId = area->GetID();
+			const int srcFind = navIdToNodeId.Find( navId );
+			if ( srcFind == navIdToNodeId.InvalidIndex() )
+				continue;
+
+			const int srcNodeId = navIdToNodeId[ srcFind ];
+			CAI_Node *pSrcNode = pNetwork->GetNode( srcNodeId, false );
+			if ( !pSrcNode )
+				continue;
+
+			CUtlVector< CNavArea * > adjacent;
+			area->CollectAdjacentAreas( &adjacent );
+
+			for ( int dir = 0; dir < NUM_DIRECTIONS; ++dir )
+			{
+				const NavConnectVector *incoming = area->GetIncomingConnections( (NavDirType)dir );
+				if ( !incoming )
+					continue;
+
+				FOR_EACH_VEC( ( *incoming ), it )
+				{
+					CNavArea *incomingArea = ( *incoming )[ it ].area;
+					if ( incomingArea )
+						adjacent.AddToTail( incomingArea );
+				}
+			}
+
+			FOR_EACH_VEC( adjacent, it )
+			{
+				CNavArea *destArea = adjacent[ it ];
+				if ( !destArea )
+					continue;
+
+				const int destFind = navIdToNodeId.Find( destArea->GetID() );
+				if ( destFind == navIdToNodeId.InvalidIndex() )
+					continue;
+
+				const int destNodeId = navIdToNodeId[ destFind ];
+				if ( destNodeId == srcNodeId )
+					continue;
+
+				// Avoid duplicate undirected links.
+				if ( destNodeId < srcNodeId )
+					continue;
+
+				if ( pSrcNode->HasLink( destNodeId ) )
+					continue;
+
+				CAI_Link *pLink = pNetwork->CreateLink( srcNodeId, destNodeId );
+				if ( !pLink )
+					continue;
+
+				for ( int hull = 0; hull < NUM_HULLS; ++hull )
+				{
+					pLink->m_iAcceptedMoveTypes[ hull ] = bits_CAP_MOVE_GROUND;
+				}
+
+				if ( outLinksAdded )
+					++( *outLinksAdded );
+			}
+		}
+
+		g_AINetworkBuilder.InitZones( pNetwork );
+		return ( pNetwork->NumNodes() > 0 );
+	}
+}
 
 
 //-----------------------------------------------------------------------------
@@ -907,7 +1055,24 @@ void CAI_NetworkManager::BuildNetworkGraph( void )
 		return;
 
 	CAI_DynamicLink::gm_bInitialized = false;
-	g_AINetworkBuilder.Build( m_pNetwork );
+
+	int nodesAdded = 0;
+	int linksAdded = 0;
+	const bool seededFromNavMesh =
+		( !engine->IsInEditMode() &&
+		  ai_navmesh_ground_nodes.GetBool() &&
+		  m_pNetwork &&
+		  m_pNetwork->NumNodes() == 0 &&
+		  AddGroundNodesOnNavAreas( m_pNetwork, &nodesAdded, &linksAdded ) );
+
+	if ( seededFromNavMesh )
+	{
+		DevMsg( "Seeded AI node graph from nav mesh: %d nodes, %d links.\n", nodesAdded, linksAdded );
+	}
+	else
+	{
+		g_AINetworkBuilder.Build( m_pNetwork );
+	}
 
 	// If I'm loading for the first time save.  Otherwise I'm 
 	// doing a wc edit and I don't want to save
@@ -1055,6 +1220,41 @@ void CAI_NetworkManager::DelayedInit( void )
 		if (m_bNeedGraphRebuild)
 		{
 			Assert( !m_bDontSaveGraph );
+
+			// If the node graph is empty and we're configured to seed it from the nav mesh, wait until the nav mesh is loaded.
+			if ( ai_navmesh_ground_nodes.GetBool() && m_pNetwork && m_pNetwork->NumNodes() == 0 )
+			{
+				if ( !TheNavMesh || !TheNavMesh->IsLoaded() || TheNavMesh->IsGenerating() )
+				{
+					char navFilename[ MAX_PATH ];
+					Q_snprintf( navFilename, sizeof( navFilename ), "maps/%s.nav", STRING( gpGlobals->mapname ) );
+
+					// Only wait if a .nav exists; otherwise, fall back to the normal (possibly empty) graph build.
+					if ( filesystem->FileExists( navFilename ) )
+					{
+						static string_t s_navMeshSeedWaitMapName = NULL_STRING;
+						static float s_flNavMeshSeedWaitStart = 0.0f;
+						if ( s_navMeshSeedWaitMapName != gpGlobals->mapname )
+						{
+							s_navMeshSeedWaitMapName = gpGlobals->mapname;
+							s_flNavMeshSeedWaitStart = 0.0f;
+						}
+
+						if ( s_flNavMeshSeedWaitStart <= 0.0f )
+							s_flNavMeshSeedWaitStart = gpGlobals->curtime;
+
+						const float maxWaitSeconds = 5.0f;
+						if ( gpGlobals->curtime - s_flNavMeshSeedWaitStart < maxWaitSeconds )
+						{
+							SetNextThink( gpGlobals->curtime + 0.25f );
+							return;
+						}
+
+						// Timed out waiting for nav mesh; proceed with normal build path.
+						s_flNavMeshSeedWaitStart = 0.0f;
+					}
+				}
+			}
 
 			BuildNetworkGraph();	// For now only one AI Network
 

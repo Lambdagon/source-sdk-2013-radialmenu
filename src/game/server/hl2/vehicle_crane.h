@@ -101,7 +101,7 @@ class CPropCrane : public CBaseProp, public IDrivableVehicle
 	DECLARE_CLASS( CPropCrane, CBaseProp );
 public:
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	CPropCrane( void )
 	{

@@ -926,7 +926,7 @@ bool CTFBotSpawner::ParseEventChangeAttributes( KeyValues *data )
 	return true;
 }
 
-extern ConVar tf_mvm_versus_enabled;
+
 //-----------------------------------------------------------------------
 bool CTFBotSpawner::Spawn( const Vector &rawHere, EntityHandleVector_t *result )
 {
@@ -1265,39 +1265,19 @@ bool CTFBotSpawner::Spawn( const Vector &rawHere, EntityHandleVector_t *result )
 		else
 		{
 			// use the nifty new robot model
-			if ( nClassIndex >= TF_CLASS_SCOUT && nClassIndex <= TF_CLASS_ENGINEER && !GetPopulator()->GetManager()->IsPopFileEventType(MVM_EVENT_POPFILE_HALLOWEEN) )
+			if ( nClassIndex >= TF_CLASS_SCOUT && nClassIndex <= TF_CLASS_ENGINEER )
 			{
-				if (tf_mvm_versus_enabled.GetBool()) {
-
-					if ((m_scale >= tf_mvm_miniboss_scale.GetFloat() || newBot->IsMiniBoss()) && g_pFullFileSystem->FileExists(g_szBotBossModels[nClassIndex]))
-					{
-						newBot->GetPlayerClass()->SetCustomModel(g_szBotBossModels[nClassIndex], USE_CLASS_ANIMATIONS);
-						newBot->UpdateModel();
-						newBot->SetBloodColor(DONT_BLEED);
-					}
-					else if (g_pFullFileSystem->FileExists(g_szBotModels[nClassIndex]))
-					{
-						newBot->GetPlayerClass()->SetCustomModel(g_szPlayerRobotModels[nClassIndex], USE_CLASS_ANIMATIONS);
-						newBot->UpdateModel();
-						newBot->SetBloodColor(DONT_BLEED);
-					}
-
+				if ( ( m_scale >= tf_mvm_miniboss_scale.GetFloat() || newBot->IsMiniBoss() ) && g_pFullFileSystem->FileExists( g_szBotBossModels[ nClassIndex ] ) )
+				{
+					newBot->GetPlayerClass()->SetCustomModel( g_szBotBossModels[ nClassIndex ], USE_CLASS_ANIMATIONS );
+					newBot->UpdateModel();
+					newBot->SetBloodColor( DONT_BLEED );
 				}
-				else {
-
-					if ((m_scale >= tf_mvm_miniboss_scale.GetFloat() || newBot->IsMiniBoss()) && g_pFullFileSystem->FileExists(g_szBotBossModels[nClassIndex]))
-					{
-						newBot->GetPlayerClass()->SetCustomModel(g_szBotBossModels[nClassIndex], USE_CLASS_ANIMATIONS);
-						newBot->UpdateModel();
-						newBot->SetBloodColor(DONT_BLEED);
-					}
-					else if (g_pFullFileSystem->FileExists(g_szBotModels[nClassIndex]))
-					{
-						newBot->GetPlayerClass()->SetCustomModel(g_szBotModels[nClassIndex], USE_CLASS_ANIMATIONS);
-						newBot->UpdateModel();
-						newBot->SetBloodColor(DONT_BLEED);
-					}
-
+				else if ( g_pFullFileSystem->FileExists( g_szBotModels[ nClassIndex ] ) )
+				{
+					newBot->GetPlayerClass()->SetCustomModel( g_szBotModels[ nClassIndex ], USE_CLASS_ANIMATIONS );
+					newBot->UpdateModel();
+					newBot->SetBloodColor( DONT_BLEED );
 				}
 			}
 		}
@@ -1686,9 +1666,7 @@ bool CSquadSpawner::Spawn( const Vector &here, EntityHandleVector_t *result )
 			CTFBot *bot = ToTFBot( squadVector[i] );
 			if ( bot )
 			{
-				if (bot->GetFlagToFetch()) {
-					bot->JoinSquad(squad);
-				}
+				bot->JoinSquad( squad );
 			}
 		}
 	}

@@ -2790,12 +2790,13 @@ void CNPC_Vortigaunt::OnUpdateShotRegulator( void )
 	GetShotRegulator()->SetRestInterval( 2.0f, 2.0f );	
 }
 
-//IMPLEMENT_SERVERCLASS_ST( CVortigauntChargeToken, DT_VortigauntChargeToken )
-	//SendPropFloat( SENDINFO(m_flFadeOutTime), 0, SPROP_NOSCALE),	
-	//SendPropBool( SENDINFO(m_bFadeOut) ),
-	//SendPropFloat( SENDINFO(m_flScale), 0, SPROP_NOSCALE),
-//END_SEND_TABLE()
-
+/*
+IMPLEMENT_SERVERCLASS_ST( CVortigauntChargeToken, DT_VortigauntChargeToken )
+	SendPropFloat( SENDINFO(m_flFadeOutTime), 0, SPROP_NOSCALE),	
+	SendPropBool( SENDINFO(m_bFadeOut) ),
+	SendPropFloat( SENDINFO(m_flScale), 0, SPROP_NOSCALE),
+END_SEND_TABLE()
+*/
 
 //------------------------------------------------------------------------------
 //
@@ -3063,7 +3064,6 @@ END_DATADESC()
 IMPLEMENT_SERVERCLASS_ST( CVortigauntChargeToken, DT_VortigauntChargeToken )
 	SendPropBool( SENDINFO(m_bFadeOut) ),
 END_SEND_TABLE()
-
 
 CVortigauntChargeToken::CVortigauntChargeToken( void ) :
 m_hTarget( NULL )
@@ -3378,7 +3378,7 @@ private:
 	CNetworkVar( float, m_flRadius );
 	CNetworkVar( float, m_flScaleTime );
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();	
 };
 
@@ -3397,7 +3397,6 @@ IMPLEMENT_SERVERCLASS_ST( CFleshEffectTarget, DT_FleshEffectTarget )
 	SendPropFloat( SENDINFO(m_flRadius), 0, SPROP_NOSCALE),
 	SendPropFloat( SENDINFO(m_flScaleTime), 0, SPROP_NOSCALE),
 END_SEND_TABLE()
-
 
 void CFleshEffectTarget::InputSetRadius( inputdata_t &inputData )
 {

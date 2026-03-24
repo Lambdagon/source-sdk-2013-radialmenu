@@ -99,54 +99,54 @@ public:
 	int			GetExitAnimToUse( Vector &vecEyeExitEndpoint, bool &bAllPointsBlocked );
 };
 
-BEGIN_DATADESC(CPropJeep)
-DEFINE_FIELD(m_bGunHasBeenCutOff, FIELD_BOOLEAN),
-DEFINE_FIELD(m_flDangerSoundTime, FIELD_TIME),
-DEFINE_FIELD(m_nBulletType, FIELD_INTEGER),
-DEFINE_FIELD(m_bCannonCharging, FIELD_BOOLEAN),
-DEFINE_FIELD(m_flCannonTime, FIELD_TIME),
-DEFINE_FIELD(m_flCannonChargeStartTime, FIELD_TIME),
-DEFINE_FIELD(m_vecGunOrigin, FIELD_POSITION_VECTOR),
-DEFINE_SOUNDPATCH(m_sndCannonCharge),
-DEFINE_FIELD(m_nSpinPos, FIELD_INTEGER),
-DEFINE_FIELD(m_aimYaw, FIELD_FLOAT),
-DEFINE_FIELD(m_aimPitch, FIELD_FLOAT),
-DEFINE_FIELD(m_throttleDisableTime, FIELD_TIME),
-DEFINE_FIELD(m_flHandbrakeTime, FIELD_TIME),
-DEFINE_FIELD(m_bInitialHandbrake, FIELD_BOOLEAN),
-DEFINE_FIELD(m_flOverturnedTime, FIELD_TIME),
-DEFINE_FIELD(m_flAmmoCrateCloseTime, FIELD_TIME),
-DEFINE_FIELD(m_vecLastEyePos, FIELD_POSITION_VECTOR),
-DEFINE_FIELD(m_vecLastEyeTarget, FIELD_POSITION_VECTOR),
-DEFINE_FIELD(m_vecEyeSpeed, FIELD_POSITION_VECTOR),
-DEFINE_FIELD(m_vecTargetSpeed, FIELD_POSITION_VECTOR),
-DEFINE_FIELD(m_bHeadlightIsOn, FIELD_BOOLEAN),
-DEFINE_EMBEDDED(m_WaterData),
+BEGIN_DATADESC( CPropJeep )
+	DEFINE_FIELD( m_bGunHasBeenCutOff, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flDangerSoundTime, FIELD_TIME ),
+	DEFINE_FIELD( m_nBulletType, FIELD_INTEGER ),
+	DEFINE_FIELD( m_bCannonCharging, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flCannonTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flCannonChargeStartTime, FIELD_TIME ),
+	DEFINE_FIELD( m_vecGunOrigin, FIELD_POSITION_VECTOR ),
+	DEFINE_SOUNDPATCH( m_sndCannonCharge ),
+	DEFINE_FIELD( m_nSpinPos, FIELD_INTEGER ),
+	DEFINE_FIELD( m_aimYaw, FIELD_FLOAT ),
+	DEFINE_FIELD( m_aimPitch, FIELD_FLOAT ),
+	DEFINE_FIELD( m_throttleDisableTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flHandbrakeTime, FIELD_TIME ),
+	DEFINE_FIELD( m_bInitialHandbrake, FIELD_BOOLEAN ),
+	DEFINE_FIELD( m_flOverturnedTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flAmmoCrateCloseTime, FIELD_TIME ),
+	DEFINE_FIELD( m_vecLastEyePos, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecLastEyeTarget, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecEyeSpeed, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_vecTargetSpeed, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( m_bHeadlightIsOn, FIELD_BOOLEAN ),
+	DEFINE_EMBEDDED( m_WaterData ),
 
-DEFINE_FIELD(m_iNumberOfEntries, FIELD_INTEGER),
-DEFINE_FIELD(m_nAmmoType, FIELD_INTEGER),
+	DEFINE_FIELD( m_iNumberOfEntries, FIELD_INTEGER ),
+	DEFINE_FIELD( m_nAmmoType, FIELD_INTEGER ),
 
-DEFINE_FIELD(m_flPlayerExitedTime, FIELD_TIME),
-DEFINE_FIELD(m_flLastSawPlayerAt, FIELD_TIME),
-DEFINE_FIELD(m_hLastPlayerInVehicle, FIELD_EHANDLE),
-DEFINE_FIELD(m_hSeagull, FIELD_EHANDLE),
-DEFINE_FIELD(m_bHasPoop, FIELD_BOOLEAN),
+	DEFINE_FIELD( m_flPlayerExitedTime, FIELD_TIME ),
+	DEFINE_FIELD( m_flLastSawPlayerAt, FIELD_TIME ),
+	DEFINE_FIELD( m_hLastPlayerInVehicle, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_hSeagull, FIELD_EHANDLE ),
+	DEFINE_FIELD( m_bHasPoop, FIELD_BOOLEAN ),
 
-DEFINE_INPUTFUNC(FIELD_VOID, "ShowHudHint", InputShowHudHint),
-DEFINE_INPUTFUNC(FIELD_VOID, "StartRemoveTauCannon", InputStartRemoveTauCannon),
-DEFINE_INPUTFUNC(FIELD_VOID, "FinishRemoveTauCannon", InputFinishRemoveTauCannon),
+	DEFINE_INPUTFUNC( FIELD_VOID, "ShowHudHint", InputShowHudHint ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "StartRemoveTauCannon", InputStartRemoveTauCannon ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "FinishRemoveTauCannon", InputFinishRemoveTauCannon ),
 
-DEFINE_THINKFUNC(JeepSeagullThink),
+	DEFINE_THINKFUNC( JeepSeagullThink ),
 END_DATADESC()
-
 
 IMPLEMENT_SERVERCLASS_ST( CPropJeep, DT_PropJeep )
 	SendPropBool( SENDINFO( m_bHeadlightIsOn ) ),
 END_SEND_TABLE();
 
-
 // This is overriden for the episodic jeep
+#ifndef HL2_EPISODIC
 LINK_ENTITY_TO_CLASS( prop_vehicle_jeep, CPropJeep );
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: 

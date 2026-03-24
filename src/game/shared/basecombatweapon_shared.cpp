@@ -96,9 +96,7 @@ CBaseCombatWeapon::CBaseCombatWeapon()
 
 	m_hWeaponFileInfo = GetInvalidWeaponInfoHandle();
 
-#if defined( TF_DLL )
 	UseClientSideAnimation();
-#endif
 
 #if defined ( TF_CLIENT_DLL ) || defined ( TF_DLL )
 	m_flCritTokenBucket = tf_weapon_criticals_bucket_default.GetFloat();
@@ -853,9 +851,10 @@ void CBaseCombatWeapon::DefaultTouch( CBaseEntity *pOther )
 
 	if( HasSpawnFlags(SF_WEAPON_NO_PLAYER_PICKUP) )
 		return;
+
 	if (pPlayer->BumpWeapon(this))
 	{
-		OnPickedUp(pPlayer);
+		OnPickedUp( pPlayer );
 	}
 #endif
 }
@@ -1131,6 +1130,7 @@ void CBaseCombatWeapon::SendViewModelAnim( int nSequence )
 
 	SetViewModel();
 	Assert( vm->ViewModelIndex() == m_nViewModelIndex );
+	vm->m_nViewModelLayerActivity = vm->GetSequenceActivity( nSequence );
 	vm->SendViewModelMatchingSequence( nSequence );
 }
 
@@ -1152,7 +1152,7 @@ float CBaseCombatWeapon::GetViewModelSequenceDuration()
 
 	SetViewModel();
 	Assert( vm->ViewModelIndex() == m_nViewModelIndex );
-	return vm->SequenceDuration();
+	return vm->GetViewModelSequenceDuration();
 }
 
 bool CBaseCombatWeapon::IsViewModelSequenceFinished( void ) const
@@ -1175,7 +1175,7 @@ bool CBaseCombatWeapon::IsViewModelSequenceFinished( void ) const
 		return false;
 	}
 
-	return vm->IsSequenceFinished();
+	return vm->IsViewModelSequenceFinished();
 }
 
 //-----------------------------------------------------------------------------
@@ -1434,14 +1434,10 @@ bool CBaseCombatWeapon::DefaultDeploy( char *szViewModel, char *szWeaponModel, i
 		pOwner->SetAnimationExtension( szAnimExt );
 
 		SetViewModel();
-		SendWeaponAnim( iActivity );
+		//SendWeaponAnim( iActivity );
 
-		pOwner->SetNextAttack( gpGlobals->curtime + SequenceDuration() );
 	}
 
-	// Can't shoot again until we've finished deploying
-	m_flNextPrimaryAttack	= gpGlobals->curtime + SequenceDuration();
-	m_flNextSecondaryAttack	= gpGlobals->curtime + SequenceDuration();
 	m_flHudHintMinDisplayTime = 0;
 
 	m_bAltFireHudHintDisplayed = false;
@@ -1461,6 +1457,12 @@ selects and deploys each weapon as you pass it. (sjb)
 
 	SetContextThink( NULL, 0, HIDEWEAPON_THINK_CONTEXT );
 
+	// Can't shoot again until we've finished deploying
+	SendWeaponAnim(GetDrawActivity());
+
+	pOwner->SetNextAttack(gpGlobals->curtime + SequenceDuration());
+	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
+	m_flNextSecondaryAttack = gpGlobals->curtime + SequenceDuration();
 	return true;
 }
 
@@ -1477,7 +1479,7 @@ bool CBaseCombatWeapon::Deploy( )
 
 Activity CBaseCombatWeapon::GetDrawActivity( void )
 {
-	return ACT_VM_DRAW;
+	return ACT_VM_DEPLOY_LAYER;
 }
 
 //-----------------------------------------------------------------------------
@@ -2093,11 +2095,6 @@ bool CBaseCombatWeapon::Reload( void )
 //=========================================================
 void CBaseCombatWeapon::WeaponIdle( void )
 {
-	//Idle again if we've finished
-	if ( HasWeaponIdleTimeElapsed() )
-	{
-		SendWeaponAnim( ACT_VM_IDLE );
-	}
 }
 
 
@@ -2392,7 +2389,7 @@ void CBaseCombatWeapon::MaintainIdealActivity( void )
 bool CBaseCombatWeapon::SetIdealActivity( Activity ideal )
 {
 	MDLCACHE_CRITICAL_SECTION();
-	int	idealSequence = SelectWeightedSequence( ideal );
+	int	idealSequence = SelectWeightedSequenceForViewModel( this, ideal );
 
 	if ( idealSequence == -1 )
 		return false;
@@ -2405,7 +2402,7 @@ bool CBaseCombatWeapon::SetIdealActivity( Activity ideal )
 	int nextSequence = FindTransitionSequence( GetSequence(), m_nIdealSequence, NULL );
 
 	// Don't use transitions when we're deploying
-	if ( ideal != ACT_VM_DRAW && IsWeaponVisible() && nextSequence != m_nIdealSequence )
+	if ( ideal != ACT_VM_DEPLOY_LAYER && IsWeaponVisible() && nextSequence != m_nIdealSequence )
 	{
 		//Set our activity to the next transitional animation
 		SetActivity( ACT_TRANSITION );

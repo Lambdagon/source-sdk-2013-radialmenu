@@ -57,9 +57,7 @@ public:
 		m_eCurrentDisplayRank			= k_nMMRating_Casual_12v12_Rank;
 		m_eLastAckdDisplayRank			= k_nMMRating_Casual_12v12_Rank_PlayerAcknowledged;
 		m_eLeaderboard					= k_eMatchGroupLeaderboard_Casual12v12;
-		m_bTrustedServersOnly = false;
-		m_bAllowTeamChange = true;
-		m_bAllowSpecModeChange = true;
+
 		// Steam stats for this group. Tracking these for Steam Summer Sale 2019, may be unused after that?
 	}
 

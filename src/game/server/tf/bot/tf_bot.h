@@ -302,6 +302,8 @@ public:
 
 	void SetActionPoint( CTFBotActionPoint *point );
 	CTFBotActionPoint *GetActionPoint( void ) const;
+	void ScriptSetActionPoint( HSCRIPT hPoint ) { SetActionPoint( ScriptToEntClass< CTFBotActionPoint >( hPoint ) ); }
+	HSCRIPT ScriptGetActionPoint( void ) const { return ToHScript( GetActionPoint() ); }
 
 	bool HasProxy( void ) const;
 	void SetProxy( CTFBotProxy *proxy );					// attach this bot to a bot_proxy entity for map I/O communications

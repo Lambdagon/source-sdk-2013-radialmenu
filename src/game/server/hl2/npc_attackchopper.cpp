@@ -1824,7 +1824,7 @@ void CNPC_AttackHelicopter::ShootAtPlayer( const Vector &vBasePos, const Vector 
 	info.m_flDistance = MAX_COORD_RANGE;
 	info.m_iAmmoType = m_iAmmoType;
 	info.m_iTracerFreq = 1;
-	info.m_vecDirShooting = GetShootEnemyDir( vBasePos );
+	info.m_vecDirShooting = GetActualShootTrajectory( vBasePos );
 	info.m_nFlags = FIRE_BULLETS_TEMPORARY_DANGER_SOUND;
 
 	DoMuzzleFlash();

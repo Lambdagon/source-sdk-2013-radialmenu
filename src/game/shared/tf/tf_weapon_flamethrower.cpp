@@ -1046,7 +1046,6 @@ void CTFFlameThrower::FireAirBlast( int iAmmoPerShot )
 	m_flResetBurstEffect = gpGlobals->curtime + 0.05f;
 
 	pOwner->RemoveAmmo( iAmmoPerShot, m_iPrimaryAmmoType );
-	pOwner->StopSound("Weapon_StickyBombLauncher.ChargeUp");
 }
 
 //-----------------------------------------------------------------------------
@@ -1156,54 +1155,7 @@ void CTFFlameThrower::SecondaryAttack()
 	if ( !pOwner )
 		return;
 
-	float flTotalChargeTime = gpGlobals->curtime - m_flChargeBeginTime;
-
-	if (m_flChargeBeginTime <= 0)
-	{
-		// save that we had the attack button down
-		m_flChargeBeginTime = gpGlobals->curtime;
-		EmitSound("Weapon_StickyBombLauncher.ChargeUp");
-	}
-	else
-	{
-		float flTotalChargeTime = gpGlobals->curtime - m_flChargeBeginTime;
-
-		if (flTotalChargeTime >= 4.f)
-		{
-			int iAmmo = pOwner->GetAmmoCount(m_iPrimaryAmmoType);
-
-			// charged airblast
-			int iChargedAirblast = 0;
-			CALL_ATTRIB_HOOK_INT(iChargedAirblast, set_charged_airblast);
-			int iBuffType = 0;
-			CALL_ATTRIB_HOOK_INT(iBuffType, set_buff_type);
-			float flMultAmmoPerShot = 1.0f;
-			CALL_ATTRIB_HOOK_FLOAT(flMultAmmoPerShot, mult_airblast_cost);
-			int iAmmoPerShot = tf_flamethrower_burstammo.GetInt() * flMultAmmoPerShot;
-
-			if (iAmmo < iAmmoPerShot)
-				return;
-
-			// normal air blast?
-			if (CanAirBlast())
-			{
-				FireAirBlast(iAmmoPerShot);
-				return;
-			}
-
-			SetWeaponState(FT_STATE_SECONDARY);
-#ifdef CLIENT_DLL
-			// Stop the flame if we're currently firing
-			StopFlame(false);
-#else
-			m_iWeaponMode = TF_WEAPON_SECONDARY_MODE;
-
-			SendWeaponAnim(ACT_VM_PULLBACK);
-			WeaponSound(SINGLE);
-#endif
-		}
-	}
-	if ( m_flChargeBeginTime > 0 && flTotalChargeTime <= 4.f)
+	if ( m_flChargeBeginTime > 0 )
 	{
 		m_bFiredSecondary = true;
 		return;
@@ -1264,7 +1216,7 @@ void CTFFlameThrower::SecondaryAttack()
 	StopFlame( false );
 #else
 	m_iWeaponMode = TF_WEAPON_SECONDARY_MODE;
-
+	m_flChargeBeginTime = gpGlobals->curtime;
 	SendWeaponAnim( ACT_VM_PULLBACK );
 	// @todo replace with the correct one
 	WeaponSound( SINGLE );
@@ -1280,16 +1232,16 @@ float CTFFlameThrower::GetDeflectionRadius() const
 {
 	float fMultiplier = 1.0f;
 
-	int iChargedAirblast = 0;
-	CALL_ATTRIB_HOOK_INT( iChargedAirblast, set_charged_airblast );
-	if ( iChargedAirblast != 0 )
-	{
-		 fMultiplier *= RemapValClamped( ( gpGlobals->curtime - m_flChargeBeginTime ),
-	 										  0.0f,
-	 										  4.f,
-	 										  1.0,
-	 										  2.0 );
-	}
+	// int iChargedAirblast = 0;
+	// CALL_ATTRIB_HOOK_INT( iChargedAirblast, set_charged_airblast );
+	// if ( iChargedAirblast != 0 )
+	// {
+	//	 fMultiplier *= RemapValClamped( ( gpGlobals->curtime - m_flChargeBeginTime ),
+	// 										  0.0f,
+	// 										  GetChargeMaxTime(),
+	// 										  AIRBLAST_CHARGE_MULT_MIN,
+	// 										  AIRBLAST_CHARGE_MULT_MAX );
+	// }
 
 	// Allow custom attributes to scale the deflection size.
 	CALL_ATTRIB_HOOK_FLOAT( fMultiplier, deflection_size_multiplier );

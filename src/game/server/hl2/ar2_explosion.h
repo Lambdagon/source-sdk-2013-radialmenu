@@ -19,7 +19,7 @@ class AR2Explosion : public CBaseParticleEntity
 
 public:
 	DECLARE_CLASS( AR2Explosion, CBaseParticleEntity );
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	static AR2Explosion* CreateAR2Explosion(const Vector &pos);
 

@@ -17,7 +17,6 @@
 #include "tf_gamerules.h"
 #include "etwprof.h"
 #include "team_control_point_master.h"
-#include "raid/tf_raid_logic.h"
 
 extern ConVar tf_populator_debug;
 extern ConVar tf_populator_active_buffer_range;
@@ -2169,11 +2168,19 @@ void CWave::WaveCompleteUpdate( void )
 	if ( bLastWave && !GetManager()->IsInEndlessWaves() )
 	{
 		GetManager()->MvMVictory();
-		TFGameRules()->HaveAllPlayersSpeakConceptIfAllowed(MP_CONCEPT_MVM_WAVE_WIN, TF_TEAM_PVE_DEFENDERS);
 
 		if ( TFGameRules() )
 		{
-			TFGameRules()->BroadcastSound( 255, "Announcer.MVM_Manned_Up_Wave_End" );
+			if ( GTFGCClientSystem()->GetMatch() && GTFGCClientSystem()->GetMatch()->m_eMatchGroup == k_eTFMatchGroup_MvM_MannUp )
+			{
+				TFGameRules()->BroadcastSound( 255, "Announcer.MVM_Manned_Up_Wave_End" );
+			}
+			else
+			{
+				TFGameRules()->BroadcastSound( 255, "Announcer.MVM_Final_Wave_End" );
+			}
+
+			TFGameRules()->BroadcastSound( 255, "music.mvm_end_last_wave" );
 		}
 
 		event = gameeventmanager->CreateEvent( "mvm_mission_complete" );
@@ -2188,7 +2195,6 @@ void CWave::WaveCompleteUpdate( void )
 		if ( TFGameRules() )
 		{
 			TFGameRules()->BroadcastSound( 255,"Announcer.MVM_Wave_End" );
-			TFGameRules()->HaveAllPlayersSpeakConceptIfAllowed(MP_CONCEPT_MVM_WAVE_WIN, TF_TEAM_PVE_DEFENDERS);
 
 			if( bHasTank )
 			{

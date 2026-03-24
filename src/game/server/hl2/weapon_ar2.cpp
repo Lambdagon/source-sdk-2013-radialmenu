@@ -337,7 +337,7 @@ void CWeaponAR2::FireNPCPrimaryAttack( CBaseCombatCharacter *pOperator, bool bUs
 	else 
 	{
 		vecShootOrigin = pOperator->Weapon_ShootPosition();
-		vecShootDir = npc->GetShootEnemyDir( vecShootOrigin );
+		vecShootDir = npc->GetActualShootTrajectory( vecShootOrigin );
 	}
 
 	WeaponSoundRealtime( SINGLE_NPC );

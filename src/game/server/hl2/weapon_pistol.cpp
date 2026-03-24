@@ -30,19 +30,19 @@
 ConVar	pistol_use_new_accuracy( "pistol_use_new_accuracy", "1" );
 
 //-----------------------------------------------------------------------------
-// CWeaponHL2Pistol
+// CWeaponPistol
 //-----------------------------------------------------------------------------
 
-class CWeaponHL2Pistol : public CBaseHLCombatWeapon
+class CWeaponPistol : public CBaseHLCombatWeapon
 {
 	DECLARE_DATADESC();
 
 public:
-	DECLARE_CLASS( CWeaponHL2Pistol, CBaseHLCombatWeapon );
+	DECLARE_CLASS( CWeaponPistol, CBaseHLCombatWeapon );
 
-	CWeaponHL2Pistol(void);
+	CWeaponPistol(void);
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	void	Precache( void );
 	void	ItemPostFrame( void );
@@ -114,14 +114,13 @@ private:
 };
 
 
-IMPLEMENT_SERVERCLASS_ST(CWeaponHL2Pistol, DT_WeaponHL2Pistol)
+IMPLEMENT_SERVERCLASS_ST(CWeaponPistol, DT_WeaponPistol)
 END_SEND_TABLE()
 
-
-LINK_ENTITY_TO_CLASS( weapon_pistol, CWeaponHL2Pistol );
+LINK_ENTITY_TO_CLASS( weapon_pistol, CWeaponPistol );
 PRECACHE_WEAPON_REGISTER( weapon_pistol );
 
-BEGIN_DATADESC( CWeaponHL2Pistol )
+BEGIN_DATADESC( CWeaponPistol )
 
 	DEFINE_FIELD( m_flSoonestPrimaryAttack, FIELD_TIME ),
 	DEFINE_FIELD( m_flLastAttackTime,		FIELD_TIME ),
@@ -130,7 +129,7 @@ BEGIN_DATADESC( CWeaponHL2Pistol )
 
 END_DATADESC()
 
-acttable_t	CWeaponHL2Pistol::m_acttable[] = 
+acttable_t	CWeaponPistol::m_acttable[] = 
 {
 	{ ACT_IDLE,						ACT_IDLE_PISTOL,				true },
 	{ ACT_IDLE_ANGRY,				ACT_IDLE_ANGRY_PISTOL,			true },
@@ -149,12 +148,12 @@ acttable_t	CWeaponHL2Pistol::m_acttable[] =
 };
 
 
-IMPLEMENT_ACTTABLE( CWeaponHL2Pistol );
+IMPLEMENT_ACTTABLE( CWeaponPistol );
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-CWeaponHL2Pistol::CWeaponHL2Pistol( void )
+CWeaponPistol::CWeaponPistol( void )
 {
 	m_flSoonestPrimaryAttack = gpGlobals->curtime;
 	m_flAccuracyPenalty = 0.0f;
@@ -170,7 +169,7 @@ CWeaponHL2Pistol::CWeaponHL2Pistol( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::Precache( void )
+void CWeaponPistol::Precache( void )
 {
 	BaseClass::Precache();
 }
@@ -180,7 +179,7 @@ void CWeaponHL2Pistol::Precache( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
+void CWeaponPistol::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
 {
 	switch( pEvent->event )
 	{
@@ -192,7 +191,7 @@ void CWeaponHL2Pistol::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseComba
 			CAI_BaseNPC *npc = pOperator->MyNPCPointer();
 			ASSERT( npc != NULL );
 
-			vecShootDir = npc->GetShootEnemyDir( vecShootOrigin );
+			vecShootDir = npc->GetActualShootTrajectory( vecShootOrigin );
 
 			CSoundEnt::InsertSound( SOUND_COMBAT|SOUND_CONTEXT_GUNFIRE, pOperator->GetAbsOrigin(), SOUNDENT_VOLUME_PISTOL, 0.2, pOperator, SOUNDENT_CHANNEL_WEAPON, pOperator->GetEnemy() );
 
@@ -211,7 +210,7 @@ void CWeaponHL2Pistol::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseComba
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::DryFire( void )
+void CWeaponPistol::DryFire( void )
 {
 	WeaponSound( EMPTY );
 	SendWeaponAnim( ACT_VM_DRYFIRE );
@@ -223,7 +222,7 @@ void CWeaponHL2Pistol::DryFire( void )
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::PrimaryAttack( void )
+void CWeaponPistol::PrimaryAttack( void )
 {
 	if ( ( gpGlobals->curtime - m_flLastAttackTime ) > 0.5f )
 	{
@@ -261,7 +260,7 @@ void CWeaponHL2Pistol::PrimaryAttack( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::UpdatePenaltyTime( void )
+void CWeaponPistol::UpdatePenaltyTime( void )
 {
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 
@@ -279,7 +278,7 @@ void CWeaponHL2Pistol::UpdatePenaltyTime( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::ItemPreFrame( void )
+void CWeaponPistol::ItemPreFrame( void )
 {
 	UpdatePenaltyTime();
 
@@ -289,7 +288,7 @@ void CWeaponHL2Pistol::ItemPreFrame( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::ItemBusyFrame( void )
+void CWeaponPistol::ItemBusyFrame( void )
 {
 	UpdatePenaltyTime();
 
@@ -299,7 +298,7 @@ void CWeaponHL2Pistol::ItemBusyFrame( void )
 //-----------------------------------------------------------------------------
 // Purpose: Allows firing as fast as button is pressed
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::ItemPostFrame( void )
+void CWeaponPistol::ItemPostFrame( void )
 {
 	BaseClass::ItemPostFrame();
 
@@ -326,7 +325,7 @@ void CWeaponHL2Pistol::ItemPostFrame( void )
 // Purpose: 
 // Output : int
 //-----------------------------------------------------------------------------
-Activity CWeaponHL2Pistol::GetPrimaryAttackActivity( void )
+Activity CWeaponPistol::GetPrimaryAttackActivity( void )
 {
 	if ( m_nNumShotsFired < 1 )
 		return ACT_VM_PRIMARYATTACK;
@@ -342,7 +341,7 @@ Activity CWeaponHL2Pistol::GetPrimaryAttackActivity( void )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-bool CWeaponHL2Pistol::Reload( void )
+bool CWeaponPistol::Reload( void )
 {
 	bool fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
 	if ( fRet )
@@ -356,7 +355,7 @@ bool CWeaponHL2Pistol::Reload( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponHL2Pistol::AddViewKick( void )
+void CWeaponPistol::AddViewKick( void )
 {
 	CBasePlayer *pPlayer  = ToBasePlayer( GetOwner() );
 	

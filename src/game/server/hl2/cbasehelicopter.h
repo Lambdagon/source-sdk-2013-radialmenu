@@ -73,7 +73,7 @@ public:
 	DECLARE_CLASS( CBaseHelicopter, CAI_TrackPather );
 
 	DECLARE_DATADESC();
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 
 	CBaseHelicopter( void );
 

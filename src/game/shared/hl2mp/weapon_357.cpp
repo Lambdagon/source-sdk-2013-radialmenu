@@ -117,7 +117,7 @@ void CWeapon357::PrimaryAttack( void )
 	WeaponSound( SINGLE );
 	pPlayer->DoMuzzleFlash();
 
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
 
 	m_flNextPrimaryAttack = gpGlobals->curtime + 0.75;

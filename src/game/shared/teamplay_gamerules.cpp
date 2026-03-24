@@ -108,10 +108,22 @@ bool CTeamplayRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 {
 	if( BaseClass::ClientCommand( pEdict, args ) )
 		return true;
-	
-	if ( FStrEq( args[0], "menuselect" ) )
+
+	if (FStrEq(args[0], "menuselect"))
 	{
-		if ( args.ArgC() < 2 )
+		if (args.ArgC() < 2)
+			return true;
+
+		//int slot = atoi( args[1] );
+
+		// select the item from the current menu
+
+		return true;
+	}
+
+	if (FStrEq(args[0], "voice_menuselect"))
+	{
+		if (args.ArgC() < 2)
 			return true;
 
 		//int slot = atoi( args[1] );

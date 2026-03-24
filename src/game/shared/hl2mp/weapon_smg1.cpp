@@ -231,7 +231,7 @@ void CWeaponSMG1::SecondaryAttack( void )
 	pGrenade->SetDamageRadius( SMG1_GRENADE_RADIUS );
 #endif
 
-	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+	SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 
 	// player "shoot" animation
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );

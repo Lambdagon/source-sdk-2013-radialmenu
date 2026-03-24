@@ -19,6 +19,10 @@
 #include "c_basehlplayer.h"
 #endif // HL2_CLIENT_DLL
 
+#if defined( CSTRIKE_DLL )
+#include "cs_shareddefs.h"
+#endif // CSTRIKE_DLL
+
 #if defined( _X360 )
 extern ConVar r_flashlightdepthres;
 #else
@@ -86,6 +90,15 @@ CFlashlightEffect::CFlashlightEffect(int nEntIndex)
 	{
 		m_FlashlightTexture.Init( "effects/flashlight001", TEXTURE_GROUP_OTHER, true );
 	}
+
+#if defined( CSTRIKE_DLL )
+	C_BaseEntity *pEnt = cl_entitylist->GetBaseEntity( m_nEntIndex );
+	C_BasePlayer *pPlayer = pEnt ? dynamic_cast<C_BasePlayer *>( pEnt ) : NULL;
+	if ( pPlayer && pPlayer->GetTeamNumber() == TEAM_INFECTED )
+	{
+		m_FlashlightTexture.Init( "effects/flashlight001_infected", TEXTURE_GROUP_OTHER, true );
+	}
+#endif // CSTRIKE_DLL
 }
 
 
@@ -267,6 +280,54 @@ void CFlashlightEffect::UpdateLightNew(const Vector &vecPos, const Vector &vecFo
 	state.m_fQuadraticAtten = r_flashlightquadratic.GetFloat();
 
 	bool bFlicker = false;
+
+#ifdef HL2_EPISODIC
+	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
+	if ( pPlayer )
+	{
+		float flBatteryPower = ( pPlayer->m_HL2Local.m_flFlashBattery >= 0.0f ) ? ( pPlayer->m_HL2Local.m_flFlashBattery ) : pPlayer->m_HL2Local.m_flSuitPower;
+		if ( flBatteryPower <= 10.0f )
+		{
+			float flScale;
+			if ( flBatteryPower >= 0.0f )
+			{	
+				flScale = ( flBatteryPower <= 4.5f ) ? SimpleSplineRemapVal( flBatteryPower, 4.5f, 0.0f, 1.0f, 0.0f ) : 1.0f;
+			}
+			else
+			{
+				flScale = SimpleSplineRemapVal( flBatteryPower, 10.0f, 4.8f, 1.0f, 0.0f );
+			}
+			
+			flScale = clamp( flScale, 0.0f, 1.0f );
+
+			if ( flScale < 0.35f )
+			{
+				float flFlicker = cosf( gpGlobals->curtime * 6.0f ) * sinf( gpGlobals->curtime * 15.0f );
+				
+				if ( flFlicker > 0.25f && flFlicker < 0.75f )
+				{
+					// On
+					state.m_fLinearAtten = r_flashlightlinear.GetFloat() * flScale;
+				}
+				else
+				{
+					// Off
+					state.m_fLinearAtten = 0.0f;
+				}
+			}
+			else
+			{
+				float flNoise = cosf( gpGlobals->curtime * 7.0f ) * sinf( gpGlobals->curtime * 25.0f );
+				state.m_fLinearAtten = r_flashlightlinear.GetFloat() * flScale + 1.5f * flNoise;
+			}
+
+			state.m_fHorizontalFOVDegrees = r_flashlightfov.GetFloat() - ( 16.0f * (1.0f-flScale) );
+			state.m_fVerticalFOVDegrees = r_flashlightfov.GetFloat() - ( 16.0f * (1.0f-flScale) );
+			
+			bFlicker = true;
+		}
+	}
+#endif // HL2_EPISODIC
 
 	if ( bFlicker == false )
 	{
@@ -492,4 +553,3 @@ void CHeadlightEffect::UpdateLight( const Vector &vecPos, const Vector &vecDir, 
 	
 	g_pClientShadowMgr->UpdateProjectedTexture( GetFlashlightHandle(), true );
 }
-

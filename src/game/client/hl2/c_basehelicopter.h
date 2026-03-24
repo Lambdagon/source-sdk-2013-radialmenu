@@ -17,7 +17,7 @@
 class C_BaseHelicopter : public C_AI_BaseNPC
 {
 public:
-	DECLARE_CLASS(C_BaseHelicopter, C_AI_BaseNPC);
+	DECLARE_CLASS( C_BaseHelicopter, C_AI_BaseNPC );
 	DECLARE_CLIENTCLASS();
 
 	C_BaseHelicopter();
@@ -25,22 +25,8 @@ public:
 	float StartupTime() const { return m_flStartupTime; }
 
 private:
-	C_BaseHelicopter(const C_BaseHelicopter& other) {}
+	C_BaseHelicopter( const C_BaseHelicopter &other ) {}
 	float m_flStartupTime;
-};
-
-
-
-class C_HL1BaseHelicopter : public C_AI_BaseNPC
-{
-public:
-	DECLARE_CLASS(C_HL1BaseHelicopter, C_AI_BaseNPC);
-	DECLARE_CLIENTCLASS();
-
-	C_HL1BaseHelicopter();
-
-private:
-	C_HL1BaseHelicopter(const C_HL1BaseHelicopter& other) {}
 };
 
 

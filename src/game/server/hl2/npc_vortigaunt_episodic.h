@@ -270,7 +270,7 @@ private:
 	CNetworkVar( bool, m_bIsBlack );
 
 public:
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 	DEFINE_CUSTOM_AI;
 };
@@ -309,7 +309,7 @@ private:
 
 	CNetworkVar( bool, m_bFadeOut );
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 };
 
@@ -337,7 +337,7 @@ private:
 
 	CNetworkVar( bool, m_bFadeOut );
 
-	 DECLARE_SERVERCLASS();
+	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 };
 

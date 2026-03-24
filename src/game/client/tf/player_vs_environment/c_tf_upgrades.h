@@ -50,7 +50,7 @@ enum costlabel_chache_t
 //-----------------------------------------------------------------------------
 class CUpgradeBuyPanel : public vgui::EditablePanel
 {
-	DECLARE_CLASS_SIMPLE(CUpgradeBuyPanel, vgui::EditablePanel);
+	DECLARE_CLASS_SIMPLE( CUpgradeBuyPanel, vgui::EditablePanel );
 
 public:
 
@@ -63,32 +63,32 @@ public:
 	};
 
 public:
-	CUpgradeBuyPanel(Panel* parent, const char* panelName);
+	CUpgradeBuyPanel( Panel *parent, const char *panelName );
 	virtual ~CUpgradeBuyPanel();
 
-	virtual void ApplySchemeSettings(vgui::IScheme* pScheme);
-	virtual void ApplySettings(KeyValues* inResourceData);
-	virtual void PerformLayout(void);
-	virtual void OnCommand(const char* command);
+	virtual void ApplySchemeSettings( vgui::IScheme *pScheme );
+	virtual void ApplySettings( KeyValues *inResourceData );
+	virtual void PerformLayout( void );
+	virtual void OnCommand( const char *command );
 
-	bool ValidateUpgradeStepData(void);
+	bool ValidateUpgradeStepData( void );
 
-	void SetNumLevelImages(int nValues);
-	void SetSkillTreeButtonColors(int nButton, ColorSet nColorSet);
-	void SetInspectMode(bool bValue) { m_bInspectMode = bValue; }
-	void SetPlayer(C_TFPlayer* pPlayer) { m_hPlayer = pPlayer; }
+	void SetNumLevelImages( int nValues );
+	void SetSkillTreeButtonColors( int nButton, ColorSet nColorSet );
+	void SetInspectMode( bool bValue ) { m_bInspectMode = bValue; }
+	void SetPlayer( C_TFPlayer *pPlayer ) { m_hPlayer = pPlayer; }
 
-	void UpdateImages(int nCurrentMoney);
+	void UpdateImages( int nCurrentMoney );
 
 public:
 
-	KeyValues* m_pSkillTreeButtonKVs;
+	KeyValues *m_pSkillTreeButtonKVs;	
 
-	vgui::ImagePanel* m_pIcon;
-	vgui::Label* m_pPriceLabel;
-	vgui::Label* m_pShortDescriptionLabel;
-	CImageButton* m_pIncrementButton;
-	CImageButton* m_pDecrementButton;
+	vgui::ImagePanel *m_pIcon;
+	vgui::Label	*m_pPriceLabel;
+	vgui::Label	*m_pShortDescriptionLabel;
+	CImageButton *m_pIncrementButton;
+	CImageButton *m_pDecrementButton;
 	CUtlVector< vgui::ImagePanel* > m_SkillTreeImages;
 
 	int m_nWeaponSlot;
@@ -106,8 +106,8 @@ public:
 
 	bool m_bInspectMode;
 
-	CPanelAnimationVarAliasType(int, m_iUpgradeButtonXPos, "upgradebutton_xpos", "0", "proportional_int");
-	CPanelAnimationVarAliasType(int, m_iUpgradeButtonYPos, "upgradebutton_ypos", "0", "proportional_int");
+	CPanelAnimationVarAliasType( int, m_iUpgradeButtonXPos, "upgradebutton_xpos", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iUpgradeButtonYPos, "upgradebutton_ypos", "0", "proportional_int" );
 
 	static Color m_rgbaDefaultFG;
 	static Color m_rgbaDefaultBG;
@@ -130,16 +130,16 @@ struct ItemSlotBuyPanels
 	static const int CHARACTER_UPGRADE = -1;
 	static const int INVALID_SLOT = -2;
 
-	typedef CUpgradeBuyPanel* UPGRADEPTR;
+	typedef CUpgradeBuyPanel *UPGRADEPTR;
 	class CUpgradeBuyPanelLess
 	{
 	public:
-		bool Less(const UPGRADEPTR& src1, const UPGRADEPTR& src2, void* pCtx)
+		bool Less( const UPGRADEPTR &src1, const UPGRADEPTR &src2, void *pCtx )
 		{
-			if (src1->m_nPrice > src2->m_nPrice)
+			if ( src1->m_nPrice > src2->m_nPrice )
 				return true;
 
-			if (src1->m_nPrice == src2->m_nPrice && src1->m_nUpgradeIndex < src2->m_nUpgradeIndex)
+			if ( src1->m_nPrice == src2->m_nPrice && src1->m_nUpgradeIndex < src2->m_nUpgradeIndex )
 				return true;
 
 			return false;
@@ -152,8 +152,8 @@ struct ItemSlotBuyPanels
 		m_iItemID = INVALID_ITEM_ID;
 	}
 
-	void SetItemID(itemid_t iIndex) { m_iItemID = iIndex; }
-	itemid_t GetItemID(void) { return m_iItemID; }
+	void SetItemID(itemid_t iIndex ) { m_iItemID = iIndex; }
+	itemid_t GetItemID( void ) { return m_iItemID; }
 
 	int nSlot;
 	CUtlSortVector< CUpgradeBuyPanel*, CUpgradeBuyPanelLess >	upgradeBuyPanels;
@@ -166,63 +166,63 @@ struct ItemSlotBuyPanels
 //-----------------------------------------------------------------------------
 class CHudUpgradePanel : public CHudElement, public vgui::EditablePanel
 {
-	DECLARE_CLASS_SIMPLE(CHudUpgradePanel, vgui::EditablePanel);
+	DECLARE_CLASS_SIMPLE( CHudUpgradePanel, vgui::EditablePanel );
 
 public:
-	CHudUpgradePanel(const char* pElementName);
+	CHudUpgradePanel( const char *pElementName );
 	virtual ~CHudUpgradePanel();
 
-	virtual void	ApplySchemeSettings(vgui::IScheme* scheme);
-	virtual void	ApplySettings(KeyValues* inResourceData);
-	virtual void	PerformLayout(void);
-	virtual bool	ShouldDraw(void);
-	virtual void	SetVisible(bool bVisible);
-	virtual void	SetActive(bool bActive);
-	virtual int		GetRenderGroupPriority(void) { return 35; }	// less than statpanel
-	virtual void	OnCommand(const char* command);
-	virtual void	OnTick(void);
-	virtual void	FireGameEvent(IGameEvent* event);
-	void			InspectUpgradesForPlayer(C_TFPlayer* pPlayer) { m_hPlayer = pPlayer; m_bInspectMode = true; m_bShowUpgradeMenu = true; }
-	C_TFPlayer* GetPlayer(void) { return m_hPlayer; }
-	void			PlayerInventoryChanged(C_TFPlayer* pPlayer);
+	virtual void	ApplySchemeSettings( vgui::IScheme *scheme );
+	virtual void	ApplySettings( KeyValues *inResourceData );
+	virtual void	PerformLayout( void );
+	virtual bool	ShouldDraw( void );
+	virtual void	SetVisible( bool bVisible );
+	virtual void	SetActive( bool bActive );
+	virtual int		GetRenderGroupPriority( void ) { return 35; }	// less than statpanel
+	virtual void	OnCommand( const char *command );
+	virtual void	OnTick( void );
+	virtual void	FireGameEvent( IGameEvent *event );
+	void			InspectUpgradesForPlayer( C_TFPlayer *pPlayer ) { m_hPlayer = pPlayer; m_bInspectMode = true; m_bShowUpgradeMenu = true; }
+	C_TFPlayer		*GetPlayer( void ) { return m_hPlayer; }
+	void			PlayerInventoryChanged( C_TFPlayer *pPlayer );
 
-	MESSAGE_FUNC_PTR(OnItemPanelEntered, "ItemPanelEntered", panel);
-	MESSAGE_FUNC_PTR(OnItemPanelExited, "ItemPanelExited", panel);
-	MESSAGE_FUNC_PTR(OnItemPanelMousePressed, "ItemPanelMousePressed", panel);
+	MESSAGE_FUNC_PTR( OnItemPanelEntered, "ItemPanelEntered", panel );
+	MESSAGE_FUNC_PTR( OnItemPanelExited, "ItemPanelExited", panel );
+	MESSAGE_FUNC_PTR( OnItemPanelMousePressed, "ItemPanelMousePressed", panel );
 
 	virtual GameActionSet_t GetPreferredActionSet() { return IsActive() ? GAME_ACTION_SET_MENUCONTROLS : GAME_ACTION_SET_NONE; }
 
 protected:
-	void			CreateItemModelPanel(int iLoadoutSlot);
-	void			UpdateModelPanels(void);
-	virtual void	SetBorderForItem(CItemModelPanel* pItemPanel, bool bMouseOver);
-	void			UpgradeItemInSlot(int iSlot);
-	void			UpdateUpgradeButtons(void);
-	void			UpdateButtonStates(int nCurrentCurrency, int nUpgrade = 0, int nNumPurchased = 0);
-	void			UpdateJoystickControls(void);
-	void			UpdateHighlights(void);
-	void			UpdateMouseOverHighlight(void);
+	void			CreateItemModelPanel( int iLoadoutSlot );
+	void			UpdateModelPanels( void );
+	virtual void	SetBorderForItem( CItemModelPanel *pItemPanel, bool bMouseOver );
+	void			UpgradeItemInSlot( int iSlot );
+	void			UpdateUpgradeButtons( void );
+	void			UpdateButtonStates( int nCurrentCurrency, int nUpgrade = 0, int nNumPurchased = 0 );
+	void			UpdateJoystickControls( void );
+	void			UpdateHighlights( void );
+	void			UpdateMouseOverHighlight( void );
 
-	void			UpdateItemStatsLabel(void);
-	void			CancelUpgrades(void);
-	void			AddItemStatText(const locchar_t* loc_AttrDescText, attrib_colors_t eColor, wchar_t* out_wszAttribDesc, int iAttribDescSize);
-	CEconItemView* GetLocalPlayerBottleFromInventory(void);
-	bool			QuickEquipBottle(void);
+	void			UpdateItemStatsLabel( void );
+	void			CancelUpgrades( void );
+	void			AddItemStatText( const locchar_t *loc_AttrDescText, attrib_colors_t eColor, wchar_t *out_wszAttribDesc, int iAttribDescSize );
+	CEconItemView*	GetLocalPlayerBottleFromInventory( void );
+	bool			QuickEquipBottle( void );
 
 protected:
-	vgui::EditablePanel* m_pTipPanel;
-	vgui::EditablePanel* m_pSelectWeaponPanel;
-	CExLabel* m_pUpgradeItemStatsLabel;
+	vgui::EditablePanel *m_pTipPanel;
+	vgui::EditablePanel	*m_pSelectWeaponPanel;
+	CExLabel *m_pUpgradeItemStatsLabel;
 
-	vgui::Panel* m_pPlayerUpgradeButton;
-	vgui::Panel* m_pActiveTabPanel;
-	vgui::Panel* m_pMouseOverTabPanel;
-	vgui::Panel* m_pMouseOverUpgradePanel;
-	CUpgradeBuyPanel* m_pActiveUpgradeBuyPanel;
-	vgui::Panel* m_pPlayerRespecButton;
+	vgui::Panel *m_pPlayerUpgradeButton;
+	vgui::Panel *m_pActiveTabPanel;
+	vgui::Panel *m_pMouseOverTabPanel;
+	vgui::Panel *m_pMouseOverUpgradePanel;
+	CUpgradeBuyPanel *m_pActiveUpgradeBuyPanel;
+	vgui::Panel *m_pPlayerRespecButton;
 
 	CUtlVector< CItemModelPanel* > m_pItemPanels;
-	KeyValues* m_pItemModelPanelKVs;
+	KeyValues			*m_pItemModelPanelKVs;	
 	int					m_iVisibleItemPanels;
 
 	int		m_iWeaponSlotBeingUpgraded;
@@ -239,16 +239,16 @@ protected:
 	bool	m_bAwardMaxSlotAchievement;
 	bool	m_bAwardMaxResistAchievement;
 
-	ItemSlotBuyPanels	m_ItemSlotBuyPanels[MAX_ITEM_SLOT_BUY_PANELS];
+	ItemSlotBuyPanels	m_ItemSlotBuyPanels[ MAX_ITEM_SLOT_BUY_PANELS ];
 
-	CPanelAnimationVarAliasType(int, m_iItemPanelXPos, "itempanel_xpos", "0", "proportional_int");
-	CPanelAnimationVarAliasType(int, m_iItemPanelYPos, "itempanel_ypos", "0", "proportional_int");
-	CPanelAnimationVarAliasType(int, m_iItemPanelXDelta, "itempanel_xdelta", "0", "proportional_int");
-	CPanelAnimationVarAliasType(int, m_iItemPanelYDelta, "itempanel_ydelta", "0", "proportional_int");
+	CPanelAnimationVarAliasType( int, m_iItemPanelXPos, "itempanel_xpos", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iItemPanelYPos, "itempanel_ypos", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iItemPanelXDelta, "itempanel_xdelta", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iItemPanelYDelta, "itempanel_ydelta", "0", "proportional_int" );
 
-	CPanelAnimationVarAliasType(int, m_iUpgradeBuyPanelXPos, "upgradebuypanel_xpos", "0", "proportional_int");
-	CPanelAnimationVarAliasType(int, m_iUpgradeBuyPanelYPos, "upgradebuypanel_ypos", "0", "proportional_int");
-	CPanelAnimationVarAliasType(int, m_iUpgradeBuyPanelDelta, "upgradebuypanel_delta", "0", "proportional_int");
+	CPanelAnimationVarAliasType( int, m_iUpgradeBuyPanelXPos, "upgradebuypanel_xpos", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iUpgradeBuyPanelYPos, "upgradebuypanel_ypos", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iUpgradeBuyPanelDelta, "upgradebuypanel_delta", "0", "proportional_int" );
 
 	bool m_bNavUpDownPressed;
 	bool m_bNavLeftRightPressed;
@@ -258,11 +258,10 @@ protected:
 private:
 	void UpdateTip();
 	CHandle< C_TFPlayer > m_hPlayer;
-	CSoundPatch* m_pMvMUpgradeMachineLoop;
 };
 
 
-extern bool MannVsMachine_GetUpgradeInfo(int iAttribute, int iQuality, float& flValue);
+extern bool MannVsMachine_GetUpgradeInfo( int iAttribute, int iQuality, float &flValue );
 
 
 #endif // C_TF_UPGRADES_H

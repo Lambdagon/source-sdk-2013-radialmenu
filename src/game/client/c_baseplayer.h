@@ -365,6 +365,7 @@ public:
 	surfacedata_t *GetSurfaceData( void ) { return m_pSurfaceData; }
 
 	void SetLadderNormal( Vector vecLadderNormal ) { m_vecLadderNormal = vecLadderNormal; }
+	const Vector &GetLadderNormal( void ) const { return m_vecLadderNormal; }
 
 	// Hints
 	virtual CHintSystem		*Hints( void ) { return NULL; }
@@ -630,8 +631,6 @@ private:
 		CSoundParameters	m_SoundParameters;
 		unsigned short		m_usSoundNameIndex;
 	};
-	// One for left and one for right side of step
-	StepSoundCache_t		m_StepSoundCache[ 2 ];
 
 public:
 
@@ -641,6 +640,9 @@ public:
 	bool  ShouldGoSouth( Vector vNPCForward, Vector vNPCRight ); //Such a bad name.
 
 	void SetOldPlayerZ( float flOld ) { m_flOldPlayerZ = flOld;	}
+
+	// One for left and one for right side of step
+	StepSoundCache_t		m_StepSoundCache[2];
 };
 
 EXTERN_RECV_TABLE(DT_BasePlayer);

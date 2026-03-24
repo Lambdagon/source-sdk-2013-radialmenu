@@ -314,7 +314,7 @@ WeaponProficiency_t CNPC_Monk::CalcWeaponProficiency( CBaseCombatWeapon *pWeapon
 //-----------------------------------------------------------------------------
 Vector CNPC_Monk::GetActualShootPosition( const Vector &shootOrigin )
 {
-	return BaseClass::GetShootEnemyDir( shootOrigin );
+	return BaseClass::GetActualShootPosition( shootOrigin );
 }
 
 //-----------------------------------------------------------------------------
@@ -338,7 +338,7 @@ Vector CNPC_Monk::GetActualShootTrajectory( const Vector &shootOrigin )
 		return vecShootDir;
 	}
 
-	return BaseClass::GetShootEnemyDir( shootOrigin );
+	return BaseClass::GetActualShootTrajectory( shootOrigin );
 }
 
 //-----------------------------------------------------------------------------

@@ -1165,7 +1165,7 @@ bool CWeaponPhysCannon::Holster( CBaseCombatWeapon *pSwitchingTo )
 //-----------------------------------------------------------------------------
 void CWeaponPhysCannon::DryFire( void )
 {
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+	SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 
 	WeaponSound( EMPTY );
 }
@@ -1226,7 +1226,7 @@ void CWeaponPhysCannon::PuntNonVPhysics( CBaseEntity *pEntity, const Vector &for
 #endif
 	
 	PrimaryFireEffect();
-	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+	SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 
 	m_nChangeState = ELEMENT_STATE_CLOSED;
 	m_flElementDebounce = gpGlobals->curtime + 0.5f;
@@ -1367,7 +1367,7 @@ void CWeaponPhysCannon::PuntVPhysics( CBaseEntity *pEntity, const Vector &vecFor
 	DoEffect( EFFECT_LAUNCH, &tr.endpos );
 
 	PrimaryFireEffect();
-	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+	SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 
 	m_nChangeState = ELEMENT_STATE_CLOSED;
 	m_flElementDebounce = gpGlobals->curtime + 0.5f;
@@ -1468,7 +1468,7 @@ void CWeaponPhysCannon::PrimaryAttack( void )
 		LaunchObject( forward, physcannon_maxforce.GetFloat() );
 
 		PrimaryFireEffect();
-		SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+		SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 		return;
 	}
 
@@ -1570,7 +1570,7 @@ void CWeaponPhysCannon::SecondaryAttack( void )
 
 		DoEffect( EFFECT_READY );
 
-		SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+		SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 	}
 	else
 	{
@@ -1584,7 +1584,7 @@ void CWeaponPhysCannon::SecondaryAttack( void )
 		{
 		case OBJECT_FOUND:
 			WeaponSound( SPECIAL1 );
-			SendWeaponAnim( ACT_VM_PRIMARYATTACK );
+			SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 			m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
 
 			// We found an object. Debounce the button

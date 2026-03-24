@@ -314,7 +314,7 @@ LINK_ENTITY_TO_CLASS( info_target_vehicle_transition, CInfoTargetVehicleTransiti
 //	CPropJeepEpisodic
 //
 
-LINK_ENTITY_TO_CLASS( prop_vehicle_jeep_episodic, CPropJeepEpisodic );
+LINK_ENTITY_TO_CLASS( prop_vehicle_jeep, CPropJeepEpisodic );
 
 BEGIN_DATADESC( CPropJeepEpisodic )
 
@@ -366,7 +366,6 @@ BEGIN_DATADESC( CPropJeepEpisodic )
 
 END_DATADESC();
 
-/*
 IMPLEMENT_SERVERCLASS_ST(CPropJeepEpisodic, DT_CPropJeepEpisodic)
 	//CNetworkVar( int, m_iNumRadarContacts );
 	SendPropInt( SENDINFO(m_iNumRadarContacts), 8 ),
@@ -377,7 +376,7 @@ IMPLEMENT_SERVERCLASS_ST(CPropJeepEpisodic, DT_CPropJeepEpisodic)
 	//CNetworkArray( int, m_iRadarContactType, RADAR_MAX_CONTACTS );
 	SendPropArray( SendPropInt(SENDINFO_ARRAY(m_iRadarContactType), RADAR_CONTACT_TYPE_BITS ), m_iRadarContactType ),
 END_SEND_TABLE()
-*/
+
 
 //=============================================================================
 // Episodic jeep
@@ -638,6 +637,14 @@ bool CPropJeepEpisodic::PassengerInTransition( void )
 {
 	// FIXME: Big hack - we need a way to bridge this data better
 	// TODO: Get a list of passengers we can traverse instead
+	CNPC_Alyx *pAlyx = CNPC_Alyx::GetAlyx();
+	if ( pAlyx )
+	{
+		if ( pAlyx->GetPassengerState() == PASSENGER_STATE_ENTERING ||
+			 pAlyx->GetPassengerState() == PASSENGER_STATE_EXITING )
+			return true;
+	}
+
 	return false;
 }
 
@@ -1054,6 +1061,10 @@ void CPropJeepEpisodic::Think( void )
 
 	// If our passenger is transitioning, then don't let the player drive off
 	CNPC_Alyx *pAlyx = CNPC_Alyx::GetAlyx();
+	if ( pAlyx && pAlyx->GetPassengerState() == PASSENGER_STATE_EXITING )
+	{
+		m_throttleDisableTime = gpGlobals->curtime + 0.25f;		
+	}
 
 	// Update our cargo entering our hold
 	UpdateCargoEntry();

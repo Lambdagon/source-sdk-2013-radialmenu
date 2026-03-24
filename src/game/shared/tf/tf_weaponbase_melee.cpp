@@ -564,11 +564,7 @@ bool CTFWeaponBaseMelee::OnSwingHit( trace_t &trace )
 	bool bHitEnemyPlayer = false;
 
 	// Hit sound - immediate.
-	if (trace.m_pEnt->IsNPC())
-	{
-		WeaponSound(MELEE_HIT);
-	} 
-	else if (trace.m_pEnt->IsPlayer())
+	if( trace.m_pEnt->IsPlayer() )
 	{
 		CTFPlayer *pTargetPlayer = ToTFPlayer( trace.m_pEnt );
 
@@ -576,7 +572,7 @@ bool CTFWeaponBaseMelee::OnSwingHit( trace_t &trace )
 		// handle hitting a robot	
 		if ( TFGameRules() && TFGameRules()->IsMannVsMachineMode() )
 		{
-			if ( pTargetPlayer  && pTargetPlayer->GetTeamNumber() == TF_TEAM_PVE_INVADERS && pTargetPlayer->IsPlayer() )
+			if ( pTargetPlayer  && pTargetPlayer->GetTeamNumber() == TF_TEAM_PVE_INVADERS && !pTargetPlayer->IsPlayer() )
 			{
 				bPlayMvMHitOnly = true;
 
@@ -610,13 +606,7 @@ bool CTFWeaponBaseMelee::OnSwingHit( trace_t &trace )
 		} 
 		if(! bPlayMvMHitOnly )
 		{
-			if (!IsCurrentAttackACrit()) {
-				WeaponSound(MELEE_HIT);	
-			}
-			else {
-				WeaponSound(MELEE_HIT);
-				WeaponSound(MELEE_BURST);
-			}
+			WeaponSound( MELEE_HIT );
 		}
 
 #if !defined (CLIENT_DLL)

@@ -21,6 +21,7 @@
 #endif
 #include "functorutils.h"
 #include "nav_pathfind.h"
+#include "cstrike/bot/shared_util.h"
 
 #ifdef TF_DLL
 #include "tf/nav_mesh/tf_nav_area.h"
@@ -1088,7 +1089,6 @@ void CNavMesh::LoadPlaceDatabase( void )
 {
 	m_placeCount = 0;
 
-#ifdef TERROR
 	// TODO: LoadPlaceDatabase happens during the constructor, so we can't override it!
 	// Population.txt holds all the info we need for place names in Left4Dead, so let's not
 	// make Phil edit yet another text file.
@@ -1119,7 +1119,6 @@ void CNavMesh::LoadPlaceDatabase( void )
 	}
 
 	populationData->deleteThis();
-#endif
 
 	CUtlBuffer buf( 0, 0, CUtlBuffer::TEXT_BUFFER );
 	filesystem->ReadFile("NavPlace.db", "GAME", buf);
@@ -2817,10 +2816,8 @@ NavAttributeLookup TheNavAttributeTable[] =
 	{ "NO_MERGE", NAV_MESH_NO_MERGE },
 	{ "OBSTACLE_TOP", NAV_MESH_OBSTACLE_TOP },
 	{ "CLIFF", NAV_MESH_CLIFF },
-#ifdef TERROR
-	{ "PLAYERCLIP", (NavAttributeType)CNavArea::NAV_PLAYERCLIP },
-	{ "BREAKABLEWALL", (NavAttributeType)CNavArea::NAV_BREAKABLEWALL },
-#endif
+	{ "PLAYERCLIP", NAV_PLAYERCLIP },
+	{ "BREAKABLEWALL", NAV_BREAKABLEWALL },
 	{ NULL, NAV_MESH_INVALID }
 };
 
