@@ -269,7 +269,7 @@ void CCSBot::FireWeaponAtEnemy( void )
 									myForward.NormalizeInPlace();
 
 									const float dot = DotProduct( myForward, forward );
-									if ( dot >= 0.75f && !enemy->HasChargerAttacker() )
+									if ( dot >= 0.75f && !((CCSPlayer*)enemy)->HasChargerAttacker() )
 									{
 										// Check if a hull trace to the target is mostly clear (avoid charging into immediate walls).
 										const Vector start = GetAbsOrigin();

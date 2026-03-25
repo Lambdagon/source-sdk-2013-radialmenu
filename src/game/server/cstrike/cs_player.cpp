@@ -66,6 +66,7 @@
 #include "util_shared.h"
 #include "particle_smokegrenade.h"
 #include "sceneentity.h"
+#include "eventlist.h"
 
 //=============================================================================
 // HPE_BEGIN
@@ -356,7 +357,7 @@ public:
 		CCSPlayer *attacker = ToCSPlayer( GetOwnerEntity() );
 		if ( victim && victim->IsAlive() && victim->GetTeamNumber() == TEAM_SURVIVOR )
 		{
-			CTakeDamageInfo info( attacker ? attacker : this, attacker ? attacker : this, 30.0f, DMG_CLUB | DMG_NEVERGIB );
+			CTakeDamageInfo info( attacker, attacker, 30.0f, DMG_CLUB | DMG_NEVERGIB );
 			victim->TakeDamage( info );
 		}
 
@@ -3465,7 +3466,7 @@ void CCSPlayer::PostThink()
 							if ( dotF > 0.5f )
 							{
 								m_nChargerStaggerDir = CHARGER_STAGGER_DIR_BACK;
-								StartChargerLockedActivity( ACT_TERROR_SHOVED_BACKWARD_INTO_WALL );
+								StartChargerLockedActivity( ACT_TERROR_SHOVED_BACKWARD );
 							}
 							else
 							{
@@ -3473,12 +3474,12 @@ void CCSPlayer::PostThink()
 								if ( dotR > 0.0f )
 								{
 									m_nChargerStaggerDir = CHARGER_STAGGER_DIR_LEFT;
-									StartChargerLockedActivity( ACT_TERROR_SHOVED_LEFTWARD_INTO_WALL );
+									StartChargerLockedActivity( ACT_TERROR_SHOVED_LEFTWARD );
 								}
 								else
 								{
 									m_nChargerStaggerDir = CHARGER_STAGGER_DIR_RIGHT;
-									StartChargerLockedActivity( ACT_TERROR_SHOVED_RIGHTWARD_INTO_WALL );
+									StartChargerLockedActivity( ACT_TERROR_SHOVED_RIGHTWARD );
 								}
 							}
 						}
@@ -5220,9 +5221,6 @@ bool CCSPlayer::CanStartChargerCharge() const
 	if ( !gpGlobals )
 		return false;
 
-	if ( !IsAlive() )
-		return false;
-
 	if ( GetTeamNumber() != TEAM_INFECTED || GetZombieClass() != 6 )
 		return false;
 
@@ -5331,9 +5329,6 @@ void CCSPlayer::ClearCharger( void )
 bool CCSPlayer::CanStartTankRockThrow() const
 {
 	if ( !gpGlobals )
-		return false;
-
-	if ( !IsAlive() )
 		return false;
 
 	if ( GetTeamNumber() != TEAM_INFECTED || GetZombieClass() != 8 )

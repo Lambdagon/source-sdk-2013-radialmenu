@@ -1312,12 +1312,12 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 				switch ( m_pPlayer->m_nChargerStaggerDir )
 				{
 				case CHARGER_STAGGER_DIR_LEFT:
-					return ACT_TERROR_SHOVED_LEFTWARD_INTO_WALL;
+					return ACT_TERROR_SHOVED_LEFTWARD;
 				case CHARGER_STAGGER_DIR_RIGHT:
-					return ACT_TERROR_SHOVED_RIGHTWARD_INTO_WALL;
+					return ACT_TERROR_SHOVED_RIGHTWARD;
 				case CHARGER_STAGGER_DIR_BACK:
 				default:
-					return ACT_TERROR_SHOVED_BACKWARD_INTO_WALL;
+					return ACT_TERROR_SHOVED_BACKWARD;
 				}
 			}
 
@@ -1328,7 +1328,7 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 
 			if ( m_pPlayer->m_nChargerAction == CHARGER_ACTION_POUND )
 			{
-				CCSPlayer *victim = m_pPlayer->m_chargerVictim.Get();
+				CCSPlayer *victim = (CCSPlayer *)m_pPlayer->m_chargerVictim.Get();
 				if ( victim )
 				{
 					const int survivorClass = victim->GetSurvivorClass();
