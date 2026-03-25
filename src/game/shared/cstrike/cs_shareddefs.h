@@ -113,6 +113,39 @@ extern CUtlVectorInitialized< const char * > TerroristPlayerModels;
 
 #define MAX_CLAN_TAG_LENGTH		16	// max for new tags is actually 12, this allows some backward compat.
 
+// Charger gameplay states (special infected class 6).
+enum ChargerAction_t
+{
+	CHARGER_ACTION_NONE = 0,
+	CHARGER_ACTION_CHARGING,
+	CHARGER_ACTION_STAGGER,
+	CHARGER_ACTION_SLAM,
+	CHARGER_ACTION_POUND,
+};
+
+enum ChargerVictimAction_t
+{
+	CHARGER_VICTIM_NONE = 0,
+	CHARGER_VICTIM_CARRIED,
+	CHARGER_VICTIM_SLAMMED_GROUND,
+	CHARGER_VICTIM_POUNDED_DOWN,
+};
+
+enum ChargerStaggerDir_t
+{
+	CHARGER_STAGGER_DIR_NONE = 0,
+	CHARGER_STAGGER_DIR_BACK,
+	CHARGER_STAGGER_DIR_LEFT,
+	CHARGER_STAGGER_DIR_RIGHT,
+};
+
+// Tank gameplay states (special infected class 8).
+enum TankAction_t
+{
+	TANK_ACTION_NONE = 0,
+	TANK_ACTION_ROCK_THROW,
+};
+
 //=============================================================================
 // HPE_BEGIN:
 // [menglish] CS specific death animation time now that freeze cam is implemented

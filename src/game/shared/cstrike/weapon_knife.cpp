@@ -565,8 +565,67 @@ CTankClaw::CTankClaw()
 {
 }
 
+void CTankClaw::SecondaryAttack()
+{
+#ifdef CLIENT_DLL
+	// Tank secondary attack is an ability (rock throw) driven by the server.
+	return;
+#else
+	CCSPlayer *owner = GetPlayerOwner();
+	if ( !owner || !owner->IsAlive() )
+		return;
+
+	// Only tanks can throw rocks.
+	if ( owner->GetZombieClass() != 8 || owner->GetTeamNumber() != TEAM_INFECTED )
+	{
+		BaseClass::SecondaryAttack();
+		return;
+	}
+
+	if ( CSGameRules() && CSGameRules()->IsFreezePeriod() )
+		return;
+
+	if ( m_flNextSecondaryAttack >= gpGlobals->curtime )
+		return;
+
+	owner->StartTankRockThrow();
+	m_flNextSecondaryAttack = gpGlobals->curtime + 0.25f;
+#endif
+}
+
 CChargerClaw::CChargerClaw()
 {
+}
+
+void CChargerClaw::PrimaryAttack()
+{
+#ifdef CLIENT_DLL
+	// Charger primary attack is an ability (charge) driven by the server.
+	return;
+#else
+	CCSPlayer *owner = GetPlayerOwner();
+	if ( !owner || !owner->IsAlive() )
+		return;
+
+	// Only chargers can charge.
+	if ( owner->GetZombieClass() != 6 || owner->GetTeamNumber() != TEAM_INFECTED )
+	{
+		BaseClass::PrimaryAttack();
+		return;
+	}
+
+	if ( CSGameRules() && CSGameRules()->IsFreezePeriod() )
+		return;
+
+	if ( m_flNextPrimaryAttack >= gpGlobals->curtime )
+		return;
+
+	if ( !owner->CanStartChargerCharge() )
+		return;
+
+	owner->StartChargerCharge();
+	m_flNextPrimaryAttack = gpGlobals->curtime + 0.25f;
+#endif
 }
 
 CJockeyClaw::CJockeyClaw()

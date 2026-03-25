@@ -797,10 +797,17 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropFloat( RECVINFO( m_flProgressBarStartTime ) ),
 	RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
 	RecvPropBool( RECVINFO( m_bIncapacitated ) ),
+	RecvPropBool( RECVINFO( m_bBeingRevived ) ),
 	RecvPropInt( RECVINFO( m_nIncapacitationCount ) ),
 	RecvPropBool( RECVINFO( m_bIncapBlackAndWhite ) ),
 	RecvPropEHandle( RECVINFO( m_pounceVictim ) ),
 	RecvPropEHandle( RECVINFO( m_pounceAttacker ) ),
+	RecvPropEHandle( RECVINFO( m_chargerVictim ) ),
+	RecvPropEHandle( RECVINFO( m_chargerAttacker ) ),
+	RecvPropInt( RECVINFO( m_nChargerAction ) ),
+	RecvPropInt( RECVINFO( m_nChargerVictimAction ) ),
+	RecvPropInt( RECVINFO( m_nChargerStaggerDir ) ),
+	RecvPropInt( RECVINFO( m_nTankAction ) ),
 	RecvPropInt( RECVINFO( m_cycleLatch ), 0, &C_CSPlayer::RecvProxy_CycleLatch ),
 
 END_RECV_TABLE()
@@ -1351,8 +1358,10 @@ void C_CSPlayer::UpdatePounceThirdPersonCamera()
 	}
 
 	const bool wantsPounceCam = ( m_pounceVictim.Get() != NULL ) || ( m_pounceAttacker.Get() != NULL );
+	const bool wantsChargerCam = ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 && m_nChargerAction != CHARGER_ACTION_NONE );
+	const bool wantsAbilityCam = wantsPounceCam || wantsChargerCam;
 
-	if ( wantsPounceCam && !m_bPounceCamHasSavedState )
+	if ( wantsAbilityCam && !m_bPounceCamHasSavedState )
 	{
 		m_bPounceCamHasSavedState = true;
 		m_bPounceCamBaseThirdPerson = input->CAM_IsThirdPerson();
@@ -1367,7 +1376,7 @@ void C_CSPlayer::UpdatePounceThirdPersonCamera()
 
 	const Vector pounceOffset( 120.0f, 0.0f, 0.0f );
 
-	const float targetBlend = wantsPounceCam ? 1.0f : 0.0f;
+	const float targetBlend = wantsAbilityCam ? 1.0f : 0.0f;
 	const float blendTime = ( targetBlend > m_flPounceCamBlend ) ? 0.25f : 0.20f;
 	const float step = ( blendTime > 0.0f ) ? ( gpGlobals->frametime / blendTime ) : 1.0f;
 
@@ -1394,7 +1403,7 @@ void C_CSPlayer::UpdatePounceThirdPersonCamera()
 		}
 	}
 
-	if ( !wantsPounceCam && m_flPounceCamBlend <= 0.0f )
+	if ( !wantsAbilityCam && m_flPounceCamBlend <= 0.0f )
 	{
 		// Restore baseline camera state after we finish zooming back in.
 		g_ThirdPersonManager.SetDesiredCameraOffset( m_vecPounceCamBaseDesiredOffset );

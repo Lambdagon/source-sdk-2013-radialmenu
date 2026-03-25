@@ -16,6 +16,8 @@
 #include "cs_shareddefs.h"
 #include "cs_autobuy.h"
 #include "utldict.h"
+#include "utlvector.h"
+#include "ehandle.h"
 
 
 
@@ -483,6 +485,22 @@ public:
 	void StartPounce( CCSPlayer *pVictim );
 	void ClearPounce( void );
 
+	// Charger charge / carry / pummel.
+	CCSPlayer *GetChargerVictim() const { return m_chargerVictim.Get(); }
+	CCSPlayer *GetChargerAttacker() const { return m_chargerAttacker.Get(); }
+	bool HasChargerVictim() const { return m_chargerVictim.Get() != NULL; }
+	bool HasChargerAttacker() const { return m_chargerAttacker.Get() != NULL; }
+	bool IsChargerCharging() const { return m_nChargerAction == CHARGER_ACTION_CHARGING; }
+	bool CanStartChargerCharge() const;
+	void StartChargerCharge();
+	void ClearCharger( void );
+
+	// Tank (hulk) rock throw.
+	bool IsTankRockThrowing() const { return m_nTankAction == TANK_ACTION_ROCK_THROW; }
+	bool CanStartTankRockThrow() const;
+	void StartTankRockThrow();
+	void ClearTankRockThrow( void );
+
 	bool ShouldCollide(int collisionGroup, int contentsMask) const;
 	bool IsAutoFollowAllowed( void ) const;		// return true if this player will allow bots to auto follow
 	void InhibitAutoFollow( float duration );	// prevent bots from auto-following for given duration
@@ -774,11 +792,19 @@ public:
 
 	// Survivor incapacitation.
 	CNetworkVar( bool, m_bIncapacitated );
+	CNetworkVar( bool, m_bBeingRevived );
 	CNetworkVar( int, m_nIncapacitationCount );
 	CNetworkVar( bool, m_bIncapBlackAndWhite );
 
 	CNetworkHandle( CCSPlayer, m_pounceVictim );
 	CNetworkHandle( CCSPlayer, m_pounceAttacker );
+
+	CNetworkHandle( CCSPlayer, m_chargerVictim );
+	CNetworkHandle( CCSPlayer, m_chargerAttacker );
+	CNetworkVar( int, m_nChargerAction );
+	CNetworkVar( int, m_nChargerVictimAction );
+	CNetworkVar( int, m_nChargerStaggerDir );
+	CNetworkVar( int, m_nTankAction );
 
 	// Bots and hostages auto-duck during jumps
 	bool m_duckUntilOnGround;
@@ -865,8 +891,20 @@ private:
 	float m_flPounceStartTime;
 	float m_flNextPounceDamageTime;
 
+	// Charger runtime state (server-only).
+	float m_flNextChargerChargeAllowedTime;
+	float m_flChargerChargeStartTime;
+	float m_flChargerChargeEndTime;
+	float m_flChargerChargeYaw;
+	float m_flChargerPrevCycle;
+	CUtlVector< EHANDLE > m_ChargerChargeHitVictims;
+	EHANDLE m_hTankRock;
+	float m_flNextTankRockThrowAllowedTime;
+	int m_nTankRockThrowSequence;
+
 	// Survivor incapacitation runtime state (server-only).
 	bool m_bIncapHealthDecayActive;
+	bool m_bIncapHullAdjusted;
 	float m_flNextIncapHealthDecayTime;
 	float m_flNextIncapHelpYellTime;
 	CHandle< CCSPlayer > m_hReviveTarget;

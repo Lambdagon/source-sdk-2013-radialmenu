@@ -129,6 +129,7 @@ public:
 
 	CTankClaw();
 	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_KNIFE; }
+	virtual void SecondaryAttack() OVERRIDE;
 private:
 	CTankClaw(const CTankClaw&) {}
 };
@@ -182,6 +183,7 @@ public:
 
 	CChargerClaw();
 	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_KNIFE; }
+	virtual void PrimaryAttack() OVERRIDE;
 private:
 	CChargerClaw(const CChargerClaw&) {}
 };

@@ -240,6 +240,56 @@ void CCSBot::FireWeaponAtEnemy( void )
 								}
 							}
 						}
+						else if ( GetZombieClass() == 6 )
+						{
+							// Charger bots: prefer charging at medium range with a clear lane.
+							if ( enemy && IsEnemyVisible() && GetGroundEntity() != NULL && CanStartChargerCharge() )
+							{
+								const float minChargeRange = 250.0f;
+								const float maxChargeRange = 950.0f;
+
+								if ( rangeToEnemy >= minChargeRange && rangeToEnemy <= maxChargeRange )
+								{
+									// Aim at the enemy and ensure we're mostly facing them.
+									QAngle aimAngles;
+									Vector toEnemy = GetCentroid( enemy ) - EyePosition();
+									toEnemy.z = 0.0f;
+									VectorAngles( toEnemy, aimAngles );
+									aimAngles.x = 0.0f;
+									aimAngles.z = 0.0f;
+
+									Vector forward;
+									AngleVectors( aimAngles, &forward );
+									forward.z = 0.0f;
+									forward.NormalizeInPlace();
+
+									Vector myForward;
+									AngleVectors( EyeAngles(), &myForward );
+									myForward.z = 0.0f;
+									myForward.NormalizeInPlace();
+
+									const float dot = DotProduct( myForward, forward );
+									if ( dot >= 0.75f && !enemy->HasChargerAttacker() )
+									{
+										// Check if a hull trace to the target is mostly clear (avoid charging into immediate walls).
+										const Vector start = GetAbsOrigin();
+										const Vector end = start + forward * rangeToEnemy;
+
+										trace_t tr;
+										CTraceFilterSkipTwoEntities filter( this, enemy, COLLISION_GROUP_PLAYER_MOVEMENT );
+										UTIL_TraceHull( start, end, WorldAlignMins(), WorldAlignMaxs(), MASK_PLAYERSOLID, &filter, &tr );
+
+										if ( tr.fraction > 0.6f || tr.m_pEnt == enemy )
+										{
+											SetLookAngles( aimAngles.y, aimAngles.x );
+											SnapEyeAngles( aimAngles );
+											PrimaryAttack();
+											return;
+										}
+									}
+								}
+							}
+						}
 
 						const float knifeRange = 75.0f;		// 50
 						if (rangeToEnemy < knifeRange)

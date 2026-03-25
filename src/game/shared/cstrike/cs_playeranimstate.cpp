@@ -117,6 +117,9 @@ private:
 	bool m_bTankDeathPrevCycleValid;
 	bool m_bWasPounceVictim;
 	bool m_bWasPounceAttacker;
+	bool m_bWasIncapacitated;
+	bool m_bWasBeingRevived;
+	bool m_bIncapDyingFinished;
 
 	// Aim sequence plays reload while this is on.
 	bool m_bReloading;
@@ -264,6 +267,9 @@ CCSPlayerAnimState::CCSPlayerAnimState()
 	m_bTankDeathPrevCycleValid = false;
 	m_bWasPounceVictim = false;
 	m_bWasPounceAttacker = false;
+	m_bWasIncapacitated = false;
+	m_bWasBeingRevived = false;
+	m_bIncapDyingFinished = false;
 
 	m_bReloading = false;
 	m_flReloadCycle = 0.0f;
@@ -293,10 +299,31 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 {
 	const bool bIsPounceVictim = ( m_pPlayer && m_pPlayer->m_pounceAttacker.Get() != NULL );
 	const bool bIsPounceAttacker = ( m_pPlayer && m_pPlayer->m_pounceVictim.Get() != NULL );
+	const bool bIsIncapacitated = ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && m_pPlayer->m_bIncapacitated );
+	const bool bIsBeingRevived = ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && m_pPlayer->m_bBeingRevived );
 
 	if ( m_pOuter && ( ( bIsPounceVictim && !m_bWasPounceVictim ) || ( bIsPounceAttacker && !m_bWasPounceAttacker ) ) )
 	{
 		// Ensure pounce sequences always start at cycle 0.
+		RestartMainSequence();
+	}
+
+	if ( m_pOuter && bIsIncapacitated && !m_bWasIncapacitated )
+	{
+		// Ensure the incapacitation "down" animation starts at cycle 0.
+		m_bIncapDyingFinished = false;
+		RestartMainSequence();
+	}
+
+	if ( m_pOuter && bIsBeingRevived && !m_bWasBeingRevived )
+	{
+		// Ensure the revive/get-up animation starts at cycle 0.
+		RestartMainSequence();
+	}
+	else if ( m_pOuter && !bIsBeingRevived && m_bWasBeingRevived && bIsIncapacitated )
+	{
+		// If revive is interrupted, replay the down animation.
+		m_bIncapDyingFinished = false;
 		RestartMainSequence();
 	}
 
@@ -307,6 +334,19 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 
 	m_bWasPounceVictim = bIsPounceVictim;
 	m_bWasPounceAttacker = bIsPounceAttacker;
+	m_bWasIncapacitated = bIsIncapacitated;
+	m_bWasBeingRevived = bIsBeingRevived;
+
+	// Once ACT_DIESIMPLE completes, transition into the appropriate incapacitated idle.
+	if ( bIsIncapacitated && !m_bIncapDyingFinished )
+	{
+		const Activity curAct = (Activity)m_pOuter->GetSequenceActivity( m_pOuter->GetSequence() );
+		if ( curAct == ACT_DIESIMPLE && m_pOuter->IsSequenceFinished() )
+		{
+			m_bIncapDyingFinished = true;
+			RestartMainSequence();
+		}
+	}
 
 #ifndef CLIENT_DLL
 	const bool bTankStagedDeath =
@@ -539,6 +579,9 @@ void CCSPlayerAnimState::ClearAnimationState()
 	m_bTankDeathRestarted = false;
 	m_flTankDeathPrevCycle = 0.0f;
 	m_bTankDeathPrevCycleValid = false;
+	m_bWasIncapacitated = false;
+	m_bWasBeingRevived = false;
+	m_bIncapDyingFinished = false;
 	
 	BaseClass::ClearAnimationState();
 }
@@ -1221,11 +1264,89 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 	// Hunter pounce: victims play a pinned idle, attackers play the ripping melee.
 	if ( m_pPlayer )
 	{
+		// Survivor incapacitation: play ACT_DIESIMPLE first, then an incap idle based on pistol type.
+		if ( m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && m_pPlayer->m_bIncapacitated )
+		{
+			if ( m_pPlayer->m_bBeingRevived )
+				return ACT_TERROR_INCAP_TO_STAND;
+
+			if ( !m_bIncapDyingFinished )
+				return ACT_DIESIMPLE;
+
+			CWeaponCSBase *weapon = dynamic_cast< CWeaponCSBase * >( m_pPlayer->GetActiveWeapon() );
+			if ( weapon && weapon->GetWeaponID() == WEAPON_ELITE )
+				return ACT_IDLE_INCAP_ELITES;
+
+			return ACT_IDLE_INCAP_PISTOL;
+		}
+
 		if ( m_pPlayer->m_pounceAttacker.Get() )
 			return ACT_IDLE_POUNCED;
 
 		if (m_pPlayer->m_pounceVictim.Get()) {
 			return ACT_TERROR_HUNTER_POUNCE_MELEE;
+		}
+	}
+
+	// Charger: victims play carried/slam/pounded animations; chargers play stagger/slam/pound animations.
+	if ( m_pPlayer )
+	{
+		if ( m_pPlayer->m_chargerAttacker.Get() )
+		{
+			switch ( m_pPlayer->m_nChargerVictimAction )
+			{
+			case CHARGER_VICTIM_SLAMMED_GROUND:
+				return ACT_TERROR_SLAMMED_GROUND;
+			case CHARGER_VICTIM_POUNDED_DOWN:
+				return ACT_TERROR_CHARGER_POUNDED_DOWN;
+			case CHARGER_VICTIM_CARRIED:
+			default:
+				return ACT_TERROR_CARRIED;
+			}
+		}
+
+		if ( m_pPlayer->GetTeamNumber() == TEAM_INFECTED && m_pPlayer->GetZombieClass() == 6 )
+		{
+			if ( m_pPlayer->m_nChargerAction == CHARGER_ACTION_STAGGER )
+			{
+				switch ( m_pPlayer->m_nChargerStaggerDir )
+				{
+				case CHARGER_STAGGER_DIR_LEFT:
+					return ACT_TERROR_SHOVED_LEFTWARD_INTO_WALL;
+				case CHARGER_STAGGER_DIR_RIGHT:
+					return ACT_TERROR_SHOVED_RIGHTWARD_INTO_WALL;
+				case CHARGER_STAGGER_DIR_BACK:
+				default:
+					return ACT_TERROR_SHOVED_BACKWARD_INTO_WALL;
+				}
+			}
+
+			if ( m_pPlayer->m_nChargerAction == CHARGER_ACTION_SLAM )
+			{
+				return ACT_TERROR_SLAM_GROUND;
+			}
+
+			if ( m_pPlayer->m_nChargerAction == CHARGER_ACTION_POUND )
+			{
+				CCSPlayer *victim = m_pPlayer->m_chargerVictim.Get();
+				if ( victim )
+				{
+					const int survivorClass = victim->GetSurvivorClass();
+					if ( survivorClass == 1 )
+						return ACT_TERROR_CHARGER_POUND_DOWN_COACH;
+					if ( survivorClass == 3 )
+						return ACT_TERROR_CHARGER_POUND_DOWN_PRODUCER;
+				}
+				return ACT_TERROR_CHARGER_POUND_DOWN;
+			}
+		}
+
+		if ( m_pPlayer->GetTeamNumber() == TEAM_INFECTED && m_pPlayer->GetZombieClass() == 8 )
+		{
+			if ( m_pPlayer->m_nTankAction == TANK_ACTION_ROCK_THROW )
+			{
+				return ACT_TANK_OVERHEAD_THROW;
+			}
 		}
 	}
 

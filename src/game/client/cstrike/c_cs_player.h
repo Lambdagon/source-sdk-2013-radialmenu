@@ -283,11 +283,19 @@ public:
 
 	// Survivor incapacitation (networked).
 	CNetworkVar( bool, m_bIncapacitated );
+	CNetworkVar( bool, m_bBeingRevived );
 	CNetworkVar( int, m_nIncapacitationCount );
 	CNetworkVar( bool, m_bIncapBlackAndWhite );
 
 	EHANDLE	m_pounceVictim;
 	EHANDLE	m_pounceAttacker;
+
+	EHANDLE	m_chargerVictim;
+	EHANDLE	m_chargerAttacker;
+	CNetworkVar( int, m_nChargerAction );
+	CNetworkVar( int, m_nChargerVictimAction );
+	CNetworkVar( int, m_nChargerStaggerDir );
+	CNetworkVar( int, m_nTankAction );
 
 	CWeaponCSBase* GetActiveCSWeapon() const;
 	CWeaponCSBase* GetCSWeapon( CSWeaponID id ) const;
