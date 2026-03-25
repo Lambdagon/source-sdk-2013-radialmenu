@@ -1871,6 +1871,7 @@ public:
 
 		// respond to the danger modulated by our aggression (even super-aggressives pay SOME attention to danger)
 		float dangerFactor = (1.0f - (0.95f * m_bot->GetProfile()->GetAggression())) * baseDangerFactor;
+		const bool bIsSurvivorBot = ( m_bot->GetTeamNumber() == TEAM_SURVIVOR );
 
 		if (fromArea == NULL)
 		{
@@ -1879,6 +1880,12 @@ public:
 
 			// first area in path, cost is just danger
 			return dangerFactor * area->GetDanger( m_bot->GetTeamNumber() );
+		}
+
+		// Survivor bots should avoid damaging areas (and strongly avoid being near them).
+		if ( bIsSurvivorBot && area->IsDamaging() )
+		{
+			return -1.0f;
 		}
 		else if ((fromArea->GetAttributes() & NAV_MESH_JUMP) && (area->GetAttributes() & NAV_MESH_JUMP))
 		{
@@ -1915,6 +1922,83 @@ public:
 			// zombies ignore all path penalties
 			if (cv_bot_zombie.GetBool())
 				return cost;
+
+			if ( bIsSurvivorBot )
+			{
+				const float nearDamagingPenalty1 = 1000000.0f;
+				const float nearDamagingPenalty2 = 250000.0f;
+
+				auto IsNearDamagingDepth1 = []( CNavArea *checkArea ) -> bool
+				{
+					if ( !checkArea )
+						return false;
+
+					for ( int dir = 0; dir < NUM_DIRECTIONS; ++dir )
+					{
+						const NavDirType ndir = (NavDirType)dir;
+						for ( int i = 0; i < checkArea->GetAdjacentCount( ndir ); ++i )
+						{
+							CNavArea *adj = checkArea->GetAdjacentArea( ndir, i );
+							if ( adj && adj->IsDamaging() )
+								return true;
+						}
+
+						const NavConnectVector *incoming = checkArea->GetIncomingConnections( ndir );
+						if ( incoming )
+						{
+							for ( int i = 0; i < incoming->Count(); ++i )
+							{
+								CNavArea *adj = ( *incoming )[i].area;
+								if ( adj && adj->IsDamaging() )
+									return true;
+							}
+						}
+					}
+
+					return false;
+				};
+
+				auto IsNearDamagingDepth2 = [&]( CNavArea *checkArea ) -> bool
+				{
+					if ( !checkArea )
+						return false;
+
+					for ( int dir = 0; dir < NUM_DIRECTIONS; ++dir )
+					{
+						const NavDirType ndir = (NavDirType)dir;
+
+						for ( int i = 0; i < checkArea->GetAdjacentCount( ndir ); ++i )
+						{
+							CNavArea *adj = checkArea->GetAdjacentArea( ndir, i );
+							if ( adj && IsNearDamagingDepth1( adj ) )
+								return true;
+						}
+
+						const NavConnectVector *incoming = checkArea->GetIncomingConnections( ndir );
+						if ( incoming )
+						{
+							for ( int i = 0; i < incoming->Count(); ++i )
+							{
+								CNavArea *adj = ( *incoming )[i].area;
+								if ( adj && IsNearDamagingDepth1( adj ) )
+									return true;
+							}
+						}
+					}
+
+					return false;
+				};
+
+				// Apply a huge penalty if we're close to damaging nav so bots keep a wide berth.
+				if ( IsNearDamagingDepth1( area ) )
+				{
+					cost += nearDamagingPenalty1;
+				}
+				else if ( IsNearDamagingDepth2( area ) )
+				{
+					cost += nearDamagingPenalty2;
+				}
+			}
 
 			// add cost of "jump down" pain unless we're jumping into water
 			if (!area->IsUnderwater() && area->IsConnected( fromArea, NUM_DIRECTIONS ) == false)

@@ -88,11 +88,11 @@ static ConVar z_special_respawn_time( "z_special_respawn_time", "20", FCVAR_GAME
  static ConVar z_special_kick_dead_delay( "z_special_kick_dead_delay", "5", FCVAR_GAMEDLL, "Seconds after death before a special infected bot is kicked.", true, 0.0f, true, 60.0f );
  static ConVar z_special_spawn_retry_delay( "z_special_spawn_retry_delay", "1.0", FCVAR_GAMEDLL, "Seconds before retrying a failed special infected spawn attempt.", true, 0.1f, true, 30.0f );
 
-// Tank director: rare tank spawns based on survivor movement.
-static ConVar z_special_tank_spawn_enabled( "z_special_tank_spawn_enabled", "1", FCVAR_GAMEDLL, "If 1, survivors moving around the map have a rare chance to trigger a tank spawn." );
-static ConVar z_special_tank_spawn_distance( "z_special_tank_spawn_distance", "3500", FCVAR_GAMEDLL, "Distance (units) survivors must travel (as a group) before rolling for a tank spawn.", true, 256.0f, true, 50000.0f );
-static ConVar z_special_tank_spawn_chance( "z_special_tank_spawn_chance", "0.02", FCVAR_GAMEDLL, "Chance to spawn a tank each time survivors travel z_special_tank_spawn_distance.", true, 0.0f, true, 1.0f );
+// Tank director: spawn tanks near authored map anchors when survivors approach them.
+static ConVar z_special_tank_spawn_enabled( "z_special_tank_spawn_enabled", "1", FCVAR_GAMEDLL, "If 1, tanks can spawn near authored tank spawn anchors when survivors approach them." );
 static ConVar z_special_tank_spawn_cooldown( "z_special_tank_spawn_cooldown", "180", FCVAR_GAMEDLL, "Minimum seconds between successful tank spawns.", true, 0.0f, true, 3600.0f );
+static ConVar z_tank_spawn_proximity_radius( "z_tank_spawn_proximity_radius", "1400", FCVAR_GAMEDLL, "How close survivors must be to a tank spawn anchor before a tank can spawn there.", true, 128.0f, true, 10000.0f );
+static ConVar z_tank_spawn_search_radius( "z_tank_spawn_search_radius", "900", FCVAR_GAMEDLL, "How far from a tank spawn anchor to search for a valid tank spawn point.", true, 128.0f, true, 5000.0f );
 
 // Tank human takeover: if a tank bot exists and there are human infected, hand the tank to a random human.
 static ConVar z_tank_human_takeover_enabled( "z_tank_human_takeover_enabled", "1", FCVAR_GAMEDLL, "If 1, when a tank bot exists and there are human infected players, a random human is told they'll become the tank and takes over within a short delay." );
@@ -105,19 +105,17 @@ static ConVar sv_listen_host_autojoin_bot_retry_delay( "sv_listen_host_autojoin_
 
 // Common infected director (server-side): keep a population of NPC infected near the survivors.
 static ConVar z_spawn_enabled( "z_spawn_enabled", "1", FCVAR_GAMEDLL, "If 1, the director spawns common infected NPCs near survivors." );
+static ConVar z_horde_interval_min( "z_horde_interval_min", "60", FCVAR_GAMEDLL, "Minimum seconds between common infected horde events.", true, 1.0f, true, 3600.0f );
+static ConVar z_horde_interval_max( "z_horde_interval_max", "240", FCVAR_GAMEDLL, "Maximum seconds between common infected horde events.", true, 1.0f, true, 3600.0f );
+static ConVar z_horde_duration_min( "z_horde_duration_min", "60", FCVAR_GAMEDLL, "Minimum seconds a common infected horde lasts.", true, 1.0f, true, 3600.0f );
+static ConVar z_horde_duration_max( "z_horde_duration_max", "240", FCVAR_GAMEDLL, "Maximum seconds a common infected horde lasts.", true, 1.0f, true, 3600.0f );
+static ConVar z_horde_spawn_batch( "z_horde_spawn_batch", "40", FCVAR_GAMEDLL, "Maximum number of common infected to spawn per batch while a horde is active.", true, 1.0f, true, 128.0f );
 static ConVar z_spawn_radius( "z_spawn_radius", "3000", FCVAR_GAMEDLL, "How far (units) to search nav areas around a survivor for spawning common infected.", true, 256.0f, true, 20000.0f );
 static ConVar z_spawn_safety_radius( "z_spawn_safety_radius", "350", FCVAR_GAMEDLL, "Minimum distance (units) from a survivor when spawning common infected.", true, 0.0f, true, 10000.0f );
 static ConVar z_common_max( "z_common_limit", "30", FCVAR_GAMEDLL, "Maximum number of common infected NPCs on the map.", true, 0.0f, true, 200.0f );
 static ConVar z_spawn_interval( "z_spawn_interval", "0.35", FCVAR_GAMEDLL, "Seconds between common infected spawn batches.", true, 0.05f, true, 10.0f );
 static ConVar z_spawn_batch( "z_spawn_batch", "20", FCVAR_GAMEDLL, "Maximum number of common infected to spawn per spawn batch.", true, 1.0f, true, 30.0f );
 static ConVar z_spawn_require_hidden( "z_spawn_require_hidden", "1", FCVAR_GAMEDLL, "If 1, common infected spawn points must be hidden from survivor line-of-sight." );
-
-// Common infected population shaping: by default, large nav areas are kept less populated than small areas.
-// There's a rare chance for large areas to temporarily use the normal population cap (i.e., become "highly populated").
-static ConVar z_common_large_area_extent_threshold( "z_common_large_area_extent_threshold", "260", FCVAR_GAMEDLL, "If the anchor survivor's nearest nav area has an average extent ( (sizeX+sizeY)/2 ) >= this (units), treat it as a 'large area' for common infected population shaping. Set 0 to disable.", true, 0.0f, true, 10000.0f );
-static ConVar z_common_large_area_population_scale( "z_common_large_area_population_scale", "0.45", FCVAR_GAMEDLL, "When in a large area (as defined by z_common_large_area_extent_threshold) and not in a rare high-population event, scale the common infected population cap by this (0..1).", true, 0.0f, true, 1.0f );
-static ConVar z_common_large_area_highpop_chance( "z_common_large_area_highpop_chance", "0.01", FCVAR_GAMEDLL, "Chance (0..1) each common-infected spawn think, while in a large area, to temporarily allow full common infected population (i.e., large areas can rarely be highly populated too).", true, 0.0f, true, 1.0f );
-static ConVar z_common_large_area_highpop_duration( "z_common_large_area_highpop_duration", "12.0", FCVAR_GAMEDLL, "Seconds a successful large-area high-population event lasts.", true, 0.0f, true, 120.0f );
 
 // Background/logo maps: populate with wandering infected even when there are no survivors.
 static ConVar z_background_populate_enabled( "z_background_populate_enabled", "1", FCVAR_GAMEDLL, "If 1 and the map is a background/logo map, populate it with wandering infected." );
@@ -129,11 +127,8 @@ static ConVar z_background_special_limit( "z_background_special_limit", "6", FCV
 static ConVar survivor_squad_enabled( "survivor_squad_enabled", "1", FCVAR_GAMEDLL, "If 1, survivor bots form a squad and follow a leader (prefer a human player)." );
 static ConVar survivor_squad_update_interval( "survivor_squad_update_interval", "0.2", FCVAR_GAMEDLL, "Seconds between survivor squad follow updates.", true, 0.05f, true, 10.0f );
 
- static float s_flNextSpecialInfectedSpawn = 0.0f;
+static float s_flNextSpecialInfectedSpawn = 0.0f;
 static float s_flNextTankSpawnAllowed = 0.0f;
-static float s_flTankMoveAccumulator = 0.0f;
-static Vector s_vecLastSurvivorCenter( vec3_origin );
-static bool s_bHasLastSurvivorCenter = false;
 
 static EHANDLE s_hTankTakeoverTankBot;
 static EHANDLE s_hTankTakeoverHuman;
@@ -151,7 +146,8 @@ static int s_nListenHostAutoJoinBotsRemaining = 0;
 static float s_flListenHostAutoJoinNextBotTry = 0.0f;
 
 static float s_flNextCommonInfectedSpawn = 0.0f;
-static float s_flCommonLargeAreaHighPopUntil = 0.0f;
+static float s_flNextCommonHordeStart = 0.0f;
+static float s_flCommonHordeEndTime = 0.0f;
 static float s_flNextSurvivorSquadUpdate = 0.0f;
 static EHANDLE s_hSurvivorSquadLeader;
 
@@ -164,9 +160,10 @@ static float s_flNextLeavingSafetyCheck = 0.0f;
 static CUtlVector< Vector > s_vecSurvivorSpawnPoints;
 static bool s_bSurvivorSpawnPointsBuilt = false;
 
-// "IT" survivor (covered in boomer vomit) that infected should focus.
+// "IT" survivors (covered in boomer vomit) that infected should focus.
 static EHANDLE s_hItSurvivor;
-static float s_flItExpireTime = 0.0f;
+static EHANDLE s_hItSurvivors[ MAX_PLAYERS + 1 ];
+static float s_flItExpireTimeByPlayer[ MAX_PLAYERS + 1 ] = { 0.0f };
 
  static CCSPlayer *SelectRandomAliveSurvivorT( void )
  {
@@ -358,47 +355,146 @@ static void UpdateLeavingSafetyMusic_NoMercy()
 	}
 }
 
+static bool IsValidItSurvivor( CCSPlayer *player )
+{
+	if ( !player )
+		return false;
+
+	if ( player->GetTeamNumber() != TEAM_TERRORIST )
+		return false;
+
+	if ( !player->IsAlive() )
+		return false;
+
+	return true;
+}
+
+static void ClearAllItSurvivors( void )
+{
+	for ( int i = 0; i < ARRAYSIZE( s_flItExpireTimeByPlayer ); ++i )
+	{
+		CCSPlayer *player = ToCSPlayer( s_hItSurvivors[i].Get() );
+		if ( player )
+		{
+			player->m_bIsIT = false;
+		}
+
+		s_hItSurvivors[i] = NULL;
+		s_flItExpireTimeByPlayer[i] = 0.0f;
+	}
+
+	s_hItSurvivor = NULL;
+}
+
+static bool IsAliveItSurvivorActive( CCSPlayer *player )
+{
+	if ( !gpGlobals || !IsValidItSurvivor( player ) )
+		return false;
+
+	const int playerIndex = player->entindex();
+	if ( playerIndex <= 0 || playerIndex >= ARRAYSIZE( s_flItExpireTimeByPlayer ) )
+		return false;
+
+	if ( ToCSPlayer( s_hItSurvivors[ playerIndex ].Get() ) != player )
+		return false;
+
+	const float flExpireTime = s_flItExpireTimeByPlayer[ playerIndex ];
+	return flExpireTime > gpGlobals->curtime;
+}
+
+static void PruneExpiredItSurvivors( void )
+{
+	if ( !gpGlobals )
+	{
+		ClearAllItSurvivors();
+		return;
+	}
+
+	for ( int i = 1; i < ARRAYSIZE( s_flItExpireTimeByPlayer ); ++i )
+	{
+		if ( s_flItExpireTimeByPlayer[i] <= 0.0f )
+			continue;
+
+		CCSPlayer *player = ToCSPlayer( s_hItSurvivors[i].Get() );
+		if ( !IsAliveItSurvivorActive( player ) )
+		{
+			if ( player )
+			{
+				player->m_bIsIT = false;
+			}
+
+			s_hItSurvivors[i] = NULL;
+			s_flItExpireTimeByPlayer[i] = 0.0f;
+		}
+	}
+
+	CCSPlayer *preferred = ToCSPlayer( s_hItSurvivor.Get() );
+	if ( !IsAliveItSurvivorActive( preferred ) )
+	{
+		s_hItSurvivor = NULL;
+	}
+}
+
 static CCSPlayer *GetAliveItSurvivorOrNull( void )
 {
-	CCSPlayer *it = ToCSPlayer( s_hItSurvivor.Get() );
-	if ( !it )
-		return NULL;
+	PruneExpiredItSurvivors();
 
-	if ( it->GetTeamNumber() != TEAM_TERRORIST )
-		return NULL;
+	CCSPlayer *preferred = ToCSPlayer( s_hItSurvivor.Get() );
+	if ( IsAliveItSurvivorActive( preferred ) )
+		return preferred;
 
-	if ( !it->IsAlive() )
-		return NULL;
+	for ( int i = 1; i < ARRAYSIZE( s_flItExpireTimeByPlayer ); ++i )
+	{
+		if ( s_flItExpireTimeByPlayer[i] <= 0.0f )
+			continue;
 
-	if ( s_flItExpireTime > 0.0f && gpGlobals && gpGlobals->curtime >= s_flItExpireTime )
-		return NULL;
+		CCSPlayer *player = ToCSPlayer( s_hItSurvivors[i].Get() );
+		if ( !IsAliveItSurvivorActive( player ) )
+			continue;
 
-	return it;
+		s_hItSurvivor = player;
+		return player;
+	}
+
+	return NULL;
 }
 
 void CCSGameRules::SetItTarget( CCSPlayer *target, float durationSeconds )
 {
 	if ( !gpGlobals )
 	{
-		s_hItSurvivor = NULL;
-		s_flItExpireTime = 0.0f;
+		ClearAllItSurvivors();
 		return;
 	}
 
-	if ( !target || !target->IsAlive() || target->GetTeamNumber() != TEAM_TERRORIST )
+	if ( !target )
 	{
-		s_hItSurvivor = NULL;
-		s_flItExpireTime = 0.0f;
+		ClearAllItSurvivors();
 		return;
 	}
+
+	if ( !IsValidItSurvivor( target ) )
+		return;
+
+	const int playerIndex = target->entindex();
+	if ( playerIndex <= 0 || playerIndex >= ARRAYSIZE( s_flItExpireTimeByPlayer ) )
+		return;
 
 	s_hItSurvivor = target;
-	s_flItExpireTime = gpGlobals->curtime + MAX( 0.1f, durationSeconds );
+	s_hItSurvivors[ playerIndex ] = target;
+	s_flItExpireTimeByPlayer[ playerIndex ] = gpGlobals->curtime + MAX( 0.1f, durationSeconds );
+	target->m_bIsIT = true;
 }
 
 CCSPlayer *CCSGameRules::GetItTarget( void ) const
 {
 	return GetAliveItSurvivorOrNull();
+}
+
+bool CCSGameRules::IsItTarget( CCSPlayer *target ) const
+{
+	PruneExpiredItSurvivors();
+	return IsAliveItSurvivorActive( target );
 }
 
 bool CCSGameRules::IsItActive( void ) const
@@ -547,7 +643,14 @@ static void ApplyTankLoadout( CCSPlayer *player, int desiredHealth )
 
 	player->SetSurvivorClass( 0 );
 	player->SetZombieClass( 8 );
-	player->SetModel( "models/infected/hulk.mdl" );
+	if ( survivor_set.GetInt() == 1 )
+	{
+		player->SetModel( "models/infected/hulk_l4d1.mdl" );
+	}
+	else
+	{
+		player->SetModel( "models/infected/hulk.mdl" );
+	}
 
 	const int maxHealth = 6000;
 	player->SetMaxHealth( maxHealth );
@@ -885,26 +988,6 @@ static bool IsWithinRadiusOfAnySurvivor( const CUtlVector< CCSPlayer * > &surviv
 	return false;
 }
 
-static int CountAliveCommonInfected( const CUtlVector< CCSPlayer * > &survivors, float radius )
-{
-	const float radiusSqr = radius * radius;
-
-	int count = 0;
-	CBaseEntity *ent = NULL;
-	while ( ( ent = gEntList.FindEntityByClassname( ent, "infected" ) ) != NULL )
-	{
-		CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( ent );
-		if ( !combat || !combat->IsAlive() )
-			continue;
-
-		if ( !IsWithinRadiusOfAnySurvivor( survivors, ent->GetAbsOrigin(), radiusSqr ) )
-			continue;
-
-		++count;
-	}
-	return count;
-}
-
 static void CullFarCommonInfected( const CUtlVector< CCSPlayer * > &survivors, float radius, int maxToCull )
 {
 	const float radiusSqr = radius * radius;
@@ -925,6 +1008,43 @@ static void CullFarCommonInfected( const CUtlVector< CCSPlayer * > &survivors, f
 	}
 }
 
+static void CullExcessCommonInfectedGlobal( const CUtlVector< CCSPlayer * > *survivors, int maxAlive )
+{
+	maxAlive = MAX( 0, maxAlive );
+
+	int aliveCommon = CountAliveCommonInfectedGlobal();
+	if ( aliveCommon <= maxAlive )
+		return;
+
+	if ( survivors && survivors->Count() > 0 )
+	{
+		CBaseEntity *ent = NULL;
+		while ( aliveCommon > maxAlive && ( ent = gEntList.FindEntityByClassname( ent, "infected" ) ) != NULL )
+		{
+			CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( ent );
+			if ( !combat || !combat->IsAlive() )
+				continue;
+
+			if ( IsWithinRadiusOfAnySurvivor( *survivors, ent->GetAbsOrigin(), 1.0f ) )
+				continue;
+
+			UTIL_Remove( ent );
+			--aliveCommon;
+		}
+	}
+
+	CBaseEntity *ent = NULL;
+	while ( aliveCommon > maxAlive && ( ent = gEntList.FindEntityByClassname( ent, "infected" ) ) != NULL )
+	{
+		CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( ent );
+		if ( !combat || !combat->IsAlive() )
+			continue;
+
+		UTIL_Remove( ent );
+		--aliveCommon;
+	}
+}
+
 static CCSPlayer *PickCommonInfectedAnchorSurvivor( const CUtlVector< CCSPlayer * > &survivors )
 {
 	// Prefer the "IT" survivor if active; otherwise pick a random survivor as the anchor.
@@ -936,24 +1056,65 @@ static CCSPlayer *PickCommonInfectedAnchorSurvivor( const CUtlVector< CCSPlayer 
 	return survivor;
 }
 
-static bool IsCommonInfectedAnchorInLargeNavArea( CCSPlayer *survivor )
+static float GetRandomHordeInterval( void )
 {
-	if ( !survivor )
-		return false;
+	float flMin = MAX( 1.0f, z_horde_interval_min.GetFloat() );
+	float flMax = MAX( flMin, z_horde_interval_max.GetFloat() );
+	return random->RandomFloat( flMin, flMax );
+}
 
-	const float threshold = z_common_large_area_extent_threshold.GetFloat();
-	if ( threshold <= 0.0f )
-		return false;
+static float GetRandomHordeDuration( void )
+{
+	float flMin = MAX( 1.0f, z_horde_duration_min.GetFloat() );
+	float flMax = MAX( flMin, z_horde_duration_max.GetFloat() );
+	return random->RandomFloat( flMin, flMax );
+}
 
-	if ( !TheNavMesh || !TheNavMesh->IsLoaded() || TheNavMesh->IsGenerating() )
-		return false;
+static bool IsCommonInfectedHordeActive( void )
+{
+	return ( gpGlobals != NULL ) && ( s_flCommonHordeEndTime > gpGlobals->curtime );
+}
 
-	CNavArea *area = TheNavMesh->GetNearestNavArea( survivor->GetAbsOrigin() );
-	if ( !area )
-		return false;
+static void ScheduleNextCommonInfectedHorde( float flBaseTime )
+{
+	s_flNextCommonHordeStart = flBaseTime + GetRandomHordeInterval();
+}
 
-	const float extent = ( area->GetSizeX() + area->GetSizeY() ) * 0.5f;
-	return ( extent >= threshold );
+static void StartCommonInfectedHorde( bool bImmediateSpawn )
+{
+	if ( !gpGlobals )
+		return;
+
+	s_flCommonHordeEndTime = MAX( s_flCommonHordeEndTime, gpGlobals->curtime + GetRandomHordeDuration() );
+	s_flNextCommonHordeStart = 0.0f;
+
+	if ( bImmediateSpawn )
+	{
+		s_flNextCommonInfectedSpawn = gpGlobals->curtime;
+	}
+}
+
+static void DirectCommonInfectedAtSurvivor( CBaseEntity *ent, CCSPlayer *target )
+{
+	if ( !ent || !target || !target->IsAlive() )
+		return;
+
+	CAI_BaseNPC *npc = ent->MyNPCPointer();
+	if ( !npc )
+		return;
+
+	npc->SetEnemy( target );
+	npc->UpdateEnemyMemory( target, target->GetAbsOrigin() );
+	npc->SetSchedule( SCHED_CHASE_ENEMY );
+}
+
+static void DirectCommonInfectedAtRandomSurvivor( CBaseEntity *ent, const CUtlVector< CCSPlayer * > &survivors )
+{
+	if ( !ent || survivors.Count() <= 0 )
+		return;
+
+	CCSPlayer *target = survivors[ random->RandomInt( 0, survivors.Count() - 1 ) ];
+	DirectCommonInfectedAtSurvivor( ent, target );
 }
 
 static bool FindCommonInfectedSpawnPosNearSurvivor( CCSPlayer *survivor, float maxDist, Vector *outPos, QAngle *outAngles )
@@ -1110,6 +1271,120 @@ static bool FindCommonInfectedSpawnPos( const CUtlVector< CCSPlayer * > &survivo
 	return false;
 }
 
+static bool IsTankSpawnAnchorEntity( CBaseEntity *ent )
+{
+	if ( !ent || V_stricmp( ent->GetClassname(), "info_target" ) != 0 )
+		return false;
+
+	if ( ent->GetEntityName() == NULL_STRING )
+		return false;
+
+	const char *pszName = STRING( ent->GetEntityName() );
+	if ( !pszName || !pszName[0] )
+		return false;
+
+	return ( Q_strnicmp( pszName, "tank_spawn", 10 ) == 0 ) || ( Q_strnicmp( pszName, "tankspawn", 9 ) == 0 );
+}
+
+static bool PickTankSpawnAnchorNearSurvivors( const CUtlVector< CCSPlayer * > &survivors, Vector *outAnchor )
+{
+	if ( !outAnchor || survivors.Count() <= 0 )
+		return false;
+
+	const float flProximitySqr = z_tank_spawn_proximity_radius.GetFloat() * z_tank_spawn_proximity_radius.GetFloat();
+	int nEligibleCount = 0;
+
+	for ( CBaseEntity *ent = NULL; ( ent = gEntList.FindEntityByClassname( ent, "info_target" ) ) != NULL; )
+	{
+		if ( !IsTankSpawnAnchorEntity( ent ) )
+			continue;
+
+		if ( !IsWithinRadiusOfAnySurvivor( survivors, ent->GetAbsOrigin(), flProximitySqr ) )
+			continue;
+
+		++nEligibleCount;
+		if ( random->RandomInt( 1, nEligibleCount ) == 1 )
+		{
+			*outAnchor = ent->GetAbsOrigin();
+		}
+	}
+
+	return ( nEligibleCount > 0 );
+}
+
+static bool FindTankSpawnPosNearAnchor( const Vector &anchor, const CUtlVector< CCSPlayer * > &survivors, Vector *outPos, QAngle *outAngles )
+{
+	if ( !outPos || !outAngles || survivors.Count() <= 0 )
+		return false;
+
+	if ( !TheNavMesh || !TheNavMesh->IsLoaded() || TheNavMesh->IsGenerating() )
+		return false;
+
+	const float flSearchRadius = MAX( 128.0f, z_tank_spawn_search_radius.GetFloat() );
+	const float flMinSurvivorDist = z_special_spawn_safety_radius.GetFloat();
+	const float flMinSurvivorDistSqr = flMinSurvivorDist * flMinSurvivorDist;
+
+	NavAreaCollector collector;
+	TheNavMesh->ForAllAreasInRadius( collector, anchor, flSearchRadius );
+
+	CUtlVector< CNavArea * > candidates;
+	candidates.EnsureCapacity( collector.m_area.Count() );
+
+	FOR_EACH_VEC( collector.m_area, it )
+	{
+		CNavArea *area = collector.m_area[ it ];
+		if ( !area || area->IsBlocked( TEAM_ANY ) )
+			continue;
+
+		if ( area->GetCenter().DistTo( anchor ) > flSearchRadius )
+			continue;
+
+		candidates.AddToTail( area );
+	}
+
+	const int maxAreaAttempts = 64;
+	const int maxPointAttemptsPerArea = 10;
+
+	for ( int attempt = 0; attempt < maxAreaAttempts && candidates.Count() > 0; ++attempt )
+	{
+		const int index = random->RandomInt( 0, candidates.Count() - 1 );
+		CNavArea *area = candidates[ index ];
+		candidates.FastRemove( index );
+		if ( !area )
+			continue;
+
+		for ( int pointAttempt = 0; pointAttempt < maxPointAttemptsPerArea; ++pointAttempt )
+		{
+			Vector pos = area->GetRandomPoint();
+			if ( pos.DistTo( anchor ) > flSearchRadius )
+				continue;
+
+			if ( IsWithinRadiusOfAnySurvivor( survivors, pos, flMinSurvivorDistSqr ) )
+				continue;
+
+			if ( !IsHiddenSpawnFromAllSurvivorsLOS( pos ) )
+				continue;
+
+			Vector jittered = pos;
+			jittered.x += random->RandomFloat( -75.0f, 75.0f );
+			jittered.y += random->RandomFloat( -75.0f, 75.0f );
+			area->GetClosestPointOnArea( jittered, &pos );
+			pos.z = area->GetZ( pos );
+
+			CCSPlayer *target = survivors[ random->RandomInt( 0, survivors.Count() - 1 ) ];
+			Vector toSurvivor = target->GetAbsOrigin() - pos;
+			toSurvivor.z = 0.0f;
+			VectorAngles( toSurvivor, *outAngles );
+			outAngles->x = 0.0f;
+			outAngles->z = 0.0f;
+			*outPos = pos;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static bool IsEntityHullClearAt( CBaseEntity *ent, const Vector &pos, const Vector &mins, const Vector &maxs )
 {
 	if ( !ent )
@@ -1178,15 +1453,18 @@ void CCSGameRules::OnSurvivorVomited( CCSPlayer *victim, CCSPlayer *attacker )
 {
 	if ( !victim || !victim->IsAlive() || victim->GetTeamNumber() != TEAM_TERRORIST )
 		return;
-	if (GetItTarget() == victim)
-		return;
 
-	// Keep the "IT" target for roughly the full on-screen effect duration.
-	ConVarRef z_vomit_fade_start( "z_vomit_fade_start" );
-	ConVarRef z_vomit_fade_duration( "z_vomit_fade_duration" );
-	const float duration = MAX( 1.0f,
-		( z_vomit_fade_start.IsValid() ? z_vomit_fade_start.GetFloat() : 5.0f ) +
-		( z_vomit_fade_duration.IsValid() ? z_vomit_fade_duration.GetFloat() : 5.0f ) );
+	const float duration = 20.0f;
+
+	// Boomer vomit can immediately trigger or refresh a horde.
+	StartCommonInfectedHorde( true );
+
+	if ( IsItTarget( victim ) )
+	{
+		SetItTarget( victim, duration );
+		return;
+	}
+
 	victim->SpeakConceptIfAllowed(MP_CONCEPT_JARATE_HIT);
 	SetItTarget( victim, duration );
 
@@ -1228,12 +1506,16 @@ void CCSGameRules::OnSurvivorVomited( CCSPlayer *victim, CCSPlayer *attacker )
 		CAI_BaseNPC *npc = ent->MyNPCPointer();
 		if ( npc )
 		{
-			npc->SetEnemy( victim );
-			npc->UpdateEnemyMemory( victim, victim->GetAbsOrigin() );
-			npc->SetSchedule( SCHED_CHASE_ENEMY );
+			DirectCommonInfectedAtSurvivor( ent, victim );
 		}
 
 		ent->Activate();
+
+		if ( CountAliveCommonInfectedGlobal() > MAX( 0, z_common_max.GetInt() ) )
+		{
+			UTIL_Remove( ent );
+			break;
+		}
 	}
 
 	// Nudge special infected to focus too.
@@ -1262,8 +1544,31 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 	// Don't spawn during freeze time or while the round is being restarted.
 	if ( rules->IsFreezePeriod() || isRestartingRound )
 	{
+		s_flCommonHordeEndTime = 0.0f;
+		if ( isRestartingRound )
+		{
+			s_flNextCommonHordeStart = 0.0f;
+		}
 		s_flNextCommonInfectedSpawn = gpGlobals->curtime + 1.0f;
 		return;
+	}
+
+	const bool bHordeActive = IsCommonInfectedHordeActive();
+	if ( !bHordeActive )
+	{
+		if ( s_flCommonHordeEndTime > 0.0f )
+		{
+			s_flCommonHordeEndTime = 0.0f;
+		}
+
+		if ( s_flNextCommonHordeStart <= 0.0f )
+		{
+			ScheduleNextCommonInfectedHorde( gpGlobals->curtime );
+		}
+		else if ( gpGlobals->curtime >= s_flNextCommonHordeStart )
+		{
+			StartCommonInfectedHorde( true );
+		}
 	}
 
 	if ( s_flNextCommonInfectedSpawn <= 0.0f )
@@ -1277,42 +1582,18 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 	CUtlVector< CCSPlayer * > survivors;
 	if ( CollectAliveSurvivorsT( survivors ) <= 0 )
 	{
+		CullExcessCommonInfectedGlobal( NULL, z_common_max.GetInt() );
 		s_flNextCommonInfectedSpawn = gpGlobals->curtime + 0.5f;
 		return;
 	}
 
 	// Remove common infected that are no longer within the population radius, so the director keeps pressure near the survivors.
 	CullFarCommonInfected( survivors, z_spawn_radius.GetFloat(), z_spawn_batch.GetInt() );
+	CullExcessCommonInfectedGlobal( &survivors, z_common_max.GetInt() );
 
-	const int baseMaxCommon = MAX( 0, z_common_max.GetInt() );
-	int maxCommon = baseMaxCommon;
-
-	// Large-area population shaping: large areas normally run with a reduced cap, but rarely flip into a temporary
-	// "high population" mode where they use the normal cap.
 	CCSPlayer *anchor = PickCommonInfectedAnchorSurvivor( survivors );
-	const bool inLargeArea = IsCommonInfectedAnchorInLargeNavArea( anchor );
-	if ( inLargeArea && baseMaxCommon > 0 )
-	{
-		bool highPop = ( gpGlobals->curtime < s_flCommonLargeAreaHighPopUntil );
-		if ( !highPop )
-		{
-			const float chance = clamp( z_common_large_area_highpop_chance.GetFloat(), 0.0f, 1.0f );
-			if ( chance > 0.0f && random->RandomFloat( 0.0f, 1.0f ) < chance )
-			{
-				const float duration = MAX( 0.0f, z_common_large_area_highpop_duration.GetFloat() );
-				s_flCommonLargeAreaHighPopUntil = gpGlobals->curtime + duration;
-				highPop = ( duration > 0.0f );
-			}
-		}
-
-		if ( !highPop )
-		{
-			const float scale = clamp( z_common_large_area_population_scale.GetFloat(), 0.0f, 1.0f );
-			maxCommon = clamp( (int)( baseMaxCommon * scale + 0.5f ), 0, baseMaxCommon );
-		}
-	}
-
-	const int aliveCommon = CountAliveCommonInfected( survivors, z_spawn_radius.GetFloat() );
+	const int maxCommon = MAX( 0, z_common_max.GetInt() );
+	const int aliveCommon = CountAliveCommonInfectedGlobal();
 	const int missing = maxCommon - aliveCommon;
 	if ( missing <= 0 )
 	{
@@ -1320,7 +1601,11 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 		return;
 	}
 
-	const int batch = clamp( z_spawn_batch.GetInt(), 1, 64 );
+	int batch = clamp( z_spawn_batch.GetInt(), 1, 64 );
+	if ( IsCommonInfectedHordeActive() )
+	{
+		batch = clamp( z_horde_spawn_batch.GetInt(), 1, 128 );
+	}
 	const int toSpawn = MIN( missing, batch );
 
 	for ( int i = 0; i < toSpawn; ++i )
@@ -1352,7 +1637,18 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 			continue;
 		}
 
+		if ( IsCommonInfectedHordeActive() )
+		{
+			DirectCommonInfectedAtRandomSurvivor( ent, survivors );
+		}
+
 		ent->Activate();
+
+		if ( CountAliveCommonInfectedGlobal() > maxCommon )
+		{
+			UTIL_Remove( ent );
+			break;
+		}
 	}
 
 	s_flNextCommonInfectedSpawn = gpGlobals->curtime + z_spawn_interval.GetFloat();
@@ -1508,27 +1804,48 @@ static void SurvivorSquadThink( CCSGameRules *rules )
 		bot->RemoveAllWeapons();
 
 		if (bot->GetZombieClass() == 1) {
-			bot->SetModel("models/infected/smoker.mdl");
+			if ( survivor_set.GetInt() == 1 )
+			{
+				bot->SetModel( "models/infected/smoker_l4d1.mdl" );
+			}
+			else
+			{
+				bot->SetModel( "models/infected/smoker.mdl" );
+			}
 			bot->m_iHealth = 250;
 			bot->SetMaxHealth(250);
 			bot->SetMaxSpeed(210);
 		}
 		else if (bot->GetZombieClass() == 2) {
-			// 25% chance for a female boomer (boomette).
-			if ( random->RandomFloat( 0.0f, 1.0f ) < 0.25f )
+			if ( survivor_set.GetInt() == 1 )
 			{
-				bot->SetModel( "models/infected/boomette.mdl" );
+				bot->SetModel( "models/infected/boomer_l4d1.mdl" );
 			}
 			else
 			{
-				bot->SetModel( "models/infected/boomer.mdl" );
+				// 25% chance for a female boomer (boomette).
+				if ( random->RandomFloat( 0.0f, 1.0f ) < 0.25f )
+				{
+					bot->SetModel( "models/infected/boomette.mdl" );
+				}
+				else
+				{
+					bot->SetModel( "models/infected/boomer.mdl" );
+				}
 			}
 			bot->m_iHealth = 50;
 			bot->SetMaxHealth(50);
 			bot->SetMaxSpeed(175);
 		}
 		else if (bot->GetZombieClass() == 3) {
-			bot->SetModel("models/infected/hunter.mdl");
+			if ( survivor_set.GetInt() == 1 )
+			{
+				bot->SetModel( "models/infected/hunter_l4d1.mdl" );
+			}
+			else
+			{
+				bot->SetModel( "models/infected/hunter.mdl" );
+			}
 			bot->m_iHealth = 250;
 			bot->SetMaxHealth(250);
 			bot->SetMaxSpeed(250);
@@ -1551,20 +1868,34 @@ static void SurvivorSquadThink( CCSGameRules *rules )
 			bot->SetMaxHealth(600);
 		}
 		else if (bot->GetZombieClass() == 8) {
-			bot->SetModel("models/infected/hulk.mdl");
+			if ( survivor_set.GetInt() == 1 )
+			{
+				bot->SetModel( "models/infected/hulk_l4d1.mdl" );
+			}
+			else
+			{
+				bot->SetModel( "models/infected/hulk.mdl" );
+			}
 			bot->m_iHealth = 6000;
 			bot->SetMaxHealth(6000);
 			bot->SetMaxSpeed(210);
 		}
 		else {
-			// Fallback to boomer/boomette model selection.
-			if ( random->RandomFloat( 0.0f, 1.0f ) < 0.25f )
+			if ( survivor_set.GetInt() == 1 )
 			{
-				bot->SetModel( "models/infected/boomette.mdl" );
+				bot->SetModel( "models/infected/boomer_l4d1.mdl" );
 			}
 			else
 			{
-				bot->SetModel( "models/infected/boomer.mdl" );
+				// Fallback to boomer/boomette model selection.
+				if ( random->RandomFloat( 0.0f, 1.0f ) < 0.25f )
+				{
+					bot->SetModel( "models/infected/boomette.mdl" );
+				}
+				else
+				{
+					bot->SetModel( "models/infected/boomer.mdl" );
+				}
 			}
 			bot->m_iHealth = 50;
 			bot->SetMaxHealth(50);
@@ -1620,6 +1951,7 @@ static void BackgroundInfectedPopulateThink( CCSGameRules *rules, bool isRestart
 
 	// Spawn common infected up to the normal cap.
 	const int maxCommon = MAX( 0, z_common_max.GetInt() );
+	CullExcessCommonInfectedGlobal( NULL, maxCommon );
 	const int aliveCommon = CountAliveCommonInfectedGlobal();
 	const int missingCommon = maxCommon - aliveCommon;
 	if ( missingCommon > 0 )
@@ -1735,67 +2067,34 @@ static void SpecialInfectedDirectorThink(CCSGameRules* rules, bool isRestartingR
 		}
 	}
 
-	// Tank spawns: roll based on survivor movement.
+	// Tank spawns: use authored map anchors when survivors get close.
 	if (z_special_tank_spawn_enabled.GetBool())
 	{
-		// Reset state while the round is not in normal play.
 		if (rules->IsFreezePeriod() || isRestartingRound)
 		{
-			s_bHasLastSurvivorCenter = false;
-			s_flTankMoveAccumulator = 0.0f;
 			if (isRestartingRound)
 			{
 				s_flNextTankSpawnAllowed = 0.0f;
 			}
 		}
-		else
+		else if ( gpGlobals->curtime >= s_flNextTankSpawnAllowed && !IsAnyAliveTank() )
 		{
-			Vector center;
-			if (GetAliveSurvivorCenter(&center))
+			CUtlVector< CCSPlayer * > survivors;
+			if ( CollectAliveSurvivorsT( survivors ) > 0 )
 			{
-				if (!s_bHasLastSurvivorCenter)
+				Vector anchor;
+				if ( PickTankSpawnAnchorNearSurvivors( survivors, &anchor ) )
 				{
-					s_vecLastSurvivorCenter = center;
-					s_bHasLastSurvivorCenter = true;
-				}
-				else
-				{
-					const float dist2d = (center - s_vecLastSurvivorCenter).Length2D();
-					s_vecLastSurvivorCenter = center;
-
-					// Only count meaningful movement.
-					if (dist2d > 0.1f)
+					Vector spawnPos;
+					QAngle spawnAng;
+					if ( FindTankSpawnPosNearAnchor( anchor, survivors, &spawnPos, &spawnAng ) )
 					{
-						s_flTankMoveAccumulator += dist2d;
-
-						const float rollDistance = z_special_tank_spawn_distance.GetFloat();
-						if (rollDistance > 0.0f && s_flTankMoveAccumulator >= rollDistance)
+						if ( SpawnSpecialInfectedBotAt( spawnPos, spawnAng, 8 ) )
 						{
-							// One roll per distance chunk; reset accumulator whether we succeed or fail.
-							s_flTankMoveAccumulator = 0.0f;
-
-							const bool canSpawnTankNow = (gpGlobals->curtime >= s_flNextTankSpawnAllowed) && !IsAnyAliveTank();
-							if (canSpawnTankNow && random->RandomFloat(0.0f, 1.0f) < z_special_tank_spawn_chance.GetFloat())
-							{
-								CCSPlayer* survivor = SelectRandomAliveSurvivorT();
-								Vector spawnPos;
-								QAngle spawnAng;
-								if (survivor && rules->FindSpecialInfectedSpawnPos(survivor, &spawnPos, &spawnAng))
-								{
-									if (SpawnSpecialInfectedBotAt(spawnPos, spawnAng, 8))
-									{
-										s_flNextTankSpawnAllowed = gpGlobals->curtime + z_special_tank_spawn_cooldown.GetFloat();
-									}
-								}
-							}
+							s_flNextTankSpawnAllowed = gpGlobals->curtime + z_special_tank_spawn_cooldown.GetFloat();
 						}
 					}
 				}
-			}
-			else
-			{
-				s_bHasLastSurvivorCenter = false;
-				s_flTankMoveAccumulator = 0.0f;
 			}
 		}
 	}
@@ -1966,14 +2265,14 @@ static void TankHumanTakeoverThink(CCSGameRules* rules, bool isRestartingRound)
  * player height, but goldsrc-compatible collision bounds.
  */
 static CViewVectors g_CSViewVectors(
-	Vector( 0, 0, 64 ),		// eye position
+	Vector( 0, 0, 62 ),		// eye position
 
 	Vector(-16, -16, 0 ),	// hull min
 	Vector( 16,  16, 62 ),	// hull max
 
 	Vector(-16, -16, 0 ),	// duck hull min
 	Vector( 16,  16, 45 ),	// duck hull max
-	Vector( 0, 0, 47 ),		// duck view
+	Vector( 0, 0, 44 ),		// duck view
 
 	Vector(-10, -10, -10 ),	// observer hull min
 	Vector( 10,  10,  10 ),	// observer hull max
@@ -4418,11 +4717,14 @@ ConVar cl_autohelp(
 
 		// Start common infected + survivor squad fresh each map.
 		s_flNextCommonInfectedSpawn = 0.0f;
+		s_flNextCommonHordeStart = 0.0f;
+		s_flCommonHordeEndTime = 0.0f;
 		s_flNextSurvivorSquadUpdate = 0.0f;
 		s_hSurvivorSquadLeader = NULL;
 
 		// Start background/logo population fresh each map.
 		s_flNextBackgroundPopulate = 0.0f;
+		s_flNextTankSpawnAllowed = 0.0f;
 
 		ResetLeavingSafetyMusicState();
 	}
@@ -4499,6 +4801,10 @@ ConVar cl_autohelp(
 	void CCSGameRules::LevelShutdown()
 	{
 		ResetLeavingSafetyMusicState();
+		s_flNextCommonHordeStart = 0.0f;
+		s_flCommonHordeEndTime = 0.0f;
+		s_flNextCommonInfectedSpawn = 0.0f;
+		s_flNextTankSpawnAllowed = 0.0f;
 
 		int iLevelIndex = GetCSLevelIndex( STRING( gpGlobals->mapname ) );
 
@@ -5734,18 +6040,7 @@ ConVar cl_autohelp(
 
 		UpdateLeavingSafetyMusic_NoMercy();
 
-		// Expire "IT" target if time is up or the survivor is no longer valid.
-		if ( s_hItSurvivor.Get() )
-		{
-			CCSPlayer *it = ToCSPlayer( s_hItSurvivor.Get() );
-			const bool expired = ( s_flItExpireTime > 0.0f && gpGlobals->curtime >= s_flItExpireTime );
-			const bool invalid = ( it == NULL ) || !it->IsAlive() || it->GetTeamNumber() != TEAM_TERRORIST;
-			if ( expired || invalid )
-			{
-				s_hItSurvivor = NULL;
-				s_flItExpireTime = 0.0f;
-			}
-		}
+		PruneExpiredItSurvivors();
 
 		for ( int i = 0; i < GetNumberOfTeams(); i++ )
 		{
@@ -8297,6 +8592,25 @@ CON_COMMAND( z_spawn, "Spawn infected. Usage: z_spawn [common|smoker|boomer|hunt
 	// Special infected are CT bots.
 	if ( zombieClass > 0 )
 	{
+		// If the command client is a dead human infected player, use z_spawn to respawn
+		// them as the requested class instead of creating another infected bot.
+		if ( !player->IsBot() && !player->IsAlive() && player->GetTeamNumber() == TEAM_INFECTED )
+		{
+			player->SetZombieClass( zombieClass );
+			player->SetSpecialInfectedDeathTimestamp( 0.0f );
+			player->RoundRespawn();
+
+			if ( !player->IsAlive() )
+			{
+				Msg( "z_spawn failed to respawn the infected player.\n" );
+				return;
+			}
+
+			Vector vel( vec3_origin );
+			player->Teleport( &spawnPos, &spawnAng, &vel );
+			return;
+		}
+
 		if ( CSGameRules() && CSGameRules()->TeamFull( TEAM_CT ) )
 		{
 			Msg( "z_spawn failed: infected team is full.\n" );
@@ -8344,6 +8658,12 @@ CON_COMMAND( z_spawn, "Spawn infected. Usage: z_spawn [common|smoker|boomer|hunt
 	}
 
 	ent->Activate();
+
+	if ( CountAliveCommonInfectedGlobal() > MAX( 0, z_common_max.GetInt() ) )
+	{
+		UTIL_Remove( ent );
+		Msg( "z_spawn deleted the common infected because z_common_limit was exceeded.\n" );
+	}
 }
 #endif // !CLIENT_DLL
 

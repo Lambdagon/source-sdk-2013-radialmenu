@@ -180,6 +180,14 @@ CREATE_SIMPLE_WEAPON_TABLE(ChargerClaw, weapon_charger_claw);
 CREATE_SIMPLE_WEAPON_TABLE(JockeyClaw, weapon_jockey_claw);
 CREATE_SIMPLE_WEAPON_TABLE(SpitterClaw, weapon_spitter_claw);
 
+static bool IsGhostSpecialInfected( CCSPlayer *player )
+{
+	return player &&
+		   player->IsGhost() &&
+		   player->GetTeamNumber() == TEAM_INFECTED &&
+		   player->GetZombieClass() > 0;
+}
+
 #ifndef CLIENT_DLL
 
 	BEGIN_DATADESC( CKnife )
@@ -575,6 +583,9 @@ void CTankClaw::SecondaryAttack()
 	if ( !owner || !owner->IsAlive() )
 		return;
 
+	if ( IsGhostSpecialInfected( owner ) )
+		return;
+
 	// Only tanks can throw rocks.
 	if ( owner->GetZombieClass() != 8 || owner->GetTeamNumber() != TEAM_INFECTED )
 	{
@@ -605,6 +616,9 @@ void CChargerClaw::PrimaryAttack()
 #else
 	CCSPlayer *owner = GetPlayerOwner();
 	if ( !owner || !owner->IsAlive() )
+		return;
+
+	if ( IsGhostSpecialInfected( owner ) )
 		return;
 
 	// Only chargers can charge.
@@ -774,6 +788,9 @@ void FindHullIntersection( const Vector &vecSrc, trace_t &tr, const Vector &mins
 void CKnife::PrimaryAttack()
 {
 	CCSPlayer *pPlayer = GetPlayerOwner();
+	if ( IsGhostSpecialInfected( pPlayer ) )
+		return;
+
 	if ( pPlayer )
 	{
 #if !defined (CLIENT_DLL)
@@ -816,6 +833,8 @@ void CBoomerClaw::PrimaryAttack()
 	const float interval = MAX(0.05f, z_vomit_interval.GetFloat());
 	CCSPlayer* owner = GetPlayerOwner();
 	if (!owner || !owner->IsAlive())
+		return;
+	if ( IsGhostSpecialInfected( owner ) )
 		return;
 	SendWeaponAnim(ACT_VM_VOMIT_LAYER);
 	DispatchParticleEffect("boomer_vomit", PATTACH_POINT_FOLLOW, owner, 1);
@@ -872,6 +891,8 @@ void CSpitterClaw::PrimaryAttack()
 	CCSPlayer *owner = GetPlayerOwner();
 	if ( !owner || !owner->IsAlive() )
 		return;
+	if ( IsGhostSpecialInfected( owner ) )
+		return;
 
 	SendWeaponAnim( ACT_VM_VOMIT_LAYER );
 	FX_PlantBomb(owner->entindex(), owner->Weapon_ShootPosition(), PLANTBOMB_PLANT);
@@ -917,6 +938,9 @@ void CSpitterClaw::PrimaryAttack()
 void CKnife::SecondaryAttack()
 {
 	CCSPlayer *pPlayer = GetPlayerOwner();
+	if ( IsGhostSpecialInfected( pPlayer ) )
+		return;
+
 	if ( pPlayer && !pPlayer->m_bIsDefusing && !CSGameRules()->IsFreezePeriod() )
 	{
 #if !defined (CLIENT_DLL)
@@ -975,6 +999,9 @@ void CHunterClaw::PrimaryAttack()
 #else
 	CCSPlayer *owner = GetPlayerOwner();
 	if ( !owner || !owner->IsAlive() )
+		return;
+
+	if ( IsGhostSpecialInfected( owner ) )
 		return;
 
 	// Only hunters can lunge/pounce.

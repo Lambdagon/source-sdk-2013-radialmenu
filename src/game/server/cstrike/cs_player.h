@@ -365,6 +365,10 @@ public:
 	void KickSpecialInfectedIfDeadLongEnough( float deadSeconds );
 	float GetSpecialInfectedDeathTimestamp() const { return m_flSpecialInfectedDeathTimestamp; }
 	void SetSpecialInfectedDeathTimestamp( float t ) { m_flSpecialInfectedDeathTimestamp = t; }
+	bool IsGhost( void ) const { return m_bIsGhost; }
+	void SetGhost( bool isGhost );
+	bool CanExitGhost( const char **outMessage = NULL ) const;
+	bool UpdateGhostSpawnFeedback( bool bPrintMessage, bool bPrintReadyMessage = true );
 
 	// Tank (hulk) staged death: play death sequence + root motion, then die for real.
 	bool IsHulkTank( void ) const { return ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 8 ); }
@@ -791,6 +795,8 @@ public:
 	CNetworkHandle( CBaseEntity, m_hRagdoll );	// networked entity handle 
 
 	// Survivor incapacitation.
+	CNetworkVar( bool, m_bIsIT );
+	CNetworkVar( bool, m_bIsGhost );
 	CNetworkVar( bool, m_bIncapacitated );
 	CNetworkVar( bool, m_bBeingRevived );
 	CNetworkVar( int, m_nIncapacitationCount );
@@ -890,6 +896,9 @@ private:
 	bool m_bTankMusicCounted;
 	float m_flPounceStartTime;
 	float m_flNextPounceDamageTime;
+	float m_flNextGhostStatusMessageTime;
+	float m_flGhostMaterializeTime;
+	int m_nGhostSpawnFeedbackState;
 
 	// Charger runtime state (server-only).
 	float m_flNextChargerChargeAllowedTime;
@@ -897,6 +906,8 @@ private:
 	float m_flChargerChargeEndTime;
 	float m_flChargerChargeYaw;
 	float m_flChargerPrevCycle;
+	Vector m_vecChargerTracePos;
+	bool m_bChargerChargeCapturedVictim;
 	CUtlVector< EHANDLE > m_ChargerChargeHitVictims;
 	EHANDLE m_hTankRock;
 	float m_flNextTankRockThrowAllowedTime;

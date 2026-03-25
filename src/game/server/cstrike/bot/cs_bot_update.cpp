@@ -939,7 +939,17 @@ void CCSBot::Update( void )
 	//
 	if (m_enemy != NULL)
 	{
-		if (IsAwareOfEnemyDeath())
+		CCSPlayer *enemyPlayer = ToCSPlayer( m_enemy );
+		if ( GetTeamNumber() == TEAM_SURVIVOR &&
+			 enemyPlayer &&
+			 enemyPlayer->GetTeamNumber() == TEAM_INFECTED &&
+			 enemyPlayer->GetZombieClass() > 0 &&
+			 enemyPlayer->IsGhost() )
+		{
+			m_enemy = NULL;
+			m_isEnemyVisible = false;
+		}
+		else if (IsAwareOfEnemyDeath())
 		{
 			// we have noticed that our enemy has died
 			m_enemy = NULL;

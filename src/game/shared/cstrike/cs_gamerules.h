@@ -161,9 +161,10 @@ public:
 	CCSGameRules();
 	virtual ~CCSGameRules();
 
-	// "IT" target: survivor currently covered in boomer vomit.
+	// "IT" survivors: survivors currently covered in boomer vomit.
 	void SetItTarget( CCSPlayer *target, float durationSeconds );
-	CCSPlayer *GetItTarget( void ) const;
+	CCSPlayer *GetItTarget( void ) const;	// legacy preferred IT target when multiple survivors are IT
+	bool IsItTarget( CCSPlayer *target ) const;
 	bool IsItActive( void ) const;
 	void OnSurvivorVomited( CCSPlayer *victim, CCSPlayer *attacker );
 

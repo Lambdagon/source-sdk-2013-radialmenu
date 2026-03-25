@@ -106,6 +106,7 @@ protected:
 		CSequenceTransitioner* pTransitioner,
 		float flWeightScale
 	);
+	bool ShouldSuppressSurvivorAnimLayers() const;
 private:
 
 	// Current state variables.
@@ -120,6 +121,9 @@ private:
 	bool m_bWasIncapacitated;
 	bool m_bWasBeingRevived;
 	bool m_bIncapDyingFinished;
+	int m_nPrevChargerAction;
+	int m_nPrevChargerStaggerDir;
+	int m_nPrevTankAction;
 
 	// Aim sequence plays reload while this is on.
 	bool m_bReloading;
@@ -270,6 +274,9 @@ CCSPlayerAnimState::CCSPlayerAnimState()
 	m_bWasIncapacitated = false;
 	m_bWasBeingRevived = false;
 	m_bIncapDyingFinished = false;
+	m_nPrevChargerAction = -1;
+	m_nPrevChargerStaggerDir = -1;
+	m_nPrevTankAction = -1;
 
 	m_bReloading = false;
 	m_flReloadCycle = 0.0f;
@@ -327,6 +334,44 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 		RestartMainSequence();
 	}
 
+	// Ensure charger ability sequences (charge/stagger/slam/pound) always start at cycle 0.
+	const bool bIsCharger = ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_INFECTED && m_pPlayer->GetZombieClass() == 6 );
+	if ( m_pOuter && bIsCharger )
+	{
+		const int action = m_pPlayer->m_nChargerAction;
+		const int dir = m_pPlayer->m_nChargerStaggerDir;
+		if ( m_nPrevChargerAction != -1 )
+		{
+			if ( action != m_nPrevChargerAction || ( action == CHARGER_ACTION_STAGGER && dir != m_nPrevChargerStaggerDir ) )
+			{
+				RestartMainSequence();
+			}
+		}
+	}
+
+#ifdef CLIENT_DLL
+	if ( m_pOuter && bIsCharger && m_pPlayer->m_nChargerAction == CHARGER_ACTION_POUND && m_pOuter->IsSequenceFinished() )
+	{
+		// The pound sequence is authored as a one-shot, so explicitly restart it on the
+		// client while the charger remains in the pound state to present it as a loop.
+		RestartMainSequence();
+	}
+#endif
+
+	// Ensure tank throw sequence starts at cycle 0 when entering the throw state.
+	const bool bIsTank = ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_INFECTED && m_pPlayer->GetZombieClass() == 8 );
+	if ( m_pOuter && bIsTank )
+	{
+		const int action = m_pPlayer->m_nTankAction;
+		if ( m_nPrevTankAction != -1 && action != m_nPrevTankAction )
+		{
+			if ( action == TANK_ACTION_ROCK_THROW )
+			{
+				RestartMainSequence();
+			}
+		}
+	}
+
 	BaseClass::Update( eyeYaw, eyePitch );
 
 	if ( !m_pOuter || !m_pPlayer )
@@ -336,6 +381,26 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 	m_bWasPounceAttacker = bIsPounceAttacker;
 	m_bWasIncapacitated = bIsIncapacitated;
 	m_bWasBeingRevived = bIsBeingRevived;
+
+	if ( bIsCharger )
+	{
+		m_nPrevChargerAction = m_pPlayer->m_nChargerAction;
+		m_nPrevChargerStaggerDir = m_pPlayer->m_nChargerStaggerDir;
+	}
+	else
+	{
+		m_nPrevChargerAction = -1;
+		m_nPrevChargerStaggerDir = -1;
+	}
+
+	if ( bIsTank )
+	{
+		m_nPrevTankAction = m_pPlayer->m_nTankAction;
+	}
+	else
+	{
+		m_nPrevTankAction = -1;
+	}
 
 	// Once ACT_DIESIMPLE completes, transition into the appropriate incapacitated idle.
 	if ( bIsIncapacitated && !m_bIncapDyingFinished )
@@ -582,6 +647,9 @@ void CCSPlayerAnimState::ClearAnimationState()
 	m_bWasIncapacitated = false;
 	m_bWasBeingRevived = false;
 	m_bIncapDyingFinished = false;
+	m_nPrevChargerAction = -1;
+	m_nPrevChargerStaggerDir = -1;
+	m_nPrevTankAction = -1;
 	
 	BaseClass::ClearAnimationState();
 }
@@ -1307,6 +1375,11 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 
 		if ( m_pPlayer->GetTeamNumber() == TEAM_INFECTED && m_pPlayer->GetZombieClass() == 6 )
 		{
+			if ( m_pPlayer->m_nChargerAction == CHARGER_ACTION_CHARGING )
+			{
+				return ACT_TERROR_CHARGER_CHARGE;
+			}
+
 			if ( m_pPlayer->m_nChargerAction == CHARGER_ACTION_STAGGER )
 			{
 				switch ( m_pPlayer->m_nChargerStaggerDir )
@@ -1429,6 +1502,12 @@ void CCSPlayerAnimState::ComputeSequences( CStudioHdr *pStudioHdr )
 
 	VPROF( "CCSPlayerAnimState::ComputeSequences" );
 
+	if ( ShouldSuppressSurvivorAnimLayers() )
+	{
+		ClearAnimationLayers();
+		return;
+	}
+
 	ComputeFireSequence( pStudioHdr );
 	ComputeReloadSequence( pStudioHdr );
 	ComputeGrenadeSequence( pStudioHdr );
@@ -1443,12 +1522,27 @@ void CCSPlayerAnimState::ClearAnimationLayers()
 	m_pOuter->SetNumAnimOverlays( NUM_LAYERS_WANTED );
 	for ( int i=0; i < m_pOuter->GetNumAnimOverlays(); i++ )
 	{
+		CAnimationLayer *pLayer = m_pOuter->GetAnimOverlay( i );
+
 		// Client obeys Order of CBaseAnimatingOverlay::MAX_OVERLAYS (15), but server trusts only the ANIM_LAYER_ACTIVE flag.
-		m_pOuter->GetAnimOverlay( i )->SetOrder( CBaseAnimatingOverlay::MAX_OVERLAYS );
+		pLayer->SetOrder( CBaseAnimatingOverlay::MAX_OVERLAYS );
+		pLayer->m_flWeight = 0.0f;
+		pLayer->m_flCycle = 0.0f;
+		pLayer->m_flPlaybackRate = 0.0f;
+		pLayer->m_nSequence = 0;
 #ifndef CLIENT_DLL
-		m_pOuter->GetAnimOverlay( i )->m_fFlags = 0;
+		pLayer->m_fFlags = 0;
 #endif
 	}
+}
+
+
+bool CCSPlayerAnimState::ShouldSuppressSurvivorAnimLayers() const
+{
+	if ( !m_pPlayer || m_pPlayer->GetTeamNumber() != TEAM_SURVIVOR )
+		return false;
+
+	return m_pPlayer->m_bIncapacitated || ( m_pPlayer->m_pounceAttacker.Get() != NULL );
 }
 
 

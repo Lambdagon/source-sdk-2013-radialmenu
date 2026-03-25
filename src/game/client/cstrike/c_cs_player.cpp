@@ -796,6 +796,8 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropInt( RECVINFO( m_iProgressBarDuration ) ),
 	RecvPropFloat( RECVINFO( m_flProgressBarStartTime ) ),
 	RecvPropEHandle( RECVINFO( m_hRagdoll ) ),
+	RecvPropBool( RECVINFO( m_bIsIT ) ),
+	RecvPropBool( RECVINFO( m_bIsGhost ) ),
 	RecvPropBool( RECVINFO( m_bIncapacitated ) ),
 	RecvPropBool( RECVINFO( m_bBeingRevived ) ),
 	RecvPropInt( RECVINFO( m_nIncapacitationCount ) ),
@@ -836,6 +838,7 @@ C_CSPlayer::C_CSPlayer() :
 	m_iDirection = 0;
 	m_zombieClass = 0;
 	m_survivorClass = 0;
+	m_bIsIT = false;
 
 	m_Activity = ACT_IDLE;
 
@@ -868,6 +871,8 @@ C_CSPlayer::C_CSPlayer() :
 	m_bLocalPounceMusicPlaying = false;
 	m_hInfectedColorCorrection = INVALID_CLIENT_CCHANDLE;
 	m_bTriedCreateInfectedColorCorrection = false;
+	m_hGhostColorCorrection = INVALID_CLIENT_CCHANDLE;
+	m_bTriedCreateGhostColorCorrection = false;
 	m_bLocalHeartbeatPlaying = false;
 	m_hBlackAndWhiteColorCorrection = INVALID_CLIENT_CCHANDLE;
 	m_bTriedCreateBlackAndWhiteColorCorrection = false;
@@ -895,6 +900,12 @@ C_CSPlayer::~C_CSPlayer()
 	{
 		g_pColorCorrectionMgr->RemoveColorCorrection( m_hInfectedColorCorrection );
 		m_hInfectedColorCorrection = INVALID_CLIENT_CCHANDLE;
+	}
+
+	if ( m_hGhostColorCorrection != INVALID_CLIENT_CCHANDLE )
+	{
+		g_pColorCorrectionMgr->RemoveColorCorrection( m_hGhostColorCorrection );
+		m_hGhostColorCorrection = INVALID_CLIENT_CCHANDLE;
 	}
 
 	if ( m_hBlackAndWhiteColorCorrection != INVALID_CLIENT_CCHANDLE )
@@ -1359,7 +1370,8 @@ void C_CSPlayer::UpdatePounceThirdPersonCamera()
 
 	const bool wantsPounceCam = ( m_pounceVictim.Get() != NULL ) || ( m_pounceAttacker.Get() != NULL );
 	const bool wantsChargerCam = ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 && m_nChargerAction != CHARGER_ACTION_NONE );
-	const bool wantsAbilityCam = wantsPounceCam || wantsChargerCam;
+	const bool wantsTankThrowCam = ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 8 && m_nTankAction == TANK_ACTION_ROCK_THROW );
+	const bool wantsAbilityCam = wantsPounceCam || wantsChargerCam || wantsTankThrowCam;
 
 	if ( wantsAbilityCam && !m_bPounceCamHasSavedState )
 	{
@@ -1465,8 +1477,11 @@ void C_CSPlayer::UpdateInfectedColorCorrection()
 		m_hInfectedColorCorrection = g_pColorCorrectionMgr->AddColorCorrection( "infected_cc", "materials/correction/infected.raw" );
 	}
 
-	if ( m_hInfectedColorCorrection == INVALID_CLIENT_CCHANDLE )
-		return;
+	if ( m_hGhostColorCorrection == INVALID_CLIENT_CCHANDLE && !m_bTriedCreateGhostColorCorrection )
+	{
+		m_bTriedCreateGhostColorCorrection = true;
+		m_hGhostColorCorrection = g_pColorCorrectionMgr->AddColorCorrection( "ghost_cc", "materials/correction/ghost.raw" );
+	}
 
 	bool shouldEnable = ( GetTeamNumber() == TEAM_INFECTED );
 	if ( GetObserverMode() != OBS_MODE_NONE )
@@ -1474,7 +1489,18 @@ void C_CSPlayer::UpdateInfectedColorCorrection()
 		shouldEnable = false;
 	}
 
-	g_pColorCorrectionMgr->SetColorCorrectionWeight( m_hInfectedColorCorrection, shouldEnable ? 1.0f : 0.0f );
+	const bool enableGhost = shouldEnable && IsGhost();
+	const bool enableInfected = shouldEnable && !IsGhost();
+
+	if ( m_hInfectedColorCorrection != INVALID_CLIENT_CCHANDLE )
+	{
+		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_hInfectedColorCorrection, enableInfected ? 1.0f : 0.0f );
+	}
+
+	if ( m_hGhostColorCorrection != INVALID_CLIENT_CCHANDLE )
+	{
+		g_pColorCorrectionMgr->SetColorCorrectionWeight( m_hGhostColorCorrection, enableGhost ? 1.0f : 0.0f );
+	}
 }
 
 void C_CSPlayer::UpdateIncapBlackAndWhiteEffects()
@@ -1575,7 +1601,12 @@ static void CS_UpdatePlayerGlow( C_CSPlayer *pPlayer )
 	Vector vGlowColor( 1.0f, 1.0f, 1.0f );
 
 	const int nTeam = pPlayer->GetTeamNumber();
-	if ( nTeam == TEAM_SURVIVOR )
+	if ( pPlayer->m_bIsIT )
+	{
+		bShouldGlow = true;
+		vGlowColor = Vector( 0.75f, 0.1f, 1.0f );
+	}
+	else if ( nTeam == TEAM_SURVIVOR )
 	{
 		bShouldGlow = true;
 
@@ -2149,6 +2180,11 @@ void C_CSPlayer::UpdateClientSideAnimation()
 //-----------------------------------------------------------------------------
 bool C_CSPlayer::ShouldCollide(int collisionGroup, int contentsMask) const
 {
+	if ( m_bIsGhost )
+	{
+		return false;
+	}
+
 	if (collisionGroup == COLLISION_GROUP_PLAYER_MOVEMENT)
 	{
 		switch (GetTeamNumber())

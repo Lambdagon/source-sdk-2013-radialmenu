@@ -127,6 +127,7 @@ public:
 	virtual void FireEvent( const Vector& origin, const QAngle& angles, int event, const char *options );
 
 	bool		 HasC4( void );
+	bool IsGhost(void) const { return m_bIsGhost; }
 
 	virtual void CreateLightEffects( void ) {}	//no dimlight effects
 
@@ -282,6 +283,8 @@ public:
 	EHANDLE	m_hRagdoll;
 
 	// Survivor incapacitation (networked).
+	CNetworkVar( bool, m_bIsIT );
+	CNetworkVar( bool, m_bIsGhost );
 	CNetworkVar( bool, m_bIncapacitated );
 	CNetworkVar( bool, m_bBeingRevived );
 	CNetworkVar( int, m_nIncapacitationCount );
@@ -421,6 +424,8 @@ private:
 	bool m_bLocalPounceMusicPlaying;
 	ClientCCHandle_t m_hInfectedColorCorrection;
 	bool m_bTriedCreateInfectedColorCorrection;
+	ClientCCHandle_t m_hGhostColorCorrection;
+	bool m_bTriedCreateGhostColorCorrection;
 	bool m_bLocalHeartbeatPlaying;
 	ClientCCHandle_t m_hBlackAndWhiteColorCorrection;
 	bool m_bTriedCreateBlackAndWhiteColorCorrection;

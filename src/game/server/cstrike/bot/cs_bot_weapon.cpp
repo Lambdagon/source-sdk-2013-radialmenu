@@ -312,11 +312,17 @@ void CCSBot::FireWeaponAtEnemy( void )
 							// if our prey is facing away, backstab him!
 							if (!IsPlayerFacingMe( enemy ))
 							{
-								SecondaryAttack();
+								if ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 8 )
+									PrimaryAttack();
+								else
+									SecondaryAttack();
 							}
 							else
 							{
-								SecondaryAttack();
+								if ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 8 )
+									PrimaryAttack();
+								else
+									SecondaryAttack();
 							}
 						}
 					}

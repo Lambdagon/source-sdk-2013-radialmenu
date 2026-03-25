@@ -71,7 +71,7 @@ CON_COMMAND( ai_debug_node_connect, "Debug the attempted connection between two 
 // line to properly override the node graph building.
 
 ConVar g_ai_norebuildgraph( "ai_norebuildgraph", "0" );
-ConVar ai_navmesh_ground_nodes( "ai_navmesh_ground_nodes", "1", FCVAR_GAMEDLL, "If 1 and no .AIN is available, seed the AI node graph with one NODE_GROUND per nav area (at its center) and link nodes using nav area adjacency." );
+ConVar ai_navmesh_ground_nodes( "ai_navmesh_ground_nodes", "1", FCVAR_GAMEDLL, "If 1 and no .AIN is available, seed the AI node graph with one NODE_GROUND per nav area (at its center) and link nodes using nav area adjacency, using jump links for NAV_MESH_JUMP areas." );
 
 namespace
 {
@@ -203,9 +203,12 @@ namespace
 				if ( !pLink )
 					continue;
 
+				const bool bJumpLink = ( ( area->GetAttributes() & NAV_MESH_JUMP ) != 0 ) || ( ( destArea->GetAttributes() & NAV_MESH_JUMP ) != 0 );
+				const int moveType = bJumpLink ? bits_CAP_MOVE_JUMP : bits_CAP_MOVE_GROUND;
+
 				for ( int hull = 0; hull < NUM_HULLS; ++hull )
 				{
-					pLink->m_iAcceptedMoveTypes[ hull ] = bits_CAP_MOVE_GROUND;
+					pLink->m_iAcceptedMoveTypes[ hull ] = moveType;
 				}
 
 				if ( outLinksAdded )

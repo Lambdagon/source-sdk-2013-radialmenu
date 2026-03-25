@@ -134,6 +134,8 @@ void DispatchEffect( const char *pName, const CEffectData &data );
 
 #endif
 
+static const float kGhostInfectedMaxSpeed = 400.0f;
+
 float CCSPlayer::GetPlayerMaxSpeed()
 {
 	if ( GetMoveType() == MOVETYPE_NONE )
@@ -145,6 +147,11 @@ float CCSPlayer::GetPlayerMaxSpeed()
 	{
 		// Player gets speed bonus in observer mode
 		return CS_PLAYER_SPEED_OBSERVER;
+	}
+
+	if ( IsGhost() && GetTeamNumber() == TEAM_INFECTED && GetZombieClass() > 0 )
+	{
+		return kGhostInfectedMaxSpeed;
 	}
 
 	bool bValidMoveState = ( State_Get() == STATE_ACTIVE || State_Get() == STATE_OBSERVER_MODE );
@@ -780,6 +787,8 @@ extern ConVar sv_footsteps;
 
 void CCSPlayer::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, float fvol, bool force)
 {
+	if ( IsGhost() && GetTeamNumber() == TEAM_INFECTED && GetZombieClass() > 0 )
+		return;
 
 	if (gpGlobals->maxClients > 1 && !sv_footsteps.GetFloat())
 		return;
@@ -1094,5 +1103,4 @@ surfacedata_t * CCSPlayer::GetFootstepSurface( const Vector &origin, const char 
 }
 
 #endif
-
 

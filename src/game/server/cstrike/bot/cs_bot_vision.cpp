@@ -1258,6 +1258,15 @@ CCSPlayer *CCSBot::FindMostDangerousThreat( void )
 			if (!player->IsAlive())
 				continue;
 
+			// Survivor bots must ignore ghost special infected entirely.
+			if ( GetTeamNumber() == TEAM_SURVIVOR &&
+				 player->GetTeamNumber() == TEAM_INFECTED &&
+				 player->GetZombieClass() > 0 &&
+				 player->IsGhost() )
+			{
+				continue;
+			}
+
 			// is it an enemy?
 			if (player->InSameTeam( this ))
 			{
