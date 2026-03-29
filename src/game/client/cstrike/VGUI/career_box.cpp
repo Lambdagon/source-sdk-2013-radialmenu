@@ -332,7 +332,6 @@ void CCareerBaseBox::ShowWindow()
 void CCareerBaseBox::DoModal()
 {
 	ShowWindow();
-	input()->SetAppModalSurface(GetVPanel());
 }
 
 //--------------------------------------------------------------------------------------------------------------

@@ -19,8 +19,9 @@
 #include "props_shared.h"
 #include "func_breakablesurf.h"
 
-#ifdef TERROR
 #include "func_elevator.h"
+
+#ifdef TERROR
 #include "AmbientLight.h"
 #endif
 

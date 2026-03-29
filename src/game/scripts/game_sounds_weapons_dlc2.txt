@@ -1,0 +1,20 @@
+
+
+"M60.Fire"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_TALKING"
+	"volume"		"1"
+	"pitch"			"97,103"
+	"wave"			")weapons/machinegun_m60/gunfire/machinegun_fire_1.wav"
+}
+
+"M60.FireIncendiary"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_TALKING"
+	"volume"		"1"
+	"pitch"			"97,103"
+	"wave"			")weapons/machinegun_m60/gunfire/machinegun_fire_1_incendiary.wav"
+}
+

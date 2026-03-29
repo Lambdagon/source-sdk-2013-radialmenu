@@ -789,6 +789,21 @@ void CNavArea::ComputeEarliestOccupyTimes( void )
 		}
 	}
 
+	for( spot = gEntList.FindEntityByClassname( NULL, "info_survivor_position" );
+		 spot;
+		 spot = gEntList.FindEntityByClassname( spot, "info_survivor_position" ) )
+	{
+		float travelDistance = NavAreaTravelDistance( spot->GetAbsOrigin(), m_center, cost );
+		if (travelDistance < 0.0f)
+			continue;
+
+		float travelTime = travelDistance / playerSpeed;
+		if (travelTime < m_earliestOccupyTime[ team ])
+		{
+			m_earliestOccupyTime[ team ] = travelTime;
+		}
+	}
+
 
 	// determine the shortest time it will take a CT to reach this area
 	team = TEAM_CT % MAX_NAV_TEAMS;
@@ -876,6 +891,33 @@ void CNavMesh::ComputeBattlefrontAreas( void )
 				}
 				
 			}
+		}
+	}
+
+	for( tSpawn = gEntList.FindEntityByClassname( NULL, "info_survivor_position" );
+		 tSpawn;
+		 tSpawn = gEntList.FindEntityByClassname( tSpawn, "info_survivor_position" ) )
+	{
+		CNavArea *tArea = TheNavMesh->GetNavArea( tSpawn->GetAbsOrigin() );
+		if (tArea == NULL)
+			continue;
+
+		for( ctSpawn = gEntList.FindEntityByClassname( NULL, "info_player_counterterrorist" );
+			 ctSpawn;
+			 ctSpawn = gEntList.FindEntityByClassname( ctSpawn, "info_player_counterterrorist" ) )
+		{
+			CNavArea *ctArea = TheNavMesh->GetNavArea( ctSpawn->GetAbsOrigin() );
+
+			if (ctArea == NULL)
+				continue;
+
+			float pathDist = NavAreaTravelDistance( tArea, ctArea, cost );
+			if (pathDist < 0.0f)
+				continue;
+
+			// build path between these two spawn points - assume if path fails, it at least got close
+			// (ie: imagine spawn points that you jump down from - can't path to)
+			ComputeBattlefrontArea( tArea, ctArea, pathDist );
 		}
 	}
 #endif

@@ -1,0 +1,65 @@
+//--------------------------------------------------------------------------------------------------------------
+// Soldier2 Response Rule File
+//--------------------------------------------------------------------------------------------------------------
+
+
+
+
+//--------------------------------------------------------------------------------------------------------------
+// C5M5
+//--------------------------------------------------------------------------------------------------------------
+Response C5M5_Soldier2Soldier2
+{
+	sequential
+	norepeat
+	scene "scenes/npcs/Soldier2_CHATTER01.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //This is Rescue 7. Over.
+	scene "scenes/npcs/Soldier2_CHATTER03.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //Repair ETA is ten minutes. Over.
+	scene "scenes/npcs/Soldier2_CHATTER04.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //Ten minutes. Over.
+	scene "scenes/npcs/Soldier2_CHATTER05.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //Roger, Papa Gator. Fifteen minutes. Ah, be advised we have seen flashes on the west bank. Ah, visually confirm west bank is clear. Over.
+	scene "scenes/npcs/Soldier2_CHATTER06.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //Negative. We are seeing something. Over.
+	scene "scenes/npcs/Soldier2_CHATTER08.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //Ahh, unclear. It-
+	scene "scenes/npcs/Soldier2_CHATTER09.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //Papa Gator, we're not sure. We are seeing, ah, multiple personnel and small arms fire. What is our current ROE? Over.
+	scene "scenes/npcs/Soldier2_CHATTER10.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //Roger, Papa Gator. All personnel on floating LZ. Clear for last Buzzard run. Over.
+	scene "scenes/npcs/Soldier2_CHATTER12.vcd"  //then orator C5M5_Soldier1 foo:0 0.01 //Ah-firmative. Out.
+}
+Rule C5M5_Soldier2Soldier2
+{
+	criteria ConceptC5M5_Soldier2 AutoIsNotScavenge AutoIsNotSurvival //_auto_IsSoldierChatter //_auto_NotButton2
+	Response C5M5_Soldier2Soldier2
+}
+
+Response C5M5_Soldier2Conv01Soldier2
+{
+	scene "scenes/npcs/Soldier2_SURVIVORTALK02.vcd"  //then orator C5M5_Soldier1Conv06 foo:0 0.01 //Affirmative, Papa Gator.
+}
+Rule C5M5_Soldier2Conv01Soldier2
+{
+	criteria ConceptC5M5_Soldier2Conv01 AutoIsNotScavenge AutoIsNotSurvival //_auto_NotButton2
+	Response C5M5_Soldier2Conv01Soldier2
+}
+
+Response C5M5StartHeliNagSoldier2
+{
+	scene "scenes/npcs/Soldier2_ChopperNag01.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Get into the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag02.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Get to the chopper.
+	scene "scenes/npcs/Soldier2_ChopperNag03.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Get to the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag04.vcd"  //then orator C5M5StartHeliNag foo:0 5 //To the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag05.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Get in here.
+	scene "scenes/npcs/Soldier2_ChopperNag06.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Everyone in the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag07.vcd"  //then orator C5M5StartHeliNag foo:0 5 //We're taking off.
+	scene "scenes/npcs/Soldier2_ChopperNag08.vcd"  //then orator C5M5StartHeliNag foo:0 5 //We're taking off.
+	scene "scenes/npcs/Soldier2_ChopperNag09.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Let's go! Everyone to the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag10.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Get into the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag11.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Get to the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag12.vcd"  //then orator C5M5StartHeliNag foo:0 5 //To the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag13.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Get in here.
+	scene "scenes/npcs/Soldier2_ChopperNag14.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Everyone in the helicopter
+	scene "scenes/npcs/Soldier2_ChopperNag15.vcd"  //then orator C5M5StartHeliNag foo:0 5 //We're taking off.
+	scene "scenes/npcs/Soldier2_ChopperNag16.vcd"  //then orator C5M5StartHeliNag foo:0 5 //Let's go! Everyone to the helicopter
+}
+Rule C5M5StartHeliNagSoldier2
+{
+	criteria ConceptC5M5StartHeliNag IsMapc5m5_bridge AutoIsNotScavenge AutoIsNotSurvival //_auto_IsGetToHeli
+	Response C5M5StartHeliNagSoldier2
+}
+

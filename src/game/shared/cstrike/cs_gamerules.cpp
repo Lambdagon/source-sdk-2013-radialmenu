@@ -44,6 +44,8 @@
 	#include "teamplayroundbased_gamerules.h"
 	#include "gameweaponmanager.h"
 	#include "ai_basenpc.h"
+	#include "doors.h"
+	#include "BasePropDoor.h"
 
 	#include "cs_gamestats.h"
 	#include "cs_urlretrieveprices.h"
@@ -76,6 +78,73 @@ extern IUploadGameStats *gamestatsuploader;
 extern IReplaySystem *g_pReplay;
 #endif // REPLAY_ENABLED
 
+ConVar	sk_plr_dmg_ar2("sk_plr_dmg_ar2", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_ar2("sk_npc_dmg_ar2", "0", FCVAR_REPLICATED);
+ConVar	sk_max_ar2("sk_max_ar2", "0", FCVAR_REPLICATED);
+ConVar	sk_max_ar2_altfire("sk_max_ar2_altfire", "0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_alyxgun("sk_plr_dmg_alyxgun", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_alyxgun("sk_npc_dmg_alyxgun", "0", FCVAR_REPLICATED);
+ConVar	sk_max_alyxgun("sk_max_alyxgun", "0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_pistol("sk_plr_dmg_pistol", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_pistol("sk_npc_dmg_pistol", "0", FCVAR_REPLICATED);
+ConVar	sk_max_pistol("sk_max_pistol", "0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_smg1("sk_plr_dmg_smg1", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_smg1("sk_npc_dmg_smg1", "0", FCVAR_REPLICATED);
+ConVar	sk_max_smg1("sk_max_smg1", "0", FCVAR_REPLICATED);
+
+// FIXME: remove these
+//ConVar	sk_plr_dmg_flare_round	( "sk_plr_dmg_flare_round","0", FCVAR_REPLICATED);
+//ConVar	sk_npc_dmg_flare_round	( "sk_npc_dmg_flare_round","0", FCVAR_REPLICATED);
+//ConVar	sk_max_flare_round		( "sk_max_flare_round","0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_buckshot("sk_plr_dmg_buckshot", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_buckshot("sk_npc_dmg_buckshot", "0", FCVAR_REPLICATED);
+ConVar	sk_max_buckshot("sk_max_buckshot", "0", FCVAR_REPLICATED);
+ConVar	sk_plr_num_shotgun_pellets("sk_plr_num_shotgun_pellets", "7", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_rpg_round("sk_plr_dmg_rpg_round", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_rpg_round("sk_npc_dmg_rpg_round", "0", FCVAR_REPLICATED);
+ConVar	sk_max_rpg_round("sk_max_rpg_round", "0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_sniper_round("sk_plr_dmg_sniper_round", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_sniper_round("sk_npc_dmg_sniper_round", "0", FCVAR_REPLICATED);
+ConVar	sk_max_sniper_round("sk_max_sniper_round", "0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_grenade("sk_plr_dmg_grenade", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_grenade("sk_npc_dmg_grenade", "0", FCVAR_REPLICATED);
+ConVar	sk_max_grenade("sk_max_grenade", "0", FCVAR_REPLICATED);
+
+#ifdef HL2_EPISODIC
+ConVar	sk_max_hopwire("sk_max_hopwire", "3", FCVAR_REPLICATED);
+ConVar	sk_max_striderbuster("sk_max_striderbuster", "3", FCVAR_REPLICATED);
+#endif
+
+ConVar	sk_plr_dmg_smg1_grenade("sk_plr_dmg_smg1_grenade", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_smg1_grenade("sk_npc_dmg_smg1_grenade", "0", FCVAR_REPLICATED);
+ConVar	sk_max_smg1_grenade("sk_max_smg1_grenade", "0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_357("sk_plr_dmg_357", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_357("sk_npc_dmg_357", "0", FCVAR_REPLICATED);
+ConVar	sk_max_357("sk_max_357", "0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_crossbow("sk_plr_dmg_crossbow", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_crossbow("sk_npc_dmg_crossbow", "0", FCVAR_REPLICATED);
+ConVar	sk_max_crossbow("sk_max_crossbow", "0", FCVAR_REPLICATED);
+
+ConVar	sk_dmg_sniper_penetrate_plr("sk_dmg_sniper_penetrate_plr", "0", FCVAR_REPLICATED);
+ConVar	sk_dmg_sniper_penetrate_npc("sk_dmg_sniper_penetrate_npc", "0", FCVAR_REPLICATED);
+
+ConVar	sk_plr_dmg_airboat("sk_plr_dmg_airboat", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_airboat("sk_npc_dmg_airboat", "0", FCVAR_REPLICATED);
+
+ConVar	sk_max_gauss_round("sk_max_gauss_round", "0", FCVAR_REPLICATED);
+
+// Gunship & Dropship cannons
+ConVar	sk_npc_dmg_gunship("sk_npc_dmg_gunship", "0", FCVAR_REPLICATED);
+ConVar	sk_npc_dmg_gunship_to_plr("sk_npc_dmg_gunship_to_plr", "0", FCVAR_REPLICATED);
 ConVar	sk_plr_dmg_molotov		( "sk_plr_dmg_molotov","8", FCVAR_REPLICATED);
 ConVar	sk_npc_dmg_molotov		( "sk_npc_dmg_molotov","8", FCVAR_REPLICATED);
 ConVar	sk_max_molotov			( "sk_max_molotov","1", FCVAR_REPLICATED);
@@ -85,6 +154,8 @@ ConVar	sk_max_molotov			( "sk_max_molotov","1", FCVAR_REPLICATED);
 static ConVar z_special_spawn_safety_radius( "z_special_spawn_safety_radius", "550", FCVAR_GAMEDLL, "Minimum distance (units) from the survivor when spawning special infected.", true, 0.0f, true, 10000.0f );
 static ConVar z_special_spawn_search_radius( "z_special_spawn_search_radius", "3000", FCVAR_GAMEDLL, "How far (units) to search nav areas around the survivor for spawning.", true, 256.0f, true, 20000.0f );
 static ConVar z_special_respawn_time( "z_special_respawn_time", "20", FCVAR_GAMEDLL, "Seconds before special infected can respawn after dying.", true, 0.0f, true, 120.0f );
+static ConVar z_special_far_cull_distance( "z_special_far_cull_distance", "4500", FCVAR_GAMEDLL, "Special infected bots farther than this from every survivor will be culled after a short grace period.", true, 512.0f, true, 30000.0f );
+static ConVar z_special_far_cull_grace( "z_special_far_cull_grace", "5.0", FCVAR_GAMEDLL, "Seconds a special infected bot may remain far from every survivor before it is culled.", true, 0.0f, true, 120.0f );
  static ConVar z_special_kick_dead_delay( "z_special_kick_dead_delay", "5", FCVAR_GAMEDLL, "Seconds after death before a special infected bot is kicked.", true, 0.0f, true, 60.0f );
  static ConVar z_special_spawn_retry_delay( "z_special_spawn_retry_delay", "1.0", FCVAR_GAMEDLL, "Seconds before retrying a failed special infected spawn attempt.", true, 0.1f, true, 30.0f );
 
@@ -110,9 +181,10 @@ static ConVar z_horde_interval_max( "z_horde_interval_max", "240", FCVAR_GAMEDLL
 static ConVar z_horde_duration_min( "z_horde_duration_min", "60", FCVAR_GAMEDLL, "Minimum seconds a common infected horde lasts.", true, 1.0f, true, 3600.0f );
 static ConVar z_horde_duration_max( "z_horde_duration_max", "240", FCVAR_GAMEDLL, "Maximum seconds a common infected horde lasts.", true, 1.0f, true, 3600.0f );
 static ConVar z_horde_spawn_batch( "z_horde_spawn_batch", "40", FCVAR_GAMEDLL, "Maximum number of common infected to spawn per batch while a horde is active.", true, 1.0f, true, 128.0f );
+static ConVar z_horde_spawn_safety_radius( "z_horde_spawn_safety_radius", "1500", FCVAR_GAMEDLL, "Minimum distance (units) from every survivor when spawning common infected for a horde.", true, 0.0f, true, 20000.0f );
 static ConVar z_spawn_radius( "z_spawn_radius", "3000", FCVAR_GAMEDLL, "How far (units) to search nav areas around a survivor for spawning common infected.", true, 256.0f, true, 20000.0f );
 static ConVar z_spawn_safety_radius( "z_spawn_safety_radius", "350", FCVAR_GAMEDLL, "Minimum distance (units) from a survivor when spawning common infected.", true, 0.0f, true, 10000.0f );
-static ConVar z_common_max( "z_common_limit", "30", FCVAR_GAMEDLL, "Maximum number of common infected NPCs on the map.", true, 0.0f, true, 200.0f );
+static ConVar z_common_max( "z_common_limit", "40", FCVAR_GAMEDLL, "Maximum number of common infected NPCs on the map.", true, 0.0f, true, 200.0f );
 static ConVar z_spawn_interval( "z_spawn_interval", "0.35", FCVAR_GAMEDLL, "Seconds between common infected spawn batches.", true, 0.05f, true, 10.0f );
 static ConVar z_spawn_batch( "z_spawn_batch", "20", FCVAR_GAMEDLL, "Maximum number of common infected to spawn per spawn batch.", true, 1.0f, true, 30.0f );
 static ConVar z_spawn_require_hidden( "z_spawn_require_hidden", "1", FCVAR_GAMEDLL, "If 1, common infected spawn points must be hidden from survivor line-of-sight." );
@@ -125,10 +197,15 @@ static ConVar z_background_special_limit( "z_background_special_limit", "6", FCV
 
 // Survivor squad: keep survivor bots following a leader.
 static ConVar survivor_squad_enabled( "survivor_squad_enabled", "1", FCVAR_GAMEDLL, "If 1, survivor bots form a squad and follow a leader (prefer a human player)." );
-static ConVar survivor_squad_update_interval( "survivor_squad_update_interval", "0.2", FCVAR_GAMEDLL, "Seconds between survivor squad follow updates.", true, 0.05f, true, 10.0f );
+static ConVar survivor_squad_update_interval( "survivor_squad_update_interval", "0.1", FCVAR_GAMEDLL, "Seconds between survivor squad follow updates.", true, 0.05f, true, 10.0f );
+
+// Saferoom transition: when survivors close the authored saferoom door inside a func_hostage_rescue brush,
+// transition to the map's enabled info_changelevel after a short delay.
+static ConVar sv_saferoom_change_delay( "sv_saferoom_change_delay", "4.0", FCVAR_GAMEDLL, "Seconds all alive survivors must remain in the saferoom with the door closed before changing to the next level.", true, 0.0f, true, 30.0f );
 
 static float s_flNextSpecialInfectedSpawn = 0.0f;
 static float s_flNextTankSpawnAllowed = 0.0f;
+static float s_flSpecialInfectedFarCullStartTime[ MAX_PLAYERS + 1 ] = { 0.0f };
 
 static EHANDLE s_hTankTakeoverTankBot;
 static EHANDLE s_hTankTakeoverHuman;
@@ -148,14 +225,22 @@ static float s_flListenHostAutoJoinNextBotTry = 0.0f;
 static float s_flNextCommonInfectedSpawn = 0.0f;
 static float s_flNextCommonHordeStart = 0.0f;
 static float s_flCommonHordeEndTime = 0.0f;
+static bool s_bCommonHordeSpawnPosValid = false;
+static bool s_bCommonHordeInitialBurstDone = false;
+static Vector s_vecCommonHordeSpawnPos( vec3_origin );
+static QAngle s_angCommonHordeSpawnAng( 0, 0, 0 );
 static float s_flNextSurvivorSquadUpdate = 0.0f;
 static EHANDLE s_hSurvivorSquadLeader;
 
 static float s_flNextBackgroundPopulate = 0.0f;
+static float s_flSaferoomTransitionStart = 0.0f;
+static EHANDLE s_hSaferoomTransitionZone;
+static EHANDLE s_hSaferoomChangelevel;
 
 // "Safe room" mission start/leave music (No Mercy).
 static CSoundPatch *s_pMissionStartNoMercyMusic[MAX_PLAYERS + 1] = { NULL };
 static bool s_bSurvivorsLeftSpawnOnce[MAX_PLAYERS + 1] = { false };
+static bool s_bMissionStartNoMercyFinished = false;
 static float s_flNextLeavingSafetyCheck = 0.0f;
 static CUtlVector< Vector > s_vecSurvivorSpawnPoints;
 static bool s_bSurvivorSpawnPointsBuilt = false;
@@ -206,6 +291,7 @@ static void ResetLeavingSafetyMusicState()
 	}
 
 	s_flNextLeavingSafetyCheck = 0.0f;
+	s_bMissionStartNoMercyFinished = false;
 	s_vecSurvivorSpawnPoints.RemoveAll();
 	s_bSurvivorSpawnPointsBuilt = false;
 }
@@ -219,6 +305,12 @@ static void BuildSurvivorSpawnPointsIfNeeded()
 
 	CBaseEntity *pEnt = NULL;
 	while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_player_terrorist" ) ) != NULL )
+	{
+		s_vecSurvivorSpawnPoints.AddToTail( pEnt->GetAbsOrigin() );
+	}
+
+	pEnt = NULL;
+	while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_survivor_position" ) ) != NULL )
 	{
 		s_vecSurvivorSpawnPoints.AddToTail( pEnt->GetAbsOrigin() );
 	}
@@ -271,11 +363,29 @@ static bool HasSurvivorLeftSpawnPoints( CCSPlayer *pPlayer, float thresholdUnits
 	return closestSqr > thresholdSqr;
 }
 
+static bool HaveAllLivingSurvivorsLeftSpawnPoints( float thresholdUnits )
+{
+	bool foundLivingSurvivor = false;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer || pPlayer->GetTeamNumber() != TEAM_SURVIVOR || !pPlayer->IsAlive() )
+			continue;
+
+		foundLivingSurvivor = true;
+		if ( !HasSurvivorLeftSpawnPoints( pPlayer, thresholdUnits ) )
+			return false;
+	}
+
+	return foundLivingSurvivor;
+}
+
 static void UpdateLeavingSafetyMusic_NoMercy()
 {
 	BuildSurvivorSpawnPointsIfNeeded();
 
-	// Start mission music per-player, and only fade it when THAT player leaves the spawn area.
+	// Start mission music per-player, but keep it active until the whole living survivor team leaves spawn.
 	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
 	{
 		CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
@@ -310,6 +420,9 @@ static void UpdateLeavingSafetyMusic_NoMercy()
 		if ( !pPlayer->IsAlive() )
 			continue;
 
+		if ( s_bMissionStartNoMercyFinished )
+			continue;
+
 		if ( s_bSurvivorsLeftSpawnOnce[i] )
 			continue;
 
@@ -330,6 +443,9 @@ static void UpdateLeavingSafetyMusic_NoMercy()
 
 	s_flNextLeavingSafetyCheck = gpGlobals->curtime + 0.25f;
 
+	if ( s_bMissionStartNoMercyFinished )
+		return;
+
 	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
 	{
 		if ( s_bSurvivorsLeftSpawnOnce[i] )
@@ -343,16 +459,267 @@ static void UpdateLeavingSafetyMusic_NoMercy()
 			continue;
 
 		s_bSurvivorsLeftSpawnOnce[i] = true;
+	}
 
+	if ( !HaveAllLivingSurvivorsLeftSpawnPoints( 200.0f ) )
+		return;
+
+	s_bMissionStartNoMercyFinished = true;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
 		if ( s_pMissionStartNoMercyMusic[i] )
 		{
 			CSoundEnvelopeController::GetController().SoundFadeOut( s_pMissionStartNoMercyMusic[i], 2.0f, true );
 			s_pMissionStartNoMercyMusic[i] = NULL;
 		}
 
+		if ( !pPlayer || pPlayer->GetTeamNumber() != TEAM_SURVIVOR || !pPlayer->IsAlive() )
+			continue;
+
 		CSingleUserRecipientFilter filter( pPlayer );
 		CBaseEntity::EmitSound( filter, SOUND_FROM_WORLD, "Event.LeavingSafety_NoMercy" );
 	}
+}
+
+static void TriggerLogicRelayByName( const char *pszTargetName )
+{
+	if ( !pszTargetName || !pszTargetName[0] )
+		return;
+
+	variant_t emptyVariant;
+	CBaseEntity *pRelay = NULL;
+	while ( ( pRelay = gEntList.FindEntityByName( pRelay, pszTargetName ) ) != NULL )
+	{
+		pRelay->AcceptInput( "Trigger", NULL, NULL, emptyVariant, 0 );
+	}
+}
+
+static void ResetSaferoomTransitionState()
+{
+	s_flSaferoomTransitionStart = 0.0f;
+	s_hSaferoomTransitionZone = NULL;
+	s_hSaferoomChangelevel = NULL;
+}
+
+static bool IsCampaignSaferoomMap( const CCSGameRules *pRules )
+{
+	return pRules && pRules->IsHostageRescueMap();
+}
+
+static bool HasAnySurvivorLeftSpawnOnce( void )
+{
+	for ( int i = 1; i < ARRAYSIZE( s_bSurvivorsLeftSpawnOnce ); ++i )
+	{
+		if ( s_bSurvivorsLeftSpawnOnce[i] )
+			return true;
+	}
+
+	return false;
+}
+
+static bool IsEntityInsideSaferoomZone( CBaseEntity *pZone, CBaseEntity *pEntity )
+{
+	if ( !pZone || !pEntity )
+		return false;
+
+	if ( pZone->Intersects( pEntity ) )
+		return true;
+
+	return pZone->CollisionProp()->IsPointInBounds( pEntity->WorldSpaceCenter() );
+}
+
+static CBaseEntity *FindSaferoomChangeLevelEntity( void )
+{
+	return gEntList.FindEntityByClassname( NULL, "info_changelevel" );
+}
+
+static CBaseEntity *FindSaferoomZoneForChangelevel( CBaseEntity *pChangelevel )
+{
+	if ( !pChangelevel )
+		return NULL;
+
+	CBaseEntity *pBestZone = NULL;
+	float flBestDistSqr = FLT_MAX;
+	CBaseEntity *pZone = NULL;
+
+	while ( ( pZone = gEntList.FindEntityByClassname( pZone, "func_hostage_rescue" ) ) != NULL )
+	{
+		if ( IsEntityInsideSaferoomZone( pZone, pChangelevel ) )
+			return pZone;
+
+		const float flDistSqr = ( pZone->WorldSpaceCenter() - pChangelevel->GetAbsOrigin() ).LengthSqr();
+		if ( flDistSqr < flBestDistSqr )
+		{
+			flBestDistSqr = flDistSqr;
+			pBestZone = pZone;
+		}
+	}
+
+	return pBestZone;
+}
+
+static bool IsSaferoomDoorClosed( CBaseEntity *pZone )
+{
+	if ( !pZone )
+		return false;
+
+	CBaseEntity *pDoorEntity = NULL;
+	while ( ( pDoorEntity = gEntList.FindEntityByClassname( pDoorEntity, "func_door" ) ) != NULL )
+	{
+		CBaseDoor *pDoor = dynamic_cast< CBaseDoor * >( pDoorEntity );
+		if ( !pDoor || !IsEntityInsideSaferoomZone( pZone, pDoorEntity ) )
+			continue;
+
+		if ( pDoor->m_toggle_state == TS_AT_BOTTOM )
+			return true;
+	}
+
+	pDoorEntity = NULL;
+	while ( ( pDoorEntity = gEntList.FindEntityByClassname( pDoorEntity, "prop_door_rotating" ) ) != NULL )
+	{
+		CBasePropDoor *pDoor = dynamic_cast< CBasePropDoor * >( pDoorEntity );
+		if ( !pDoor || !IsEntityInsideSaferoomZone( pZone, pDoorEntity ) )
+			continue;
+
+		if ( pDoor->IsDoorClosed() )
+			return true;
+	}
+
+	return false;
+}
+
+static bool AreAllAliveSurvivorsInSaferoomZone( CBaseEntity *pZone, CCSPlayer **ppActivator )
+{
+	if ( ppActivator )
+	{
+		*ppActivator = NULL;
+	}
+
+	if ( !pZone )
+		return false;
+
+	int nAliveSurvivors = 0;
+	CCSPlayer *pFirstSurvivor = NULL;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer || pPlayer->GetTeamNumber() != TEAM_SURVIVOR || !pPlayer->IsAlive() )
+			continue;
+
+		++nAliveSurvivors;
+		if ( !pFirstSurvivor )
+		{
+			pFirstSurvivor = pPlayer;
+		}
+
+		if ( !IsEntityInsideSaferoomZone( pZone, pPlayer ) )
+			return false;
+	}
+
+	if ( ppActivator )
+	{
+		*ppActivator = pFirstSurvivor;
+	}
+
+	return nAliveSurvivors > 0;
+}
+
+static bool HasHumanInfectedPlayers( void )
+{
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer || pPlayer->IsBot() )
+			continue;
+
+		if ( pPlayer->GetTeamNumber() == TEAM_INFECTED )
+			return true;
+	}
+
+	return false;
+}
+
+static void SwapSurvivorAndInfectedTeams( void )
+{
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer )
+			continue;
+
+		if ( pPlayer->GetTeamNumber() == TEAM_SURVIVOR )
+		{
+			pPlayer->SwitchTeam( TEAM_INFECTED );
+		}
+		else if ( pPlayer->GetTeamNumber() == TEAM_INFECTED )
+		{
+			pPlayer->SwitchTeam( TEAM_SURVIVOR );
+		}
+	}
+}
+
+static void SaferoomTransitionThink( CCSGameRules *pRules, bool bIsRestartingRound )
+{
+	if ( !gpGlobals || !IsCampaignSaferoomMap( pRules ) || bIsRestartingRound || pRules->IsFreezePeriod() )
+	{
+		ResetSaferoomTransitionState();
+		return;
+	}
+
+	if ( !HasAnySurvivorLeftSpawnOnce() )
+	{
+		ResetSaferoomTransitionState();
+		return;
+	}
+
+	CBaseEntity *pChangelevel = FindSaferoomChangeLevelEntity();
+	CBaseEntity *pZone = FindSaferoomZoneForChangelevel( pChangelevel );
+	if ( !pChangelevel || !pZone )
+	{
+		ResetSaferoomTransitionState();
+		return;
+	}
+
+	if ( !IsSaferoomDoorClosed( pZone ) )
+	{
+		ResetSaferoomTransitionState();
+		return;
+	}
+
+	CCSPlayer *pActivator = NULL;
+	if ( !AreAllAliveSurvivorsInSaferoomZone( pZone, &pActivator ) )
+	{
+		ResetSaferoomTransitionState();
+		return;
+	}
+
+	if ( s_hSaferoomTransitionZone.Get() != pZone || s_hSaferoomChangelevel.Get() != pChangelevel )
+	{
+		s_flSaferoomTransitionStart = 0.0f;
+		s_hSaferoomTransitionZone = pZone;
+		s_hSaferoomChangelevel = pChangelevel;
+	}
+
+	if ( s_flSaferoomTransitionStart <= 0.0f )
+	{
+		s_flSaferoomTransitionStart = gpGlobals->curtime;
+		return;
+	}
+
+	if ( gpGlobals->curtime < ( s_flSaferoomTransitionStart + sv_saferoom_change_delay.GetFloat() ) )
+		return;
+
+	if ( HasHumanInfectedPlayers() )
+	{
+		SwapSurvivorAndInfectedTeams();
+	}
+
+	variant_t emptyVariant;
+	pChangelevel->AcceptInput( "ChangeLevel", pActivator, pZone, emptyVariant, 0 );
+	ResetSaferoomTransitionState();
 }
 
 static bool IsValidItSurvivor( CCSPlayer *player )
@@ -740,23 +1107,136 @@ static int CountAliveCommonInfectedGlobal( void )
 	return count;
 }
 
-static bool PickRandomSpawnAnchor( const char *classname, Vector *outAnchor )
+static CBaseEntity *PickRandomSpawnAnchorEntity( const char *classname )
 {
-	if ( !classname || !outAnchor )
-		return false;
+	if ( !classname )
+		return NULL;
 
 	int count = 0;
+	CBaseEntity *chosen = NULL;
 	CBaseEntity *ent = NULL;
 	while ( ( ent = gEntList.FindEntityByClassname( ent, classname ) ) != NULL )
 	{
 		++count;
 		if ( random->RandomInt( 1, count ) == 1 )
 		{
-			*outAnchor = ent->GetAbsOrigin();
+			chosen = ent;
 		}
 	}
 
-	return ( count > 0 );
+	return chosen;
+}
+
+static bool PickRandomSpawnAnchor( const char *classname, Vector *outAnchor )
+{
+	if ( !classname || !outAnchor )
+		return false;
+
+	CBaseEntity *ent = PickRandomSpawnAnchorEntity( classname );
+	if ( !ent )
+		return false;
+
+	*outAnchor = ent->WorldSpaceCenter();
+	return true;
+}
+
+static bool TryFallbackSpawnPosition( CBasePlayer *pPlayer, const Vector &anchor, const QAngle &angles, Vector *outOrigin, QAngle *outAngles )
+{
+	if ( !pPlayer || !outOrigin || !outAngles )
+		return false;
+
+	Vector testOrigin;
+	if ( !EntityPlacementTest( pPlayer, anchor, testOrigin, true ) )
+		return false;
+
+	*outOrigin = testOrigin;
+	*outAngles = angles;
+	return true;
+}
+
+static bool FindFallbackPlayerSpawnPosition( CBasePlayer *pPlayer, int team, Vector *outOrigin, QAngle *outAngles )
+{
+	if ( !pPlayer || !outOrigin || !outAngles )
+		return false;
+
+	const char *primaryClass = ( team == TEAM_CT ) ? "info_player_counterterrorist" : "info_player_terrorist";
+	const char *secondaryClass = ( team == TEAM_CT ) ? "info_player_terrorist" : "info_player_counterterrorist";
+	const char *anchorClasses[] =
+	{
+		primaryClass,
+		"info_survivor_position",
+		secondaryClass,
+		"info_player_start",
+		"info_player_teamspawn",
+		"func_hostage_rescue",
+		"info_changelevel",
+	};
+
+	for ( int i = 0; i < ARRAYSIZE( anchorClasses ); ++i )
+	{
+		CBaseEntity *anchor = PickRandomSpawnAnchorEntity( anchorClasses[i] );
+		if ( !anchor )
+			continue;
+
+		if ( TryFallbackSpawnPosition( pPlayer, anchor->WorldSpaceCenter(), anchor->GetAbsAngles(), outOrigin, outAngles ) )
+		{
+			return true;
+		}
+	}
+
+	for ( int pass = 0; pass < 2; ++pass )
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+		{
+			CBasePlayer *other = UTIL_PlayerByIndex( i );
+			if ( !other || other == pPlayer )
+				continue;
+
+			if ( pass == 0 && other->GetTeamNumber() != team )
+				continue;
+
+			if ( !other->IsAlive() )
+				continue;
+
+			if ( TryFallbackSpawnPosition( pPlayer, other->GetAbsOrigin(), other->GetAbsAngles(), outOrigin, outAngles ) )
+			{
+				return true;
+			}
+		}
+	}
+
+	if ( TheNavMesh && TheNavMesh->IsLoaded() && !TheNavMesh->IsGenerating() && TheNavMesh->GetNavAreaCount() > 0 )
+	{
+		NavAreaCollector collector;
+		TheNavMesh->ForAllAreas( collector );
+		if ( collector.m_area.Count() > 0 )
+		{
+			const int maxAttempts = MIN( collector.m_area.Count(), 128 );
+			for ( int attempt = 0; attempt < maxAttempts; ++attempt )
+			{
+				CNavArea *area = collector.m_area[ random->RandomInt( 0, collector.m_area.Count() - 1 ) ];
+				if ( !area || area->IsBlocked( TEAM_ANY ) )
+					continue;
+
+				if ( TryFallbackSpawnPosition( pPlayer, area->GetRandomPoint(), vec3_angle, outOrigin, outAngles ) )
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	if ( TryFallbackSpawnPosition( pPlayer, pPlayer->GetAbsOrigin(), vec3_angle, outOrigin, outAngles ) )
+	{
+		return true;
+	}
+
+	if ( TryFallbackSpawnPosition( pPlayer, Vector( 0.0f, 0.0f, 64.0f ), vec3_angle, outOrigin, outAngles ) )
+	{
+		return true;
+	}
+
+	return false;
 }
 
 static Vector GetBackgroundInfectedAnchor( void )
@@ -769,6 +1249,9 @@ static Vector GetBackgroundInfectedAnchor( void )
 
 	// Fall back to standard spawnpoints if any exist (background maps may omit these).
 	if ( PickRandomSpawnAnchor( "info_player_terrorist", &anchor ) )
+		return anchor;
+
+	if ( PickRandomSpawnAnchor( "info_survivor_position", &anchor ) )
 		return anchor;
 
 	if ( PickRandomSpawnAnchor( "info_player_counterterrorist", &anchor ) )
@@ -988,6 +1471,14 @@ static bool IsWithinRadiusOfAnySurvivor( const CUtlVector< CCSPlayer * > &surviv
 	return false;
 }
 
+static void ResetSpecialInfectedFarCullTimers( void )
+{
+	for ( int i = 0; i < ARRAYSIZE( s_flSpecialInfectedFarCullStartTime ); ++i )
+	{
+		s_flSpecialInfectedFarCullStartTime[i] = 0.0f;
+	}
+}
+
 static void CullFarCommonInfected( const CUtlVector< CCSPlayer * > &survivors, float radius, int maxToCull )
 {
 	const float radiusSqr = radius * radius;
@@ -1075,6 +1566,19 @@ static bool IsCommonInfectedHordeActive( void )
 	return ( gpGlobals != NULL ) && ( s_flCommonHordeEndTime > gpGlobals->curtime );
 }
 
+static void ResetCommonInfectedHordeSpawnPos( void )
+{
+	s_bCommonHordeSpawnPosValid = false;
+	s_vecCommonHordeSpawnPos = vec3_origin;
+	s_angCommonHordeSpawnAng.Init( 0.0f, 0.0f, 0.0f );
+}
+
+static void ResetCommonInfectedHordeState( void )
+{
+	ResetCommonInfectedHordeSpawnPos();
+	s_bCommonHordeInitialBurstDone = false;
+}
+
 static void ScheduleNextCommonInfectedHorde( float flBaseTime )
 {
 	s_flNextCommonHordeStart = flBaseTime + GetRandomHordeInterval();
@@ -1084,6 +1588,11 @@ static void StartCommonInfectedHorde( bool bImmediateSpawn )
 {
 	if ( !gpGlobals )
 		return;
+
+	if ( !IsCommonInfectedHordeActive() )
+	{
+		ResetCommonInfectedHordeState();
+	}
 
 	s_flCommonHordeEndTime = MAX( s_flCommonHordeEndTime, gpGlobals->curtime + GetRandomHordeDuration() );
 	s_flNextCommonHordeStart = 0.0f;
@@ -1182,6 +1691,12 @@ static bool FindCommonInfectedSpawnPosNearSurvivor( CCSPlayer *survivor, float m
 			area->GetClosestPointOnArea( jittered, &pos );
 			pos.z = area->GetZ( pos );
 
+			if ( pos.DistTo( survivorOrigin ) < minDist )
+				continue;
+
+			if ( pos.DistTo( survivorOrigin ) > searchRadius )
+				continue;
+
 			*outPos = pos;
 			outAngles->Init( 0.0f, random->RandomFloat( 0.0f, 360.0f ), 0.0f );
 			return true;
@@ -1191,7 +1706,16 @@ static bool FindCommonInfectedSpawnPosNearSurvivor( CCSPlayer *survivor, float m
 	return false;
 }
 
-static bool FindCommonInfectedSpawnPos( const CUtlVector< CCSPlayer * > &survivors, Vector *outPos, QAngle *outAngles, CCSPlayer *anchorSurvivor )
+static float GetCommonInfectedHordeMinSpawnDist( void )
+{
+	const float searchRadius = z_spawn_radius.GetFloat();
+	if ( searchRadius <= 1.0f )
+		return 0.0f;
+
+	return clamp( z_horde_spawn_safety_radius.GetFloat(), 0.0f, searchRadius - 1.0f );
+}
+
+static bool FindCommonInfectedSpawnPos( const CUtlVector< CCSPlayer * > &survivors, Vector *outPos, QAngle *outAngles, CCSPlayer *anchorSurvivor, float minDistFromAnySurvivor = 0.0f )
 {
 	if ( survivors.Count() <= 0 || !outPos || !outAngles )
 		return false;
@@ -1206,6 +1730,8 @@ static bool FindCommonInfectedSpawnPos( const CUtlVector< CCSPlayer * > &survivo
 	const Vector survivorOrigin = survivor->GetAbsOrigin();
 	const float minDist = z_spawn_safety_radius.GetFloat();
 	const float searchRadius = z_spawn_radius.GetFloat();
+	const float minDistAnySurvivor = clamp( minDistFromAnySurvivor, 0.0f, searchRadius );
+	const float minDistAnySurvivorSqr = minDistAnySurvivor * minDistAnySurvivor;
 
 	NavAreaCollector collector;
 	TheNavMesh->ForAllAreasInRadius( collector, survivorOrigin, searchRadius );
@@ -1224,6 +1750,9 @@ static bool FindCommonInfectedSpawnPos( const CUtlVector< CCSPlayer * > &survivo
 
 		const float dist = area->GetCenter().DistTo( survivorOrigin );
 		if ( dist < minDist )
+			continue;
+
+		if ( minDistAnySurvivor > 0.0f && IsWithinRadiusOfAnySurvivor( survivors, area->GetCenter(), minDistAnySurvivorSqr ) )
 			continue;
 
 		candidates.AddToTail( area );
@@ -1252,6 +1781,9 @@ static bool FindCommonInfectedSpawnPos( const CUtlVector< CCSPlayer * > &survivo
 			if ( pos.DistTo( survivorOrigin ) > searchRadius )
 				continue;
 
+			if ( minDistAnySurvivor > 0.0f && IsWithinRadiusOfAnySurvivor( survivors, pos, minDistAnySurvivorSqr ) )
+				continue;
+
 			if ( z_spawn_require_hidden.GetBool() && !IsHiddenSpawnFromAllSurvivorsLOS( pos ) )
 				continue;
 
@@ -1261,6 +1793,15 @@ static bool FindCommonInfectedSpawnPos( const CUtlVector< CCSPlayer * > &survivo
 			jittered.y += random->RandomFloat( -75.0f, 75.0f );
 			area->GetClosestPointOnArea( jittered, &pos );
 			pos.z = area->GetZ( pos );
+
+			if ( pos.DistTo( survivorOrigin ) < minDist )
+				continue;
+
+			if ( pos.DistTo( survivorOrigin ) > searchRadius )
+				continue;
+
+			if ( minDistAnySurvivor > 0.0f && IsWithinRadiusOfAnySurvivor( survivors, pos, minDistAnySurvivorSqr ) )
+				continue;
 
 			*outPos = pos;
 			outAngles->Init( 0.0f, random->RandomFloat( 0.0f, 360.0f ), 0.0f );
@@ -1536,6 +2077,40 @@ void CCSGameRules::OnSurvivorVomited( CCSPlayer *victim, CCSPlayer *attacker )
 	}
 }
 
+void CCSGameRules::StartScriptedPanicEvent( CCSPlayer *pActivator, bool bRevealActivator )
+{
+	StartCommonInfectedHorde( true );
+
+	CBroadcastRecipientFilter filter;
+	CBaseEntity::EmitSound( filter, SOUND_FROM_WORLD, "MegaMobIncoming" );
+
+	const char *pszMessage = "The horde has been alerted!";
+	CFmtStr panicMessage;
+
+	if ( bRevealActivator )
+	{
+		if ( pActivator && pActivator->GetTeamNumber() == TEAM_TERRORIST && pActivator->GetPlayerName() && pActivator->GetPlayerName()[0] )
+		{
+			panicMessage.sprintf( "%s alerted the horde!", pActivator->GetPlayerName() );
+		}
+		else
+		{
+			panicMessage.sprintf( "You alerted the horde!" );
+		}
+
+		pszMessage = panicMessage.Access();
+	}
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *player = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !player || player->GetTeamNumber() != TEAM_TERRORIST )
+			continue;
+
+		ClientPrint( player, HUD_PRINTTALK, pszMessage );
+	}
+}
+
 static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingRound )
 {
 	if ( !rules || !z_spawn_enabled.GetBool() )
@@ -1545,6 +2120,7 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 	if ( rules->IsFreezePeriod() || isRestartingRound )
 	{
 		s_flCommonHordeEndTime = 0.0f;
+		ResetCommonInfectedHordeState();
 		if ( isRestartingRound )
 		{
 			s_flNextCommonHordeStart = 0.0f;
@@ -1559,6 +2135,7 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 		if ( s_flCommonHordeEndTime > 0.0f )
 		{
 			s_flCommonHordeEndTime = 0.0f;
+			ResetCommonInfectedHordeState();
 		}
 
 		if ( s_flNextCommonHordeStart <= 0.0f )
@@ -1587,6 +2164,13 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 		return;
 	}
 
+	if ( bHordeActive && !s_bCommonHordeInitialBurstDone )
+	{
+		// Horde bursts should arrive as a full pack, not merely top off whatever commons are already alive.
+		CullExcessCommonInfectedGlobal( NULL, 0 );
+		s_bCommonHordeInitialBurstDone = true;
+	}
+
 	// Remove common infected that are no longer within the population radius, so the director keeps pressure near the survivors.
 	CullFarCommonInfected( survivors, z_spawn_radius.GetFloat(), z_spawn_batch.GetInt() );
 	CullExcessCommonInfectedGlobal( &survivors, z_common_max.GetInt() );
@@ -1602,18 +2186,49 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 	}
 
 	int batch = clamp( z_spawn_batch.GetInt(), 1, 64 );
-	if ( IsCommonInfectedHordeActive() )
+	if ( bHordeActive )
 	{
 		batch = clamp( z_horde_spawn_batch.GetInt(), 1, 128 );
 	}
 	const int toSpawn = MIN( missing, batch );
+	int spawned = 0;
+
+	Vector hordeSpawnPos( vec3_origin );
+	QAngle hordeSpawnAng( 0, 0, 0 );
+	if ( bHordeActive )
+	{
+		const float minHordeSpawnDist = GetCommonInfectedHordeMinSpawnDist();
+		if ( !s_bCommonHordeSpawnPosValid )
+		{
+			if ( FindCommonInfectedSpawnPos( survivors, &s_vecCommonHordeSpawnPos, &s_angCommonHordeSpawnAng, anchor, minHordeSpawnDist ) )
+			{
+				s_bCommonHordeSpawnPosValid = true;
+			}
+		}
+
+		if ( !s_bCommonHordeSpawnPosValid )
+		{
+			s_flNextCommonInfectedSpawn = gpGlobals->curtime + z_spawn_interval.GetFloat();
+			return;
+		}
+
+		hordeSpawnPos = s_vecCommonHordeSpawnPos;
+		hordeSpawnAng = s_angCommonHordeSpawnAng;
+	}
 
 	for ( int i = 0; i < toSpawn; ++i )
 	{
 		Vector spawnPos;
 		QAngle spawnAng;
-		if ( !FindCommonInfectedSpawnPos( survivors, &spawnPos, &spawnAng, anchor ) )
+		if ( bHordeActive )
+		{
+			spawnPos = hordeSpawnPos;
+			spawnAng = hordeSpawnAng;
+		}
+		else if ( !FindCommonInfectedSpawnPos( survivors, &spawnPos, &spawnAng, anchor ) )
+		{
 			break;
+		}
 
 		CBaseEntity *ent = CreateEntityByName( "infected" );
 		if ( !ent )
@@ -1637,7 +2252,7 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 			continue;
 		}
 
-		if ( IsCommonInfectedHordeActive() )
+		if ( bHordeActive )
 		{
 			DirectCommonInfectedAtRandomSurvivor( ent, survivors );
 		}
@@ -1649,6 +2264,13 @@ static void CommonInfectedDirectorThink( CCSGameRules *rules, bool isRestartingR
 			UTIL_Remove( ent );
 			break;
 		}
+
+		++spawned;
+	}
+
+	if ( bHordeActive )
+	{
+		ResetCommonInfectedHordeSpawnPos();
 	}
 
 	s_flNextCommonInfectedSpawn = gpGlobals->curtime + z_spawn_interval.GetFloat();
@@ -2025,6 +2647,11 @@ static void SpecialInfectedDirectorThink(CCSGameRules* rules, bool isRestartingR
 	if (!rules)
 		return;
 
+	CUtlVector< CCSPlayer * > survivors;
+	const int survivorCount = CollectAliveSurvivorsT( survivors );
+	const float farCullDistanceSqr = z_special_far_cull_distance.GetFloat() * z_special_far_cull_distance.GetFloat();
+	const float farCullGrace = MAX( 0.0f, z_special_far_cull_grace.GetFloat() );
+
 	// Special infected respawn timer (TF2-style): dead specials auto-respawn after a delay.
 	const bool allowSpecialRespawnNow = ( !rules->IsFreezePeriod() && !isRestartingRound );
 	const float respawnTime = MAX( 0.0f, z_special_respawn_time.GetFloat() );
@@ -2037,6 +2664,43 @@ static void SpecialInfectedDirectorThink(CCSGameRules* rules, bool isRestartingR
 		const bool isSpecialInfected = ( player->GetTeamNumber() == TEAM_INFECTED );
 		if ( !isSpecialInfected )
 			continue;
+
+		const int entIndex = player->entindex();
+		if ( entIndex > 0 && entIndex < ARRAYSIZE( s_flSpecialInfectedFarCullStartTime ) )
+		{
+			const bool shouldTrackFarCull =
+				player->IsAlive() &&
+				player->IsBot() &&
+				player->IsSpecialInfected() &&
+				!player->IsGhost() &&
+				!player->IsHulkTank() &&
+				survivorCount > 0;
+
+			if ( shouldTrackFarCull )
+			{
+				if ( !IsWithinRadiusOfAnySurvivor( survivors, player->GetAbsOrigin(), farCullDistanceSqr ) )
+				{
+					if ( s_flSpecialInfectedFarCullStartTime[ entIndex ] <= 0.0f )
+					{
+						s_flSpecialInfectedFarCullStartTime[ entIndex ] = gpGlobals->curtime;
+					}
+					else if ( gpGlobals->curtime >= ( s_flSpecialInfectedFarCullStartTime[ entIndex ] + farCullGrace ) )
+					{
+						s_flSpecialInfectedFarCullStartTime[ entIndex ] = 0.0f;
+						player->CommitSuicide( false, true );
+						continue;
+					}
+				}
+				else
+				{
+					s_flSpecialInfectedFarCullStartTime[ entIndex ] = 0.0f;
+				}
+			}
+			else
+			{
+				s_flSpecialInfectedFarCullStartTime[ entIndex ] = 0.0f;
+			}
+		}
 
 		if ( player->IsAlive() )
 		{
@@ -2079,8 +2743,7 @@ static void SpecialInfectedDirectorThink(CCSGameRules* rules, bool isRestartingR
 		}
 		else if ( gpGlobals->curtime >= s_flNextTankSpawnAllowed && !IsAnyAliveTank() )
 		{
-			CUtlVector< CCSPlayer * > survivors;
-			if ( CollectAliveSurvivorsT( survivors ) > 0 )
+			if ( survivorCount > 0 )
 			{
 				Vector anchor;
 				if ( PickTankSpawnAnchorNearSurvivors( survivors, &anchor ) )
@@ -2117,7 +2780,7 @@ static void SpecialInfectedDirectorThink(CCSGameRules* rules, bool isRestartingR
 	CCSPlayer* survivor = rules ? rules->GetItTarget() : NULL;
 	if (!survivor)
 	{
-		survivor = SelectRandomAliveSurvivorT();
+		survivor = ( survivorCount > 0 ) ? survivors[ random->RandomInt( 0, survivorCount - 1 ) ] : NULL;
 	}
 	if (!survivor)
 	{
@@ -2283,6 +2946,8 @@ static CViewVectors g_CSViewVectors(
 
 #ifndef CLIENT_DLL
 LINK_ENTITY_TO_CLASS(info_player_terrorist, CPointEntity);
+LINK_ENTITY_TO_CLASS(info_survivor_position, CPointEntity);
+LINK_ENTITY_TO_CLASS(info_survivor_rescue, CPointEntity);
 LINK_ENTITY_TO_CLASS(info_player_counterterrorist,CPointEntity);
 LINK_ENTITY_TO_CLASS(info_player_logo,CPointEntity);
 #endif
@@ -2462,6 +3127,7 @@ ConVar cl_autohelp(
 		"info_player_counterterrorist",
 		"info_player_start",
 		"info_player_terrorist",
+		"info_survivor_position",
 		"info_map_parameters",
 		"keyframe_rope",
 		"move_rope",
@@ -4709,6 +5375,7 @@ ConVar cl_autohelp(
 
 		// Start special infected spawns fresh each map.
 		s_flNextSpecialInfectedSpawn = gpGlobals->curtime + z_special_spawn_interval.GetFloat();
+		ResetSpecialInfectedFarCullTimers();
 
 		// Start listen host auto-join fresh each map.
 		s_bListenHostAutoJoinDone = false;
@@ -4719,6 +5386,7 @@ ConVar cl_autohelp(
 		s_flNextCommonInfectedSpawn = 0.0f;
 		s_flNextCommonHordeStart = 0.0f;
 		s_flCommonHordeEndTime = 0.0f;
+		ResetCommonInfectedHordeState();
 		s_flNextSurvivorSquadUpdate = 0.0f;
 		s_hSurvivorSquadLeader = NULL;
 
@@ -4727,6 +5395,7 @@ ConVar cl_autohelp(
 		s_flNextTankSpawnAllowed = 0.0f;
 
 		ResetLeavingSafetyMusicState();
+		ResetSaferoomTransitionState();
 	}
 	
 	INetworkStringTable *g_StringTableBlackMarket = NULL;
@@ -4801,8 +5470,11 @@ ConVar cl_autohelp(
 	void CCSGameRules::LevelShutdown()
 	{
 		ResetLeavingSafetyMusicState();
+		ResetSaferoomTransitionState();
+		ResetSpecialInfectedFarCullTimers();
 		s_flNextCommonHordeStart = 0.0f;
 		s_flCommonHordeEndTime = 0.0f;
+		ResetCommonInfectedHordeState();
 		s_flNextCommonInfectedSpawn = 0.0f;
 		s_flNextTankSpawnAllowed = 0.0f;
 
@@ -6132,6 +6804,7 @@ ConVar cl_autohelp(
 		SpecialInfectedDirectorThink( this, isRestartingRound );
 		TankHumanTakeoverThink( this, isRestartingRound );
 		BackgroundInfectedPopulateThink( this, isRestartingRound );
+		SaferoomTransitionThink( this, isRestartingRound );
 	}
 
 
@@ -6297,6 +6970,7 @@ ConVar cl_autohelp(
 
 		// Freeze period expired: kill the flag
 		m_bFreezePeriod = false;
+		TriggerLogicRelayByName( "relay_intro_start" );
 
 		IGameEvent * event = gameeventmanager->CreateEvent( "round_freeze_end" );
 		if ( event )
@@ -6716,6 +7390,20 @@ ConVar cl_autohelp(
 				}
 			}
 
+			ent = NULL;
+			while ( ( ent = gEntList.FindEntityByClassname( ent, "info_survivor_position" ) ) != NULL )
+			{
+				if ( IsSpawnPointValid( ent, NULL ) )
+				{
+					m_iSpawnPointCount_Terrorist++;
+				}
+				else
+				{
+					Warning("Invalid survivor spawnpoint at (%.1f,%.1f,%.1f)\n",
+						ent->GetAbsOrigin()[0],ent->GetAbsOrigin()[2],ent->GetAbsOrigin()[2] );
+				}
+			}
+
 			while ( ( ent = gEntList.FindEntityByClassname( ent, "info_player_counterterrorist" ) ) != NULL )
 			{
 				if ( IsSpawnPointValid( ent, NULL ) ) 
@@ -6742,6 +7430,19 @@ ConVar cl_autohelp(
 		CBaseEntity* ent = NULL;
 		
 		while ( ( ent = gEntList.FindEntityByClassname( ent, "info_player_terrorist" ) ) != NULL )
+		{
+			if ( IsSpawnPointValid( ent, NULL ) )
+			{
+				NDebugOverlay::Box( ent->GetAbsOrigin(), VEC_HULL_MIN, VEC_HULL_MAX, 0, 255, 0, 200, 600 );
+			}
+			else
+			{
+				NDebugOverlay::Box( ent->GetAbsOrigin(), VEC_HULL_MIN, VEC_HULL_MAX, 255, 0, 0, 200, 600);
+			}
+		}
+
+		ent = NULL;
+		while ( ( ent = gEntList.FindEntityByClassname( ent, "info_survivor_position" ) ) != NULL )
 		{
 			if ( IsSpawnPointValid( ent, NULL ) )
 			{
@@ -6996,9 +7697,13 @@ ConVar cl_autohelp(
 		switch ( team_id )
 		{
 		case TEAM_TERRORIST:
+			if ( m_iSpawnPointCount_Terrorist <= 0 )
+				return false;
 			return m_iNumTerrorist >= m_iSpawnPointCount_Terrorist;
 
 		case TEAM_CT:
+			if ( m_iSpawnPointCount_CT <= 0 )
+				return false;
 			return m_iNumCT >= m_iSpawnPointCount_CT;
 		}
 
@@ -7843,11 +8548,27 @@ ConVar cl_autohelp(
 		// gat valid spwan point
 		CBaseEntity *pSpawnSpot = pPlayer->EntSelectSpawnPoint();
 
+		Vector spawnOrigin = vec3_origin;
+		QAngle spawnAngles = vec3_angle;
+
+		if ( pSpawnSpot &&
+			 pSpawnSpot != CBaseEntity::Instance( INDEXENT( 0 ) ) &&
+			 IsSpawnPointValid( pSpawnSpot, pPlayer ) )
+		{
+			spawnOrigin = pSpawnSpot->GetAbsOrigin();
+			spawnAngles = pSpawnSpot->GetLocalAngles();
+		}
+		else if ( !FindFallbackPlayerSpawnPosition( pPlayer, pPlayer->GetTeamNumber(), &spawnOrigin, &spawnAngles ) )
+		{
+			spawnOrigin.Init( 0.0f, 0.0f, 64.0f );
+			spawnAngles.Init();
+		}
+
 		// Move the player to the place it said.
-		pPlayer->Teleport( &pSpawnSpot->GetAbsOrigin(), &pSpawnSpot->GetLocalAngles(), &vec3_origin );
+		pPlayer->Teleport( &spawnOrigin, &spawnAngles, &vec3_origin );
 		pPlayer->m_Local.m_vecPunchAngle = vec3_angle;
 		
-		return pSpawnSpot;
+		return ( pSpawnSpot && pSpawnSpot != CBaseEntity::Instance( INDEXENT( 0 ) ) ) ? pSpawnSpot : pPlayer;
 	}
 	
 	// checks if the spot is clear of players
@@ -8225,7 +8946,81 @@ CAmmoDef* GetAmmoDef()
 	if ( !bInitted )
 	{
 		bInitted = true;
-		
+
+		ammoDef.AddAmmoType("AR2", DMG_BULLET, TRACER_LINE_AND_WHIZ, "sk_plr_dmg_ar2", "sk_npc_dmg_ar2", "sk_max_ar2", BULLET_IMPULSE(200, 1225), 0);
+		ammoDef.AddAmmoType("AlyxGun", DMG_BULLET, TRACER_LINE, "sk_plr_dmg_alyxgun", "sk_npc_dmg_alyxgun", "sk_max_alyxgun", BULLET_IMPULSE(200, 1225), 0);
+		ammoDef.AddAmmoType("Pistol", DMG_BULLET, TRACER_LINE_AND_WHIZ, "sk_plr_dmg_pistol", "sk_npc_dmg_pistol", "sk_max_pistol", BULLET_IMPULSE(200, 1225), 0);
+		ammoDef.AddAmmoType("SMG1", DMG_BULLET, TRACER_LINE_AND_WHIZ, "sk_plr_dmg_smg1", "sk_npc_dmg_smg1", "sk_max_smg1", BULLET_IMPULSE(200, 1225), 0);
+		ammoDef.AddAmmoType("357", DMG_BULLET, TRACER_LINE_AND_WHIZ, "sk_plr_dmg_357", "sk_npc_dmg_357", "sk_max_357", BULLET_IMPULSE(800, 5000), 0);
+		ammoDef.AddAmmoType("XBowBolt", DMG_BULLET, TRACER_LINE, "sk_plr_dmg_crossbow", "sk_npc_dmg_crossbow", "sk_max_crossbow", BULLET_IMPULSE(800, 8000), 0);
+
+		ammoDef.AddAmmoType("Buckshot", DMG_BULLET | DMG_BUCKSHOT, TRACER_LINE, "sk_plr_dmg_buckshot", "sk_npc_dmg_buckshot", "sk_max_buckshot", BULLET_IMPULSE(400, 1200), 0);
+		ammoDef.AddAmmoType("RPG_Round", DMG_BURN, TRACER_NONE, "sk_plr_dmg_rpg_round", "sk_npc_dmg_rpg_round", "sk_max_rpg_round", 0, 0);
+		ammoDef.AddAmmoType("SMG1_Grenade", DMG_BURN, TRACER_NONE, "sk_plr_dmg_smg1_grenade", "sk_npc_dmg_smg1_grenade", "sk_max_smg1_grenade", 0, 0);
+		ammoDef.AddAmmoType("SniperRound", DMG_BULLET, TRACER_NONE, "sk_plr_dmg_sniper_round", "sk_npc_dmg_sniper_round", "sk_max_sniper_round", BULLET_IMPULSE(650, 6000), 0);
+		ammoDef.AddAmmoType("SniperPenetratedRound", DMG_BULLET, TRACER_NONE, "sk_dmg_sniper_penetrate_plr", "sk_dmg_sniper_penetrate_npc", "sk_max_sniper_round", BULLET_IMPULSE(150, 6000), 0);
+		ammoDef.AddAmmoType("Grenade", DMG_BURN, TRACER_NONE, "sk_plr_dmg_grenade", "sk_npc_dmg_grenade", "sk_max_grenade", 0, 0);
+		ammoDef.AddAmmoType("Thumper", DMG_SONIC, TRACER_NONE, 10, 10, 2, 0, 0);
+		ammoDef.AddAmmoType("Gravity", DMG_CLUB, TRACER_NONE, 0, 0, 8, 0, 0);
+		//		ammoDef.AddAmmoType("Extinguisher",		DMG_BURN,					TRACER_NONE,			0,	0, 100, 0, 0 );
+		ammoDef.AddAmmoType("Battery", DMG_CLUB, TRACER_NONE, NULL, NULL, NULL, 0, 0);
+		ammoDef.AddAmmoType("GaussEnergy", DMG_SHOCK, TRACER_NONE, "sk_jeep_gauss_damage", "sk_jeep_gauss_damage", "sk_max_gauss_round", BULLET_IMPULSE(650, 8000), 0); // hit like a 10kg weight at 400 in/s
+		ammoDef.AddAmmoType("CombineCannon", DMG_BULLET, TRACER_LINE, "sk_npc_dmg_gunship_to_plr", "sk_npc_dmg_gunship", NULL, 1.5 * 750 * 12, 0); // hit like a 1.5kg weight at 750 ft/s
+		ammoDef.AddAmmoType("AirboatGun", DMG_AIRBOAT, TRACER_LINE, "sk_plr_dmg_airboat", "sk_npc_dmg_airboat", NULL, BULLET_IMPULSE(10, 600), 0);
+
+		//=====================================================================
+		// STRIDER MINIGUN DAMAGE - Pull up a chair and I'll tell you a tale.
+		//
+		// When we shipped Half-Life 2 in 2004, we were unaware of a bug in
+		// CAmmoDef::NPCDamage() which was returning the MaxCarry field of
+		// an ammotype as the amount of damage that should be done to a NPC
+		// by that type of ammo. Thankfully, the bug only affected Ammo Types 
+		// that DO NOT use ConVars to specify their parameters. As you can see,
+		// all of the important ammotypes use ConVars, so the effect of the bug
+		// was limited. The Strider Minigun was affected, though.
+		//
+		// According to my perforce Archeology, we intended to ship the Strider
+		// Minigun ammo type to do 15 points of damage per shot, and we did. 
+		// To achieve this we, unaware of the bug, set the Strider Minigun ammo 
+		// type to have a maxcarry of 15, since our observation was that the 
+		// number that was there before (8) was indeed the amount of damage being
+		// done to NPC's at the time. So we changed the field that was incorrectly
+		// being used as the NPC Damage field.
+		//
+		// The bug was fixed during Episode 1's development. The result of the 
+		// bug fix was that the Strider was reduced to doing 5 points of damage
+		// to NPC's, since 5 is the value that was being assigned as NPC damage
+		// even though the code was returning 15 up to that point.
+		//
+		// Now as we go to ship Orange Box, we discover that the Striders in 
+		// Half-Life 2 are hugely ineffective against citizens, causing big
+		// problems in maps 12 and 13. 
+		//
+		// In order to restore balance to HL2 without upsetting the delicate 
+		// balance of ep2_outland_12, I have chosen to build Episodic binaries
+		// with 5 as the Strider->NPC damage, since that's the value that has
+		// been in place for all of Episode 2's development. Half-Life 2 will
+		// build with 15 as the Strider->NPC damage, which is how HL2 shipped
+		// originally, only this time the 15 is located in the correct field
+		// now that the AmmoDef code is behaving correctly.
+		//
+		//=====================================================================
+#ifdef HL2_EPISODIC
+		ammoDef.AddAmmoType("StriderMinigun", DMG_BULLET, TRACER_LINE, 5, 5, 15, 1.0 * 750 * 12, AMMO_FORCE_DROP_IF_CARRIED); // hit like a 1.0kg weight at 750 ft/s
+#else
+		ammoDef.AddAmmoType("StriderMinigun", DMG_BULLET, TRACER_LINE, 5, 15, 15, 1.0 * 750 * 12, AMMO_FORCE_DROP_IF_CARRIED); // hit like a 1.0kg weight at 750 ft/s
+#endif//HL2_EPISODIC
+
+		ammoDef.AddAmmoType("StriderMinigunDirect", DMG_BULLET, TRACER_LINE, 2, 2, 15, 1.0 * 750 * 12, AMMO_FORCE_DROP_IF_CARRIED); // hit like a 1.0kg weight at 750 ft/s
+		ammoDef.AddAmmoType("HelicopterGun", DMG_BULLET, TRACER_LINE_AND_WHIZ, "sk_npc_dmg_helicopter_to_plr", "sk_npc_dmg_helicopter", "sk_max_smg1", BULLET_IMPULSE(400, 1225), AMMO_FORCE_DROP_IF_CARRIED | AMMO_INTERPRET_PLRDAMAGE_AS_DAMAGE_TO_PLAYER);
+		ammoDef.AddAmmoType("AR2AltFire", DMG_DISSOLVE, TRACER_NONE, 0, 0, "sk_max_ar2_altfire", 0, 0);
+		ammoDef.AddAmmoType("Grenade", DMG_BURN, TRACER_NONE, "sk_plr_dmg_grenade", "sk_npc_dmg_grenade", "sk_max_grenade", 0, 0);
+#ifdef HL2_EPISODIC
+		ammoDef.AddAmmoType("Hopwire", DMG_BLAST, TRACER_NONE, "sk_plr_dmg_grenade", "sk_npc_dmg_grenade", "sk_max_hopwire", 0, 0);
+		ammoDef.AddAmmoType("CombineHeavyCannon", DMG_BULLET, TRACER_LINE, 40, 40, NULL, 10 * 750 * 12, AMMO_FORCE_DROP_IF_CARRIED); // hit like a 10 kg weight at 750 ft/s
+		ammoDef.AddAmmoType("ammo_proto1", DMG_BULLET, TRACER_LINE, 0, 0, 10, 0, 0);
+#endif // HL2_EPISODIC
+
 		ammoDef.AddAmmoType( BULLET_PLAYER_50AE,		DMG_BULLET, TRACER_LINE, 0, 0, "ammo_50AE_max",		2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14 );
 		ammoDef.AddAmmoType( BULLET_PLAYER_762MM,		DMG_BULLET, TRACER_LINE, 0, 0, "ammo_762mm_max",	2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14 );
 		ammoDef.AddAmmoType( BULLET_PLAYER_556MM,		DMG_BULLET, TRACER_LINE, 0, 0, "ammo_556mm_max",	2400 * BULLET_IMPULSE_EXAGGERATION, 0, 10, 14 );

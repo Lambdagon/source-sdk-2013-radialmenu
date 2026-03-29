@@ -20,8 +20,9 @@
 #include "tier2/p4helpers.h"
 #include "tier2/fileutils.h"
 
-#ifdef TERROR
 #include "func_elevator.h"
+
+#ifdef TERROR
 #endif
 
 #include "tier1/lzmaDecoder.h"
@@ -891,6 +892,35 @@ void CNavArea::ComputeEarliestOccupyTimes( void )
 		}
 	}
 
+	for (spot = gEntList.FindEntityByClassname(NULL, "info_survivor_position");
+		spot;
+		spot = gEntList.FindEntityByClassname(spot, "info_survivor_position"))
+	{
+		float travelDistance = NavAreaTravelDistance(spot->GetAbsOrigin(), m_center, cost);
+		if (travelDistance < 0.0f)
+			continue;
+
+		float travelTime = travelDistance / playerSpeed;
+		if (travelTime < m_earliestOccupyTime[team])
+		{
+			m_earliestOccupyTime[team] = travelTime;
+		}
+	}
+
+	for (spot = gEntList.FindEntityByClassname(NULL, "info_survivor_rescue");
+		spot;
+		spot = gEntList.FindEntityByClassname(spot, "info_survivor_rescue"))
+	{
+		float travelDistance = NavAreaTravelDistance(spot->GetAbsOrigin(), m_center, cost);
+		if (travelDistance < 0.0f)
+			continue;
+
+		float travelTime = travelDistance / playerSpeed;
+		if (travelTime < m_earliestOccupyTime[team])
+		{
+			m_earliestOccupyTime[team] = travelTime;
+		}
+	}
 
 	// determine the shortest time it will take a CT to reach this area
 	team = TEAM_CT % MAX_NAV_TEAMS;

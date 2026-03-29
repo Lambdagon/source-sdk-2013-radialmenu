@@ -142,6 +142,7 @@ public:
 	CBaseEntity *FindEntityInSphere( CBaseEntity *pStartEntity, const Vector &vecCenter, float flRadius, IEntityFindFilter *pFilter = NULL );
 	CBaseEntity *FindEntityByTarget( CBaseEntity *pStartEntity, const char *szName, IEntityFindFilter *pFilter = NULL );
 	CBaseEntity *FindEntityByModel( CBaseEntity *pStartEntity, const char *szModelName, IEntityFindFilter *pFilter = NULL );
+	CBaseEntity	*FindEntityByOutputTarget( CBaseEntity *pStartEntity, string_t iTarget );
 
 	CBaseEntity *FindEntityByNameNearest( const char *szName, const Vector &vecSrc, float flRadius, CBaseEntity *pSearchingEntity = NULL, CBaseEntity *pActivator = NULL, CBaseEntity *pCaller = NULL, IEntityFindFilter *pFilter = NULL );
 	CBaseEntity *FindEntityByNameWithin( CBaseEntity *pStartEntity, const char *szName, const Vector &vecSrc, float flRadius, CBaseEntity *pSearchingEntity = NULL, CBaseEntity *pActivator = NULL, CBaseEntity *pCaller = NULL, IEntityFindFilter *pFilter = NULL );

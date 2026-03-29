@@ -15,6 +15,7 @@
 #include "utldict.h"
 #include "weapon_basecsgrenade.h"
 #include "datacache/imdlcache.h"
+#include "activitylist.h"
 
 #ifdef CLIENT_DLL
 	#include "c_cs_player.h"
@@ -37,17 +38,195 @@
 #define DEFAULT_WALK_NAME "walk_upper_"
 #define DEFAULT_RUN_NAME "run_upper_"
 
-#define DEFAULT_FIRE_IDLE_NAME "idle_shoot_"
-#define DEFAULT_FIRE_CROUCH_NAME "crouch_idle_shoot_"
-#define DEFAULT_FIRE_CROUCH_WALK_NAME "crouch_walk_shoot_"
-#define DEFAULT_FIRE_WALK_NAME "walk_shoot_"
-#define DEFAULT_FIRE_RUN_NAME "run_shoot_"
-
-
 #define FIRESEQUENCE_LAYER		(AIMSEQUENCE_LAYER+NUM_AIMSEQUENCE_LAYERS+1)
 #define RELOADSEQUENCE_LAYER	(FIRESEQUENCE_LAYER + 1)
 #define GRENADESEQUENCE_LAYER	(RELOADSEQUENCE_LAYER + 1)
 #define NUM_LAYERS_WANTED		(GRENADESEQUENCE_LAYER + 1)
+
+namespace
+{
+	struct SurvivorActivityMap_t
+	{
+		Activity idle;
+		Activity walk;
+		Activity run;
+		Activity crouchIdle;
+		Activity crouchWalk;
+		Activity idleInjured;
+		Activity walkInjured;
+		Activity runInjured;
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorPistolActivityMap =
+	{
+		ACT_IDLE_PISTOL, ACT_WALK_PISTOL, ACT_RUN_PISTOL, ACT_CROUCHIDLE_PISTOL, ACT_RUN_CROUCH_PISTOL,
+		ACT_IDLE_INJURED_PISTOL, ACT_WALK_INJURED_PISTOL, ACT_RUN_INJURED_PISTOL
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorElitesActivityMap =
+	{
+		ACT_IDLE_ELITES, ACT_WALK_ELITES, ACT_RUN_ELITES, ACT_CROUCHIDLE_ELITES, ACT_RUN_CROUCH_ELITES,
+		ACT_IDLE_INJURED_ELITES, ACT_WALK_INJURED_ELITES, ACT_RUN_INJURED_ELITES
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorRifleActivityMap =
+	{
+		ACT_IDLE_RIFLE, ACT_WALK_RIFLE, ACT_RUN_RIFLE, ACT_CROUCHIDLE_RIFLE, ACT_RUN_CROUCH_RIFLE,
+		ACT_IDLE_INJURED_RIFLE, ACT_WALK_INJURED_RIFLE, ACT_RUN_INJURED_RIFLE
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorSMGActivityMap =
+	{
+		// Survivor SMGs share the authored crouch-idle "secondary" locomotion slot.
+		ACT_IDLE_SMG, ACT_WALK_SMG, ACT_RUN_SMG, ACT_CROUCHIDLE_SECONDARY, ACT_RUN_CROUCH_SMG,
+		ACT_IDLE_INJURED_SMG, ACT_WALK_INJURED_SMG, ACT_RUN_INJURED_SMG
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorPumpShotgunActivityMap =
+	{
+		ACT_IDLE_PUMPSHOTGUN, ACT_WALK_PUMPSHOTGUN, ACT_RUN_PUMPSHOTGUN, ACT_CROUCHIDLE_PUMPSHOTGUN, ACT_RUN_CROUCH_PUMPSHOTGUN,
+		ACT_IDLE_INJURED_PUMPSHOTGUN, ACT_WALK_INJURED_PUMPSHOTGUN, ACT_RUN_INJURED_PUMPSHOTGUN
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorShotgunActivityMap =
+	{
+		ACT_IDLE_SHOTGUN, ACT_WALK_SHOTGUN, ACT_RUN_SHOTGUN, ACT_CROUCHIDLE_SHOTGUN, ACT_RUN_CROUCH_SHOTGUN,
+		ACT_IDLE_INJURED_PUMPSHOTGUN, ACT_WALK_INJURED_PUMPSHOTGUN, ACT_RUN_INJURED_PUMPSHOTGUN
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorGrenadeActivityMap =
+	{
+		ACT_IDLE_GREN, ACT_WALK_GREN, ACT_RUN_GREN, ACT_CROUCHIDLE_GREN, ACT_RUN_CROUCH_GREN,
+		ACT_IDLE_INJURED_GREN, ACT_WALK_INJURED_GREN, ACT_RUN_INJURED_GREN
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorFirstAidKitActivityMap =
+	{
+		ACT_IDLE_FIRSTAIDKIT, ACT_WALK_FIRSTAIDKIT, ACT_RUN_FIRSTAIDKIT, ACT_CROUCHIDLE_FIRSTAIDKIT, ACT_RUN_CROUCH_FIRSTAIDKIT,
+		ACT_IDLE_INJURED_FIRSTAIDKIT, ACT_WALK_INJURED_FIRSTAIDKIT, ACT_RUN_INJURED_FIRSTAIDKIT
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorSniperActivityMap =
+	{
+		ACT_IDLE_SNIPER, ACT_WALK_SNIPER, ACT_RUN_SNIPER, ACT_CROUCHIDLE_SNIPER, ACT_RUN_CROUCH_SNIPER,
+		ACT_IDLE_INJURED_SNIPER, ACT_WALK_INJURED_SNIPER, ACT_RUN_INJURED_SNIPER
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorSniperZoomedActivityMap =
+	{
+		ACT_IDLE_SNIPER_ZOOMED, ACT_WALK_SNIPER, ACT_RUN_SNIPER, ACT_CROUCHIDLE_SNIPER_ZOOMED, ACT_RUN_CROUCH_SNIPER,
+		ACT_IDLE_INJURED_SNIPER_ZOOMED, ACT_WALK_INJURED_SNIPER, ACT_RUN_INJURED_SNIPER
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorMilitarySniperActivityMap =
+	{
+		ACT_IDLE_SNIPER_MILITARY, ACT_WALK_SNIPER_MILITARY, ACT_RUN_SNIPER_MILITARY, ACT_CROUCHIDLE_SNIPER_MILITARY, ACT_RUN_CROUCH_SNIPER_MILITARY,
+		ACT_IDLE_INJURED_SNIPER_MILITARY, ACT_WALK_INJURED_SNIPER_MILITARY, ACT_RUN_INJURED_SNIPER_MILITARY
+	};
+
+	static const SurvivorActivityMap_t s_SurvivorMilitarySniperZoomedActivityMap =
+	{
+		ACT_IDLE_SNIPER_MILITARYZOOMED, ACT_WALK_SNIPER_MILITARY, ACT_RUN_SNIPER_MILITARY, ACT_CROUCHIDLE_SNIPER_MILITARYZOOMED, ACT_RUN_CROUCH_SNIPER_MILITARY,
+		ACT_IDLE_INJURED_SNIPER_MILITARYZOOMED, ACT_WALK_INJURED_SNIPER_MILITARY, ACT_RUN_INJURED_SNIPER_MILITARY
+	};
+
+	static void ClearAnimLayer( CBaseAnimatingOverlay *pOuter, int iLayer )
+	{
+		if ( !pOuter || iLayer < 0 || iLayer >= pOuter->GetNumAnimOverlays() )
+			return;
+
+		CAnimationLayer *pLayer = pOuter->GetAnimOverlay( iLayer );
+		pLayer->SetOrder( CBaseAnimatingOverlay::MAX_OVERLAYS );
+		pLayer->m_flWeight = 0.0f;
+		pLayer->m_flCycle = 0.0f;
+		pLayer->m_flPlaybackRate = 0.0f;
+		pLayer->m_nSequence = 0;
+#ifndef CLIENT_DLL
+		pLayer->m_fFlags = 0;
+#endif
+	}
+
+	enum GestureMoveStyle_t
+	{
+		GESTURE_MOVE_IDLE = 0,
+		GESTURE_MOVE_WALK,
+		GESTURE_MOVE_RUN,
+		GESTURE_MOVE_CROUCH_IDLE,
+		GESTURE_MOVE_CROUCH_WALK,
+	};
+
+	static GestureMoveStyle_t GetGestureMoveStyle( Activity activity, const SurvivorActivityMap_t *pActivityMap )
+	{
+		if ( pActivityMap )
+		{
+			if ( activity == pActivityMap->run || activity == pActivityMap->runInjured )
+				return GESTURE_MOVE_RUN;
+
+			if ( activity == pActivityMap->walk || activity == pActivityMap->walkInjured )
+				return GESTURE_MOVE_WALK;
+
+			if ( activity == pActivityMap->crouchIdle )
+				return GESTURE_MOVE_CROUCH_IDLE;
+
+			if ( activity == pActivityMap->crouchWalk )
+				return GESTURE_MOVE_CROUCH_WALK;
+
+			return GESTURE_MOVE_IDLE;
+		}
+
+		switch ( activity )
+		{
+		case ACT_PLAYER_RUN_FIRE:
+		case ACT_RUN:
+		case ACT_RUN_HURT:
+			return GESTURE_MOVE_RUN;
+
+		case ACT_PLAYER_WALK_FIRE:
+		case ACT_WALK:
+		case ACT_WALK_HURT:
+		case ACT_RUNTOIDLE:
+		case ACT_IDLETORUN:
+			return GESTURE_MOVE_WALK;
+
+		case ACT_PLAYER_CROUCH_FIRE:
+		case ACT_CROUCHIDLE:
+			return GESTURE_MOVE_CROUCH_IDLE;
+
+		case ACT_PLAYER_CROUCH_WALK_FIRE:
+		case ACT_RUN_CROUCH:
+			return GESTURE_MOVE_CROUCH_WALK;
+
+		default:
+			return GESTURE_MOVE_IDLE;
+		}
+	}
+
+	static const char *GetGestureMovePrefix( GestureMoveStyle_t moveStyle )
+	{
+		switch ( moveStyle )
+		{
+		case GESTURE_MOVE_RUN:
+			return "run";
+
+		case GESTURE_MOVE_WALK:
+			return "walk";
+
+		case GESTURE_MOVE_CROUCH_IDLE:
+			return "crouch_idle";
+
+		case GESTURE_MOVE_CROUCH_WALK:
+			return "crouch_walk";
+
+		default:
+			return "idle";
+		}
+	}
+
+	static bool IsGestureMoveStyleMoving( GestureMoveStyle_t moveStyle )
+	{
+		return moveStyle == GESTURE_MOVE_RUN || moveStyle == GESTURE_MOVE_WALK || moveStyle == GESTURE_MOVE_CROUCH_WALK;
+	}
+}
 
 
 
@@ -75,6 +254,7 @@ public:
 	virtual void ComputeSequences( CStudioHdr *pStudioHdr );
 	virtual void ClearAnimationLayers();
 	virtual int SelectWeightedSequence( Activity activity );
+	virtual Activity TranslateActivity( Activity actDesired );
 
 	void InitCS( CBaseAnimatingOverlay *pPlayer, ICSPlayerAnimStateHelpers *pHelpers, LegAnimType_t legAnimType, bool bUseAimSequences );
 	
@@ -92,7 +272,10 @@ protected:
 	int CalcGrenadeThrowSequence();
 	int GetOuterGrenadeThrowCounter();
 
-	const char* GetWeaponSuffix();
+	const char* GetWeaponSuffix() const;
+	int SelectGestureSequence( Activity activity ) const;
+	Activity CalcFireGestureActivity( PlayerAnimEvent_t event ) const;
+	Activity CalcReloadGestureActivity( PlayerAnimEvent_t event ) const;
 	bool HandleJumping();
 
 	void UpdateLayerSequenceGeneric( CStudioHdr *pStudioHdr, int iLayer, bool &bEnabled, float &flCurCycle, int &iSequence, bool bWaitAtEnd );
@@ -106,6 +289,8 @@ protected:
 		CSequenceTransitioner* pTransitioner,
 		float flWeightScale
 	);
+	const SurvivorActivityMap_t *GetSurvivorActivityMap() const;
+	bool ShouldSuppressLocomotionAimLayers() const;
 	bool ShouldSuppressSurvivorAnimLayers() const;
 private:
 
@@ -121,6 +306,7 @@ private:
 	bool m_bWasIncapacitated;
 	bool m_bWasBeingRevived;
 	bool m_bIncapDyingFinished;
+	int m_nPrevDamageStaggerDir;
 	int m_nPrevChargerAction;
 	int m_nPrevChargerStaggerDir;
 	int m_nPrevTankAction;
@@ -274,6 +460,7 @@ CCSPlayerAnimState::CCSPlayerAnimState()
 	m_bWasIncapacitated = false;
 	m_bWasBeingRevived = false;
 	m_bIncapDyingFinished = false;
+	m_nPrevDamageStaggerDir = -1;
 	m_nPrevChargerAction = -1;
 	m_nPrevChargerStaggerDir = -1;
 	m_nPrevTankAction = -1;
@@ -335,6 +522,15 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 	}
 
 	// Ensure charger ability sequences (charge/stagger/slam/pound) always start at cycle 0.
+	if ( m_pOuter && m_pPlayer )
+	{
+		const int dir = m_pPlayer->m_nDamageStaggerDir;
+		if ( m_nPrevDamageStaggerDir != -1 && dir != m_nPrevDamageStaggerDir )
+		{
+			RestartMainSequence();
+		}
+	}
+
 	const bool bIsCharger = ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_INFECTED && m_pPlayer->GetZombieClass() == 6 );
 	if ( m_pOuter && bIsCharger )
 	{
@@ -381,6 +577,7 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 	m_bWasPounceAttacker = bIsPounceAttacker;
 	m_bWasIncapacitated = bIsIncapacitated;
 	m_bWasBeingRevived = bIsBeingRevived;
+	m_nPrevDamageStaggerDir = m_pPlayer->m_nDamageStaggerDir;
 
 	if ( bIsCharger )
 	{
@@ -647,6 +844,7 @@ void CCSPlayerAnimState::ClearAnimationState()
 	m_bWasIncapacitated = false;
 	m_bWasBeingRevived = false;
 	m_bIncapDyingFinished = false;
+	m_nPrevDamageStaggerDir = -1;
 	m_nPrevChargerAction = -1;
 	m_nPrevChargerStaggerDir = -1;
 	m_nPrevTankAction = -1;
@@ -833,6 +1031,10 @@ int CCSPlayerAnimState::CalcReloadLayerSequence( PlayerAnimEvent_t event )
 	if ( m_delayedFire != PLAYERANIMEVENT_COUNT )
 		return -1;
 
+	int iReloadSequence = SelectGestureSequence( CalcReloadGestureActivity( event ) );
+	if ( iReloadSequence != -1 )
+		return iReloadSequence;
+
 	const char *weaponSuffix = GetWeaponSuffix();
 	if ( !weaponSuffix )
 		return -1;
@@ -841,34 +1043,8 @@ int CCSPlayerAnimState::CalcReloadLayerSequence( PlayerAnimEvent_t event )
 	if ( !pWeapon )
 		return -1;
 
-	const char *prefix = "";
-	switch ( GetCurrentMainSequenceActivity() )
-	{
-		case ACT_PLAYER_RUN_FIRE:
-		case ACT_RUN:
-			prefix = "run";
-			break;
-
-		case ACT_PLAYER_WALK_FIRE:
-		case ACT_WALK:
-			prefix = "walk";
-			break;
-
-		case ACT_PLAYER_CROUCH_FIRE:
-		case ACT_CROUCHIDLE:
-			prefix = "crouch_idle";
-			break;
-
-		case ACT_PLAYER_CROUCH_WALK_FIRE:
-		case ACT_RUN_CROUCH:
-			prefix = "crouch_walk";
-			break;
-
-		default:
-		case ACT_PLAYER_IDLE_FIRE:
-			prefix = "idle";
-			break;
-	}
+	const GestureMoveStyle_t moveStyle = GetGestureMoveStyle( GetCurrentMainSequenceActivity(), GetSurvivorActivityMap() );
+	const char *prefix = GetGestureMovePrefix( moveStyle );
 
 	const char *reloadSuffix = "";
 	switch ( event )
@@ -889,7 +1065,7 @@ int CCSPlayerAnimState::CalcReloadLayerSequence( PlayerAnimEvent_t event )
 	// First, look for <prefix>_reload_<weapon name><_start|_loop|_end>.
 	char szName[512];
 	Q_snprintf( szName, sizeof( szName ), "%s_reload_%s%s", prefix, weaponSuffix, reloadSuffix );
-	int iReloadSequence = m_pOuter->LookupSequence( szName );
+	iReloadSequence = m_pOuter->LookupSequence( szName );
 	if ( iReloadSequence != -1 )
 		return iReloadSequence;
 
@@ -914,6 +1090,84 @@ int CCSPlayerAnimState::CalcReloadLayerSequence( PlayerAnimEvent_t event )
 		return iReloadSequence;
 
 	return -1;
+}
+
+int CCSPlayerAnimState::SelectGestureSequence( Activity activity ) const
+{
+	if ( activity <= ACT_INVALID )
+		return -1;
+
+	return const_cast< CCSPlayerAnimState * >( this )->SelectWeightedSequence( activity );
+}
+
+Activity CCSPlayerAnimState::CalcReloadGestureActivity( PlayerAnimEvent_t event ) const
+{
+	CWeaponCSBase *pWeapon = m_pHelpers ? m_pHelpers->CSAnim_GetActiveWeapon() : NULL;
+	if ( !pWeapon )
+		return ACT_INVALID;
+
+	const char *pSuffix = GetWeaponSuffix();
+	const CSWeaponID weaponID = pWeapon->GetWeaponID();
+
+	switch ( event )
+	{
+	case PLAYERANIMEVENT_RELOAD_START:
+		if ( weaponID == WEAPON_M3 || ( pSuffix && !Q_stricmp( pSuffix, "pumpshotgun" ) ) )
+			return ACT_RELOAD_PUMPSHOTGUN_START;
+
+		if ( pWeapon->GetCSWpnData().m_WeaponType == WEAPONTYPE_SHOTGUN )
+			return ACT_RELOAD_SHOTGUN_START;
+
+		return ACT_INVALID;
+
+	case PLAYERANIMEVENT_RELOAD_LOOP:
+		if ( weaponID == WEAPON_M3 || ( pSuffix && !Q_stricmp( pSuffix, "pumpshotgun" ) ) )
+			return ACT_RELOAD_PUMPSHOTGUN_LOOP;
+
+		if ( pWeapon->GetCSWpnData().m_WeaponType == WEAPONTYPE_SHOTGUN )
+			return ACT_RELOAD_SHOTGUN_LOOP;
+
+		return ACT_INVALID;
+
+	case PLAYERANIMEVENT_RELOAD_END:
+		if ( weaponID == WEAPON_M3 || ( pSuffix && !Q_stricmp( pSuffix, "pumpshotgun" ) ) )
+			return ACT_RELOAD_PUMPSHOTGUN_END;
+
+		if ( pWeapon->GetCSWpnData().m_WeaponType == WEAPONTYPE_SHOTGUN )
+			return ACT_RELOAD_SHOTGUN_END;
+
+		return ACT_INVALID;
+	}
+
+	if ( pSuffix )
+	{
+		if ( !Q_stricmp( pSuffix, "elites" ) )
+			return ACT_RELOAD_ELITES;
+
+		if ( !Q_stricmp( pSuffix, "m4" ) )
+			return ACT_RELOAD_M4;
+
+		if ( !Q_stricmp( pSuffix, "grenade_launcher" ) )
+			return ACT_RELOAD_grenade_launcher;
+	}
+
+	switch ( pWeapon->GetCSWpnData().m_WeaponType )
+	{
+	case WEAPONTYPE_PISTOL:
+		return ACT_RELOAD_PISTOL;
+
+	case WEAPONTYPE_SUBMACHINEGUN:
+		return ACT_RELOAD_SMG;
+
+	case WEAPONTYPE_RIFLE:
+	case WEAPONTYPE_MACHINEGUN:
+		return ACT_RELOAD_M4;
+	case WEAPONTYPE_SNIPER_RIFLE:
+		return ACT_RELOAD_RIFLE;
+
+	default:
+		return ACT_INVALID;
+	}
 }
 
 	void CCSPlayerAnimState::UpdateLayerSequenceGeneric( CStudioHdr *pStudioHdr, int iLayer, bool &bEnabled, float &flCurCycle, int &iSequence, bool bWaitAtEnd )
@@ -1047,13 +1301,17 @@ void CCSPlayerAnimState::ComputeGrenadeSequence( CStudioHdr *pStudioHdr )
 
 int CCSPlayerAnimState::CalcGrenadePrimeSequence()
 {
-	return CalcSequenceIndex( "idle_shoot_gren1" );
+	const GestureMoveStyle_t moveStyle = GetGestureMoveStyle( GetCurrentMainSequenceActivity(), GetSurvivorActivityMap() );
+	const Activity activity = IsGestureMoveStyleMoving( moveStyle ) ? ACT_PRIMARYATTACK_GREN1_RUN : ACT_PRIMARYATTACK_GREN1_IDLE;
+	return SelectGestureSequence( activity );
 }
 
 
 int CCSPlayerAnimState::CalcGrenadeThrowSequence()
 {
-	return CalcSequenceIndex( "idle_shoot_gren2" );
+	const GestureMoveStyle_t moveStyle = GetGestureMoveStyle( GetCurrentMainSequenceActivity(), GetSurvivorActivityMap() );
+	const Activity activity = IsGestureMoveStyleMoving( moveStyle ) ? ACT_PRIMARYATTACK_GREN2_RUN : ACT_PRIMARYATTACK_GREN2_IDLE;
+	return SelectGestureSequence( activity );
 }
 
 
@@ -1085,8 +1343,16 @@ void CCSPlayerAnimState::UpdateAimSequenceLayers(
 	float flWeightScale
 )
 {
-	if (m_pPlayer->m_pounceAttacker) {
+	if ( m_pPlayer->m_pounceAttacker )
+	{
 		// Don't update aim sequences if we're being pounced, since we'll be playing the pounce animation.
+		return;
+	}
+
+	if ( ShouldSuppressLocomotionAimLayers() )
+	{
+		ClearAnimLayer( m_pOuter, iFirstLayer );
+		ClearAnimLayer( m_pOuter, iFirstLayer + 1 );
 		return;
 	}
 
@@ -1141,7 +1407,7 @@ int CCSPlayerAnimState::CalcAimLayerSequence( float *flCycle, float *flAimSequen
 }
 
 
-const char* CCSPlayerAnimState::GetWeaponSuffix()
+const char* CCSPlayerAnimState::GetWeaponSuffix() const
 {
 	VPROF( "CCSPlayerAnimState::GetWeaponSuffix" );
 
@@ -1166,59 +1432,57 @@ const char* CCSPlayerAnimState::GetWeaponSuffix()
 }
 
 
-int CCSPlayerAnimState::CalcFireLayerSequence(PlayerAnimEvent_t event)
+Activity CCSPlayerAnimState::CalcFireGestureActivity( PlayerAnimEvent_t event ) const
 {
-	// Figure out the weapon suffix.
-	CWeaponCSBase *pWeapon = m_pHelpers->CSAnim_GetActiveWeapon();
+	CWeaponCSBase *pWeapon = m_pHelpers ? m_pHelpers->CSAnim_GetActiveWeapon() : NULL;
 	if ( !pWeapon )
-		return -1;
+		return ACT_INVALID;
 
-	const char *pSuffix = GetWeaponSuffix();
-	if ( !pSuffix )
-		return -1;
-
-	char tempsuffix[32];
-	if ( pWeapon->GetWeaponID() == WEAPON_ELITE )
-	{
-		bool bPrimary = (event == PLAYERANIMEVENT_FIRE_GUN_PRIMARY);
-		Q_snprintf( tempsuffix, sizeof(tempsuffix), "%s_%c", pSuffix, bPrimary?'r':'l' );
-		pSuffix = tempsuffix;
-	}
-
-	// Grenades handle their fire events separately
 	if ( event == PLAYERANIMEVENT_THROW_GRENADE ||
 		pWeapon->GetWeaponID() == WEAPON_HEGRENADE ||
 		pWeapon->GetWeaponID() == WEAPON_SMOKEGRENADE ||
 		pWeapon->GetWeaponID() == WEAPON_FLASHBANG )
 	{
-		return -1;
+		return ACT_INVALID;
 	}
 
-	switch ( GetCurrentMainSequenceActivity() )
+	const char *pSuffix = GetWeaponSuffix();
+	if ( pWeapon->GetWeaponID() == WEAPON_M3 || ( pSuffix && !Q_stricmp( pSuffix, "m3s90" ) ) )
+		return ACT_PRIMARYATTACK_M3S90;
+
+	if ( pSuffix && !Q_stricmp( pSuffix, "pumpshotgun" ) )
+		return ACT_PRIMARYATTACK_PUMPSHOTGUN;
+
+	switch ( pWeapon->GetCSWpnData().m_WeaponType )
 	{
-		case ACT_PLAYER_RUN_FIRE:
-		case ACT_RUN:
-		case ACT_RUN_HURT:
-			return CalcSequenceIndex( "%s%s", DEFAULT_FIRE_RUN_NAME, pSuffix );
+	case WEAPONTYPE_PISTOL:
+		return ACT_PRIMARYATTACK_PISTOL;
 
-		case ACT_PLAYER_WALK_FIRE:
-		case ACT_WALK:
-		case ACT_WALK_HURT:
-			return CalcSequenceIndex( "%s%s", DEFAULT_FIRE_WALK_NAME, pSuffix );
+	case WEAPONTYPE_SUBMACHINEGUN:
+		return ACT_PRIMARYATTACK_SMG;
 
-		case ACT_PLAYER_CROUCH_FIRE:
-		case ACT_CROUCHIDLE:
-			return CalcSequenceIndex( "%s%s", DEFAULT_FIRE_CROUCH_NAME, pSuffix );
+	case WEAPONTYPE_RIFLE:
+		return ACT_PRIMARYATTACK_RIFLE;
 
-		case ACT_PLAYER_CROUCH_WALK_FIRE:
-		case ACT_RUN_CROUCH:
-			return CalcSequenceIndex( "%s%s", DEFAULT_FIRE_CROUCH_WALK_NAME, pSuffix );
+	case WEAPONTYPE_MACHINEGUN:
+		return ACT_PRIMARYATTACK_RIFLE;
 
-		default:
-		case ACT_PLAYER_IDLE_FIRE:
-			return CalcSequenceIndex( "%s%s", DEFAULT_FIRE_IDLE_NAME, pSuffix );
+	case WEAPONTYPE_SHOTGUN:
+		return ACT_PRIMARYATTACK_XM1014;
+
+	case WEAPONTYPE_SNIPER_RIFLE:
+		return ACT_PRIMARYATTACK_RIFLE;
+
+	default:
+		return ACT_INVALID;
 	}
 }
+
+
+int CCSPlayerAnimState::CalcFireLayerSequence(PlayerAnimEvent_t event)
+{
+	return SelectGestureSequence( CalcFireGestureActivity( event ) );
+ }
 
 
 bool CCSPlayerAnimState::CanThePlayerMove()
@@ -1229,10 +1493,10 @@ bool CCSPlayerAnimState::CanThePlayerMove()
 
 float CCSPlayerAnimState::GetCurrentMaxGroundSpeed()
 {
-	Activity currentActivity = 	m_pOuter->GetSequenceActivity( m_pOuter->GetSequence() );
-	if ( currentActivity == ACT_WALK || currentActivity == ACT_IDLE )
+	Activity currentActivity = GetCurrentMainSequenceActivity();
+	if ( currentActivity == ACT_WALK || currentActivity == ACT_IDLE || currentActivity == ACT_IDLE_HURT || currentActivity == ACT_WALK_HURT )
 		return ANIM_TOPSPEED_WALK;
-	else if ( currentActivity == ACT_RUN )
+	else if ( currentActivity == ACT_RUN || currentActivity == ACT_RUN_HURT )
 	{
 		if ( m_pPlayer )
 		{
@@ -1252,6 +1516,108 @@ float CCSPlayerAnimState::GetCurrentMaxGroundSpeed()
 		return ANIM_TOPSPEED_RUN_CROUCH;
 	else
 		return 0;
+}
+
+
+const SurvivorActivityMap_t *CCSPlayerAnimState::GetSurvivorActivityMap() const
+{
+	if ( !m_pPlayer || m_pPlayer->GetTeamNumber() != TEAM_SURVIVOR )
+		return NULL;
+
+	CWeaponCSBase *pWeapon = m_pHelpers ? m_pHelpers->CSAnim_GetActiveWeapon() : NULL;
+	if ( !pWeapon )
+		return NULL;
+
+	switch ( pWeapon->GetCSWpnData().m_WeaponType )
+	{
+	case WEAPONTYPE_PISTOL:
+		return ( pWeapon->GetWeaponID() == WEAPON_ELITE ) ? &s_SurvivorElitesActivityMap : &s_SurvivorPistolActivityMap;
+
+	case WEAPONTYPE_SUBMACHINEGUN:
+		return &s_SurvivorSMGActivityMap;
+
+	case WEAPONTYPE_RIFLE:
+	case WEAPONTYPE_MACHINEGUN:
+		return &s_SurvivorRifleActivityMap;
+
+	case WEAPONTYPE_SHOTGUN:
+		return ( pWeapon->GetWeaponID() == WEAPON_M3 ) ? &s_SurvivorPumpShotgunActivityMap : &s_SurvivorShotgunActivityMap;
+
+	case WEAPONTYPE_SNIPER_RIFLE:
+		{
+			const bool bZoomed = ( m_pPlayer->GetFOV() < m_pPlayer->GetDefaultFOV() );
+			const bool bMilitary = ( pWeapon->GetWeaponID() == WEAPON_G3SG1 || pWeapon->GetWeaponID() == WEAPON_SG550 );
+			if ( bMilitary )
+				return bZoomed ? &s_SurvivorMilitarySniperZoomedActivityMap : &s_SurvivorMilitarySniperActivityMap;
+
+			return bZoomed ? &s_SurvivorSniperZoomedActivityMap : &s_SurvivorSniperActivityMap;
+		}
+
+	case WEAPONTYPE_GRENADE:
+		return &s_SurvivorGrenadeActivityMap;
+
+	case WEAPONTYPE_C4:
+		return &s_SurvivorFirstAidKitActivityMap;
+
+	default:
+		return NULL;
+	}
+}
+
+
+bool CCSPlayerAnimState::ShouldSuppressLocomotionAimLayers() const
+{
+	if ( ShouldSuppressSurvivorAnimLayers() )
+		return false;
+
+	if ( !GetSurvivorActivityMap() )
+		return false;
+
+	switch ( GetCurrentMainSequenceActivity() )
+	{
+	case ACT_IDLE:
+	case ACT_WALK:
+	case ACT_RUN:
+	case ACT_CROUCHIDLE:
+	case ACT_RUN_CROUCH:
+	case ACT_IDLE_HURT:
+	case ACT_WALK_HURT:
+	case ACT_RUN_HURT:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+Activity CCSPlayerAnimState::TranslateActivity( Activity actDesired )
+{
+	const SurvivorActivityMap_t *pMap = GetSurvivorActivityMap();
+	if ( !pMap )
+		return actDesired;
+
+	switch ( actDesired )
+	{
+	case ACT_IDLE:
+		return pMap->idle;
+	case ACT_WALK:
+		return pMap->walk;
+	case ACT_RUN:
+		return pMap->run;
+	case ACT_CROUCHIDLE:
+		return pMap->crouchIdle;
+	case ACT_RUN_CROUCH:
+		return pMap->crouchWalk;
+	case ACT_IDLE_HURT:
+		return pMap->idleInjured;
+	case ACT_WALK_HURT:
+		return pMap->walkInjured;
+	case ACT_RUN_HURT:
+		return pMap->runInjured;
+	default:
+		return actDesired;
+	}
 }
 
 
@@ -1332,6 +1698,14 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 	// Hunter pounce: victims play a pinned idle, attackers play the ripping melee.
 	if ( m_pPlayer )
 	{
+
+		if (m_pPlayer->m_pounceAttacker.Get())
+			return ACT_IDLE_POUNCED;
+
+		if (m_pPlayer->m_pounceVictim.Get()) {
+			return ACT_TERROR_HUNTER_POUNCE_MELEE;
+		}
+
 		// Survivor incapacitation: play ACT_DIESIMPLE first, then an incap idle based on pistol type.
 		if ( m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && m_pPlayer->m_bIncapacitated )
 		{
@@ -1346,13 +1720,6 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 				return ACT_IDLE_INCAP_ELITES;
 
 			return ACT_IDLE_INCAP_PISTOL;
-		}
-
-		if ( m_pPlayer->m_pounceAttacker.Get() )
-			return ACT_IDLE_POUNCED;
-
-		if (m_pPlayer->m_pounceVictim.Get()) {
-			return ACT_TERROR_HUNTER_POUNCE_MELEE;
 		}
 	}
 
@@ -1370,6 +1737,22 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 			case CHARGER_VICTIM_CARRIED:
 			default:
 				return ACT_TERROR_CARRIED;
+			}
+		}
+
+		if ( m_pPlayer->m_nDamageStaggerDir != PLAYER_STAGGER_DIR_NONE )
+		{
+			switch ( m_pPlayer->m_nDamageStaggerDir )
+			{
+			case PLAYER_STAGGER_DIR_FORWARD:
+				return ACT_TERROR_SHOVED_FORWARD;
+			case PLAYER_STAGGER_DIR_LEFT:
+				return ACT_TERROR_SHOVED_LEFTWARD;
+			case PLAYER_STAGGER_DIR_RIGHT:
+				return ACT_TERROR_SHOVED_RIGHTWARD;
+			case PLAYER_STAGGER_DIR_BACK:
+			default:
+				return ACT_TERROR_SHOVED_BACKWARD;
 			}
 		}
 

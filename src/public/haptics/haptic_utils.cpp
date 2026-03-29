@@ -13,8 +13,9 @@
 	#include "c_prop_vehicle.h"
 	#include "prediction.h"
 	#include "activitylist.h"
-#ifdef TERROR
-	#include "ClientTerrorPlayer.h"
+#ifdef /*TERROR*/ CSTRIKE_DLL
+	#include "c_cs_player.h"
+	#include "cs_shareddefs.h"
 #endif
 extern vgui::IInputInternal *g_InputInternal;
 #else
@@ -24,10 +25,8 @@ extern vgui::IInputInternal *g_InputInternal;
 #include "haptics/haptic_utils.h"
 #include "haptics/haptic_msgs.h"
 
-#ifndef TERROR
 #ifndef FCVAR_RELEASE
 #define FCVAR_RELEASE 0
-#endif
 #endif
 
 #ifdef CLIENT_DLL 
@@ -176,9 +175,7 @@ void HapticsHandleMsg_HapPunch( QAngle const &angle )
 	haptics->HapticsPunch(1,angle);
 
 }
-#ifdef TERROR
 ConVar hap_zombie_damage_scale("hap_zombie_damage_scale", "0.25", FCVAR_RELEASE|FCVAR_NEVER_AS_STRING);
-#endif
 void HapticsHandleMsg_HapDmg( float pitch, float yaw, float damage, int damageType )
 {
 	if(!haptics->HasDevice())
@@ -197,12 +194,10 @@ void HapticsHandleMsg_HapDmg( float pitch, float yaw, float damage, int damageTy
 		damageDirection.x = cos(pitch*M_PI/180.0)*sin(yaw*M_PI/180.0);
 		damageDirection.y = -sin(pitch*M_PI/180.0);
 		damageDirection.z = -(cos(pitch*M_PI/180.0)*cos(yaw*M_PI/180.0));
-#ifdef TERROR
 		if(pPlayer->GetTeamNumber()==TEAM_ZOMBIE)
 		{
 			damageDirection *= hap_zombie_damage_scale.GetFloat();
 		}
-#endif
 
 		haptics->ApplyDamageEffect(damage, damageType, damageDirection);
 	}

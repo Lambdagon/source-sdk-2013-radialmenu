@@ -73,6 +73,7 @@ enum CSWeaponID
 	WEAPON_KEVLAR,
 	WEAPON_ASSAULTSUIT,
 	WEAPON_NVG,
+	WEAPON_MOLOTOV,
 
 	WEAPON_MAX,		// number of weapons weapon index
 };

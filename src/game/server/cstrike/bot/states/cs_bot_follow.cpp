@@ -403,20 +403,19 @@ void FollowState::OnUpdate( CCSBot *me )
 		Vector myOrigin = GetCentroid( me );
 		const float distToLeader = ( leaderOrigin - myOrigin ).Length();
 
-		// Rubberband if very far away and not currently attacking.
-		const float rubberbandDist = 2500.0f;
+		// Rubberband sooner so survivor bots stay tightly grouped around the leader.
+		const float rubberbandDist = 1400.0f;
 		if ( distToLeader > rubberbandDist &&
-			 !me->IsAttacking() &&
 			 m_rubberbandCooldown.IsElapsed() &&
 			 !me->IsOnLadder() &&
 			 !me->HasPounceAttacker() && !me->HasPounceVictim() && !me->IsIncapacitated() )
 		{
-			const float recoverRadius = 600.0f;
+			const float recoverRadius = 400.0f;
 			if ( TeleportToRandomNavAreaNear( me, leaderOrigin, recoverRadius ) )
 			{
 				me->DestroyPath();
 				me->ResetStuckMonitor();
-				m_rubberbandCooldown.Start( 3.0f );
+				m_rubberbandCooldown.Start( 1.25f );
 				myOrigin = GetCentroid( me );
 			}
 		}

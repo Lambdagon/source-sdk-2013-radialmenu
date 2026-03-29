@@ -1327,9 +1327,12 @@ class CChangeLevel : public CBaseTrigger
 public:
 	DECLARE_CLASS( CChangeLevel, CBaseTrigger );
 
+	CChangeLevel() : m_bTouched( false ), m_bEnabled( true ) {}
+
 	void Spawn( void );
 	void Activate( void );
 	bool KeyValue( const char *szKeyName, const char *szValue );
+	bool IsEnabled( void ) const { return m_bEnabled; }
 
 	static int ChangeList( levellist_t *pLevelList, int maxList );
 
@@ -1338,6 +1341,8 @@ private:
 	void ChangeLevelNow( CBaseEntity *pActivator );
 
 	void InputChangeLevel( inputdata_t &inputdata );
+	void InputEnable( inputdata_t &inputdata );
+	void InputDisable( inputdata_t &inputdata );
 
 	bool IsEntityInTransition( CBaseEntity *pEntity );
 	void NotifyEntitiesOutOfTransition();
@@ -1367,6 +1372,7 @@ private:
 	char m_szMapName[cchMapNameMost];		// trigger_changelevel only:  next map
 	char m_szLandmarkName[cchMapNameMost];		// trigger_changelevel only:  landmark on next map
 	bool m_bTouched;
+	bool m_bEnabled;
 
 	// Outputs
 	COutputEvent m_OnChangeLevel;
@@ -1374,6 +1380,7 @@ private:
 
 
 LINK_ENTITY_TO_CLASS( trigger_changelevel, CChangeLevel );
+LINK_ENTITY_TO_CLASS( info_changelevel, CChangeLevel );
 
 // Global Savedata for changelevel trigger
 BEGIN_DATADESC( CChangeLevel )
@@ -1387,6 +1394,8 @@ BEGIN_DATADESC( CChangeLevel )
 	DEFINE_FUNCTION( TouchChangeLevel ),
 
 	DEFINE_INPUTFUNC( FIELD_VOID, "ChangeLevel", InputChangeLevel ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Enable", InputEnable ),
+	DEFINE_INPUTFUNC( FIELD_VOID, "Disable", InputDisable ),
 
 	// Outputs
 	DEFINE_OUTPUT( m_OnChangeLevel, "OnChangeLevel"),
@@ -1419,6 +1428,10 @@ bool CChangeLevel::KeyValue( const char *szKeyName, const char *szValue )
 		
 		Q_strncpy(m_szLandmarkName, szValue, sizeof( m_szLandmarkName ));
 	}
+	else if ( FStrEq( szKeyName, "StartDisabled" ) )
+	{
+		m_bEnabled = ( atoi( szValue ) == 0 );
+	}
 	else
 		return BaseClass::KeyValue( szKeyName, szValue );
 
@@ -1429,6 +1442,8 @@ bool CChangeLevel::KeyValue( const char *szKeyName, const char *szValue )
 
 void CChangeLevel::Spawn( void )
 {
+	m_bTouched = false;
+
 	if ( FStrEq( m_szMapName, "" ) )
 	{
 		Msg( "a trigger_changelevel doesn't have a map" );
@@ -1439,11 +1454,21 @@ void CChangeLevel::Spawn( void )
 		Msg( "trigger_changelevel to %s doesn't have a landmark", m_szMapName );
 	}
 
-	InitTrigger();
-	
-	if ( !HasSpawnFlags(SF_CHANGELEVEL_NOTOUCH) )
+	if ( FClassnameIs( this, "info_changelevel" ) )
 	{
-		SetTouch( &CChangeLevel::TouchChangeLevel );
+		SetSolid( SOLID_NONE );
+		SetMoveType( MOVETYPE_NONE );
+		AddEffects( EF_NODRAW );
+		SetTouch( NULL );
+	}
+	else
+	{
+		InitTrigger();
+
+		if ( !HasSpawnFlags(SF_CHANGELEVEL_NOTOUCH) )
+		{
+			SetTouch( &CChangeLevel::TouchChangeLevel );
+		}
 	}
 
 //	Msg( "TRANSITION: %s (%s)\n", m_szMapName, m_szLandmarkName );
@@ -1517,6 +1542,9 @@ CBaseEntity *CChangeLevel::FindLandmark( const char *pLandmarkName )
 //-----------------------------------------------------------------------------
 void CChangeLevel::InputChangeLevel( inputdata_t &inputdata )
 {
+	if ( !m_bEnabled )
+		return;
+
 	// Ignore changelevel transitions if the player's dead or attempting a challenge
 	if ( gpGlobals->maxClients == 1 )
 	{
@@ -1526,6 +1554,16 @@ void CChangeLevel::InputChangeLevel( inputdata_t &inputdata )
 	}
 
 	ChangeLevelNow( inputdata.pActivator );
+}
+
+void CChangeLevel::InputEnable( inputdata_t &inputdata )
+{
+	m_bEnabled = true;
+}
+
+void CChangeLevel::InputDisable( inputdata_t &inputdata )
+{
+	m_bEnabled = false;
 }
 
 
@@ -1611,10 +1649,6 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 
 	Assert(!FStrEq(m_szMapName, ""));
 
-	// Don't work in deathmatch
-	if ( g_pGameRules->IsDeathmatch() )
-		return;
-
 	// Some people are firing these multiple times in a frame, disable
 	if ( m_bTouched )
 		return;
@@ -1652,10 +1686,6 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 			if ( !playerInPVS )
 			{
 				Warning( "Player isn't in the landmark's (%s) PVS, aborting\n", m_szLandmarkName );
-#ifndef HL1_DLL
-				// HL1 works even with these errors!
-				return;
-#endif
 			}
 		}
 	}
@@ -1684,7 +1714,7 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 	// If we're debugging, don't actually change level
 	if ( g_debug_transitions.GetInt() == 0 )
 	{
-		engine->ChangeLevel( st_szNextMap, st_szNextSpot );
+		engine->ChangeLevel( st_szNextMap, NULL );
 	}
 	else
 	{
@@ -1706,9 +1736,15 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 //
 void CChangeLevel::TouchChangeLevel( CBaseEntity *pOther )
 {
+	if ( !m_bEnabled )
+		return;
+
 	CBasePlayer *pPlayer = ToBasePlayer(pOther);
 	if ( !pPlayer )
 		return;
+
+	variant_t emptyVariant;
+	pOther->AcceptInput("OnRescueZoneTouch", NULL, NULL, emptyVariant, 0);
 
 	if( pPlayer->IsSinglePlayerGameEnding() )
 	{
@@ -1898,6 +1934,29 @@ int CChangeLevel::BuildChangeLevelList( levellist_t *pLevelList, int maxList )
 			}
 		}
 		pentChangelevel = gEntList.FindEntityByClassname( pentChangelevel, "trigger_changelevel" );
+	}
+
+	if ( nCount >= maxList )
+		return nCount;
+
+	pentChangelevel = gEntList.FindEntityByClassname( NULL, "info_changelevel" );
+	while ( pentChangelevel )
+	{
+		CChangeLevel *pTrigger = dynamic_cast<CChangeLevel *>(pentChangelevel);
+		if ( pTrigger )
+		{
+			CBaseEntity *pentLandmark = FindLandmark( pTrigger->m_szLandmarkName );
+			if ( pentLandmark )
+			{
+				if ( AddTransitionToList( pLevelList, nCount, pTrigger->m_szMapName, pTrigger->m_szLandmarkName, pentLandmark->edict() ) )
+				{
+					++nCount;
+					if ( nCount >= maxList )
+						break;
+				}
+			}
+		}
+		pentChangelevel = gEntList.FindEntityByClassname( pentChangelevel, "info_changelevel" );
 	}
 
 	return nCount;

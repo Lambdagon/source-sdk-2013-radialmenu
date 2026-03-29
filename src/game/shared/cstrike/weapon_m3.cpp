@@ -219,7 +219,7 @@ bool CWeaponM3::Reload()
 		SendWeaponAnim( ACT_VM_RELOAD_LOOP_LAYER );
 		SetWeaponIdleTime( gpGlobals->curtime + 0.5 );
 #ifdef GAME_DLL
-		if ( m_iClip1 == 8 )
+		if ( m_iClip1 == 7 )
 		{
 			pPlayer->DoAnimationEvent( PLAYERANIMEVENT_RELOAD_END );
 		}

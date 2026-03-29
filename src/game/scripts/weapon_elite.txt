@@ -1,0 +1,110 @@
+WeaponData
+{
+	"MaxPlayerSpeed"		"250"
+	"WeaponType" 			"Pistol"
+	"FullAuto"				0
+	"WeaponPrice" 			"800"
+	"WeaponArmorRatio" 		"1.05"
+	"CrosshairMinDistance" 		"4"
+	"CrosshairDeltaDistance" 	"3"
+	"Team" 				"ANY"
+	"BuiltRightHanded" 		"1"
+	"PlayerAnimationExtension" 	"elites"
+	"MuzzleFlashScale"		"1"
+	
+	"CanEquipWithShield"		"0"
+	
+	
+	// Weapon characteristics:
+	"Penetration"		"1"
+	"Damage"			"45"
+	"Range"				"4096"
+	"RangeModifier"		"0.75"
+	"Bullets"			"1"
+	"CycleTime"			"0.12"
+	
+	// New accuracy model parameters
+	"Spread"					0.00400
+	"InaccuracyCrouch"			0.00600
+	"InaccuracyStand"			0.00800
+	"InaccuracyJump"			0.29625
+	"InaccuracyLand"			0.05925
+	"InaccuracyLadder"			0.01975
+	"InaccuracyFire"			0.03162
+	"InaccuracyMove"			0.01778
+								 
+	"RecoveryTimeCrouch"		0.24753
+	"RecoveryTimeStand"			0.29703
+	
+	// Weapon data is loaded by both the Game and Client DLLs.
+	"printname"			"Duel Pistols"
+	"viewmodel"			"models/v_models/v_dual_pistolA.mdl"
+	"playermodel"			"models/w_models/weapons/w_pistol_A_dual.mdl"
+	"AddonModel"			"models/w_models/weapons/w_pistol_A.mdl"
+	"DroppedModel"			"models/w_models/weapons/w_pistol_A_dual.mdl"
+
+	"anim_prefix"			"anim"
+	"bucket"			"1"
+	"bucket_position"		"1"
+
+	"clip_size"			"30"
+	
+	"primary_ammo"			"BULLET_PLAYER_9MM"
+	"secondary_ammo"		"None"
+
+	"weight"			"5"
+	"item_flags"			"0"
+
+	// Sounds for the weapon. There is a max of 16 sounds per category (i.e. max 16 "single_shot" sounds)
+	SoundData
+	{
+		"single_shot"		"Pistol.Fire"
+	}
+
+// Weapon Sprite data is loaded by the Client DLL.
+	TextureData
+	{
+		"weapon"
+		{
+				"file"		"vgui/hud/iconsheet"
+				"x"			"192"
+				"y"			"320"
+				"width"		"64"
+				"height"	"64"
+		}
+		"ammo"
+		{
+				"font"		"DebugFixed"
+				"character"	"A"
+		}
+		"crosshair"
+		{
+				"file"		"sprites/crosshairs"
+				"x"			"0"
+				"y"			"48"
+				"width"		"24"
+				"height"	"24"
+		}
+		"autoaim"
+		{
+				"file"		"sprites/crosshairs"
+				"x"			"0"
+				"y"			"48"
+				"width"		"24"
+				"height"	"24"
+		}
+	}
+	ModelBounds
+	{
+		Viewmodel
+		{
+			Mins	"-7 -4 -14"
+			Maxs	"24 9 -2"
+		}
+		World
+		{
+			Mins	"-1 -4 -3"
+			Maxs	"17 5 6"
+		}
+	}
+}

@@ -1304,35 +1304,6 @@ void CBaseHeadcrab::JumpFromCanister()
 
 void CBaseHeadcrab::DropFromCeiling( void )
 {
-#ifdef HL2_EPISODIC
-	if ( HL2GameRules()->IsAlyxInDarknessMode() )
-	{
-		if ( IsHangingFromCeiling() )
-		{
-			if ( m_flIlluminatedTime == -1 )
-			{
-				m_flIlluminatedTime = gpGlobals->curtime + HEADCRAB_ILLUMINATED_TIME;
-				return;
-			}
-
-			if ( m_flIlluminatedTime <= gpGlobals->curtime )
-			{
-				if ( IsCurSchedule( SCHED_HEADCRAB_CEILING_DROP ) == false )
-				{
-					SetSchedule( SCHED_HEADCRAB_CEILING_DROP );
-
-					CBaseEntity *pPlayer = AI_GetSinglePlayer();
-
-					if ( pPlayer )
-					{
-						SetEnemy( pPlayer ); //Is this a bad thing to do?
-						UpdateEnemyMemory( pPlayer, pPlayer->GetAbsOrigin());
-					}
-				}
-			}
-		}
-	}
-#endif // HL2_EPISODIC
 }
 
 //-----------------------------------------------------------------------------
@@ -1882,9 +1853,6 @@ int CBaseHeadcrab::SelectSchedule( void )
 	if ( IsHangingFromCeiling() )
 	{
 		bool bIsAlyxInDarknessMode = false;
-#ifdef HL2_EPISODIC
-		bIsAlyxInDarknessMode = HL2GameRules()->IsAlyxInDarknessMode();
-#endif // HL2_EPISODIC
 
 		if ( bIsAlyxInDarknessMode == false && ( HasCondition( COND_CAN_RANGE_ATTACK1 ) || HasCondition( COND_NEW_ENEMY ) ) )
 			return SCHED_HEADCRAB_CEILING_DROP;
@@ -2064,13 +2032,6 @@ void CBaseHeadcrab::Ignite( float flFlameLifetime, bool bNPCOnly, float flSize, 
 
 	if( !bWasOnFire )
 	{
-#ifdef HL2_EPISODIC
-		if ( HL2GameRules()->IsAlyxInDarknessMode() == true )
-		{
-			GetEffectEntity()->AddEffects( EF_DIMLIGHT );
-		}
-#endif // HL2_EPISODIC
-
 		// For the poison headcrab, who runs around when ignited
 		SetActivity( TranslateActivity(GetIdealActivity()) );
 	}

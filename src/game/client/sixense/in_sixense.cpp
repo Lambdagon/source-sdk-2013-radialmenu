@@ -3280,11 +3280,8 @@ void SixenseInput::SixenseUpdateMouseCursor()
 		}
 	}
 #endif
-#ifdef TERROR
-	const char *window_name = "Left 4 Dead 2";
-#endif
 #if defined( CSTRIKE_DLL ) && !defined( CSTRIKE15 ) && !defined( TERROR )
-	const char *window_name = "Counter-Strike Source";
+	const char* window_name = "Left 4 Dead 2";
 #endif
 
 	// Right now you can't move the mouse if the video hint panel is up.

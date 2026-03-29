@@ -16,11 +16,7 @@
 #include "tier0/memdbgon.h"
 
 // some cvars used by player movement system
-#if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
-#define DEFAULT_GRAVITY_STRING	"600"
-#else
 #define DEFAULT_GRAVITY_STRING	"800"
-#endif
 
 float GetCurrentGravity( void )
 {
@@ -59,7 +55,7 @@ ConVar	sv_maxspeed		( "sv_maxspeed", "320", FCVAR_NOTIFY | FCVAR_REPLICATED);
 #else
 
 #if defined( CSTRIKE_DLL ) || defined( HL1MP_DLL )
-	ConVar	sv_accelerate	( "sv_accelerate", "10", FCVAR_NOTIFY | FCVAR_REPLICATED);
+	ConVar	sv_accelerate	( "sv_accelerate", "5", FCVAR_NOTIFY | FCVAR_REPLICATED);
 #else
 	ConVar	sv_accelerate	( "sv_accelerate", "10", FCVAR_NOTIFY | FCVAR_REPLICATED);
 #endif // CSTRIKE_DLL

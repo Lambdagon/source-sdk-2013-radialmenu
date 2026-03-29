@@ -142,6 +142,119 @@ static bool IsGhostSpawnHiddenFromAllSurvivorsLOS( const Vector &spawnPos )
 
 	return true;
 }
+
+static QAngle GetChargerVictimFacingAngles( const CCSPlayer *pCharger )
+{
+	if ( !pCharger )
+		return QAngle( 0.0f, 0.0f, 0.0f );
+
+	return QAngle( 0.0f, pCharger->GetAbsAngles().y, 0.0f );
+}
+
+static void KeepChargerVictimAttached( CCSPlayer *pCharger, CCSPlayer *pVictim, const Vector &carryPos )
+{
+	if ( !pCharger || !pVictim )
+		return;
+
+	const QAngle victimAngles = GetChargerVictimFacingAngles( pCharger );
+	Vector victimVelocity( vec3_origin );
+
+	pVictim->Teleport( &carryPos, &victimAngles, &victimVelocity );
+	pVictim->SnapEyeAngles( victimAngles );
+	pVictim->SetAbsVelocity( vec3_origin );
+	pVictim->SetBaseVelocity( vec3_origin );
+
+	PhysDisableEntityCollisions( pCharger, pVictim );
+}
+
+static void CollectChargerChargeVictimsAlongSweep(
+	CCSPlayer *pCharger,
+	const Vector &start,
+	const Vector &end,
+	const Vector &mins,
+	const Vector &maxs,
+	CCSPlayer **ppPrimaryVictim,
+	float *pPrimaryFraction,
+	CUtlVector< CCSPlayer * > *pAdditionalVictims )
+{
+	if ( ppPrimaryVictim )
+	{
+		*ppPrimaryVictim = NULL;
+	}
+
+	if ( pPrimaryFraction )
+	{
+		*pPrimaryFraction = 1.0f;
+	}
+
+	if ( pAdditionalVictims )
+	{
+		pAdditionalVictims->Purge();
+	}
+
+	if ( !pCharger )
+		return;
+
+	Ray_t ray;
+	ray.Init( start, end, mins, maxs );
+
+	CBaseEntity *entities[64];
+	const int entityCount = UTIL_EntitiesAlongRay( entities, ARRAYSIZE( entities ), ray, FL_CLIENT );
+	CCSPlayer *pCurrentVictim = pCharger->GetChargerVictim();
+
+	auto AddUniqueVictim = [&]( CCSPlayer *pVictim )
+	{
+		if ( !pAdditionalVictims || !pVictim )
+			return;
+
+		for ( int i = 0; i < pAdditionalVictims->Count(); ++i )
+		{
+			if ( (*pAdditionalVictims)[i] == pVictim )
+				return;
+		}
+
+		pAdditionalVictims->AddToTail( pVictim );
+	};
+
+	CCSPlayer *pBestVictim = NULL;
+	float flBestFraction = 1.0f;
+
+	for ( int i = 0; i < entityCount; ++i )
+	{
+		CCSPlayer *pVictim = ToCSPlayer( entities[i] );
+		if ( !pVictim || pVictim == pCharger || pVictim == pCurrentVictim )
+			continue;
+		if ( !pVictim->IsAlive() || pVictim->GetTeamNumber() != TEAM_SURVIVOR )
+			continue;
+
+		trace_t playerTrace;
+		enginetrace->ClipRayToEntity( ray, MASK_PLAYERSOLID | CONTENTS_HITBOX, pVictim, &playerTrace );
+		if ( !playerTrace.startsolid && !playerTrace.allsolid && playerTrace.fraction >= 1.0f )
+			continue;
+
+		const float flFraction = ( playerTrace.startsolid || playerTrace.allsolid ) ? 0.0f : playerTrace.fraction;
+		if ( !pBestVictim )
+		{
+			AddUniqueVictim( pBestVictim );
+			pBestVictim = pVictim;
+			flBestFraction = flFraction;
+		}
+		else
+		{
+			AddUniqueVictim( pVictim );
+		}
+	}
+
+	if ( ppPrimaryVictim )
+	{
+		*ppPrimaryVictim = pBestVictim;
+	}
+
+	if ( pPrimaryFraction )
+	{
+		*pPrimaryFraction = flBestFraction;
+	}
+}
 //=============================================================================
 // HPE_BEGIN:
 // [Forrest] Allow MVP to be turned off for a server
@@ -525,6 +638,7 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
 	SendPropInt( SENDINFO( m_nChargerAction ), 3, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_nChargerVictimAction ), 2, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_nChargerStaggerDir ), 2, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO( m_nDamageStaggerDir ), 3, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_nTankAction ), 2, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_cycleLatch ), 4, SPROP_UNSIGNED ),
 
@@ -705,6 +819,9 @@ CCSPlayer::CCSPlayer()
 	m_nChargerAction = CHARGER_ACTION_NONE;
 	m_nChargerVictimAction = CHARGER_VICTIM_NONE;
 	m_nChargerStaggerDir = CHARGER_STAGGER_DIR_NONE;
+	m_nDamageStaggerDir = PLAYER_STAGGER_DIR_NONE;
+	m_flDamageStaggerPrevCycle = 0.0f;
+	m_angDamageStaggerEyeAngles.Init();
 	m_flNextChargerChargeAllowedTime = 0.0f;
 	m_flChargerChargeStartTime = 0.0f;
 	m_flChargerChargeEndTime = 0.0f;
@@ -928,10 +1045,6 @@ void CCSPlayer::SetGhost( bool isGhost )
 	if ( m_bIsGhost && !IsBot() && IsAlive() && GetTeamNumber() == TEAM_INFECTED && GetZombieClass() > 0 )
 	{
 		EmitPrivateSound( "PlayerZombie.BecomeGhost" );
-		SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR);
-	}
-	else {
-		SetCollisionGroup(COLLISION_GROUP_PLAYER_MOVEMENT);
 	}
 
 	CollisionRulesChanged();
@@ -1435,9 +1548,7 @@ void CCSPlayer::PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper )
 		ucmd->buttons &= ~( IN_ATTACK | IN_ATTACK2 | IN_JUMP );
 
 		CCSPlayer *pAttacker = GetChargerAttacker();
-		if ( pAttacker && pAttacker->GetTeamNumber() == TEAM_INFECTED && pAttacker->GetZombieClass() == 6 &&
-			 pAttacker->m_nChargerAction == CHARGER_ACTION_POUND &&
-			 m_nChargerVictimAction == CHARGER_VICTIM_POUNDED_DOWN )
+		if ( pAttacker && pAttacker->GetTeamNumber() == TEAM_INFECTED && pAttacker->GetZombieClass() == 6 )
 		{
 			QAngle lockedAngles( 0.0f, pAttacker->GetAbsAngles().y, 0.0f );
 			ucmd->viewangles = lockedAngles;
@@ -1476,6 +1587,11 @@ void CCSPlayer::PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper )
 			ucmd->forwardmove = ucmd->sidemove = ucmd->upmove = 0.0f;
 			ucmd->buttons &= ~( IN_ATTACK | IN_ATTACK2 | IN_JUMP );
 		}
+	}
+	else if ( m_nDamageStaggerDir != PLAYER_STAGGER_DIR_NONE )
+	{
+		ucmd->forwardmove = ucmd->sidemove = ucmd->upmove = 0.0f;
+		ucmd->buttons &= ~( IN_ATTACK | IN_ATTACK2 | IN_JUMP );
 	}
 	else if ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 8 && m_nTankAction == TANK_ACTION_ROCK_THROW )
 	{
@@ -1670,6 +1786,7 @@ void CCSPlayer::Spawn()
 	m_nTankDeathSequence = -1;
 	ClearPounce();
 	ClearCharger();
+	ClearDamageStagger();
 	ClearTankRockThrow();
 	m_flNextChargerChargeAllowedTime = 0.0f;
 	m_flChargerChargeStartTime = 0.0f;
@@ -1679,6 +1796,8 @@ void CCSPlayer::Spawn()
 	m_vecChargerTracePos = vec3_origin;
 	m_ChargerChargeHitVictims.Purge();
 	m_bChargerChargeCapturedVictim = false;
+	m_nDamageStaggerDir = PLAYER_STAGGER_DIR_NONE;
+	m_flDamageStaggerPrevCycle = 0.0f;
 	m_nTankAction = TANK_ACTION_NONE;
 	m_hTankRock = NULL;
 	m_flNextTankRockThrowAllowedTime = 0.0f;
@@ -2164,6 +2283,54 @@ static Vector ComputeDamageShoveDir( CCSPlayer *pVictim, const CTakeDamageInfo &
 	return dir;
 }
 
+static PlayerStaggerDir_t ComputePlayerStaggerDir( CCSPlayer *pVictim, const Vector &shoveDir, Activity *pActivity )
+{
+	Vector forward, right;
+	pVictim->GetVectors( &forward, &right, NULL );
+	forward.z = 0.0f;
+	right.z = 0.0f;
+
+	if ( forward.NormalizeInPlace() <= 0.0f || right.NormalizeInPlace() <= 0.0f )
+		return PLAYER_STAGGER_DIR_NONE;
+
+	const float forwardDot = DotProduct( forward, shoveDir );
+	const float rightDot = DotProduct( right, shoveDir );
+
+	PlayerStaggerDir_t dir = PLAYER_STAGGER_DIR_NONE;
+	Activity activity = ACT_INVALID;
+
+	if ( fabsf( forwardDot ) >= fabsf( rightDot ) )
+	{
+		if ( forwardDot >= 0.0f )
+		{
+			dir = PLAYER_STAGGER_DIR_FORWARD;
+			activity = ACT_TERROR_SHOVED_FORWARD;
+		}
+		else
+		{
+			dir = PLAYER_STAGGER_DIR_BACK;
+			activity = ACT_TERROR_SHOVED_BACKWARD;
+		}
+	}
+	else if ( rightDot >= 0.0f )
+	{
+		dir = PLAYER_STAGGER_DIR_RIGHT;
+		activity = ACT_TERROR_SHOVED_RIGHTWARD;
+	}
+	else
+	{
+		dir = PLAYER_STAGGER_DIR_LEFT;
+		activity = ACT_TERROR_SHOVED_LEFTWARD;
+	}
+
+	if ( pActivity )
+	{
+		*pActivity = activity;
+	}
+
+	return dir;
+}
+
 bool CCSPlayer::TryStartTankDeath( const CTakeDamageInfo &info )
 {
 	if ( !IsAlive() )
@@ -2318,42 +2485,8 @@ int CCSPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 			Scorch(8, 50);
 		}
 	}
-	// don't apply damage forces in CS
-	{
-		const int dmgType = info.GetDamageType();
-		const bool shoveByBlast = ( dmgType & DMG_BLAST ) != 0;
-		bool shoveByClub = ( dmgType & DMG_CLUB ) != 0;
 
-		// Only infected (special infected) get shoved by club; Charger and Tank are immune to club shoves.
-		if ( shoveByClub )
-		{
-			if ( GetTeamNumber() == TEAM_INFECTED )
-			{
-				const int zclass = GetZombieClass();
-				if ( zclass <= 0 )
-					shoveByClub = false;
-				if ( zclass == 6 || zclass == 8 )
-					shoveByClub = false;
-			}
-			else
-			{
-				shoveByClub = false;
-			}
-		}
-
-		if ( shoveByBlast || shoveByClub )
-		{
-			const Vector dir = ComputeDamageShoveDir( this, info );
-			if ( dir != vec3_origin )
-			{
-				const float strength = shoveByBlast ? clamp( info.GetDamage() * 18.0f, 250.0f, 900.0f ) : 250.0f;
-				const float up = shoveByBlast ? clamp( info.GetDamage() * 6.0f, 80.0f, 300.0f ) : 50.0f;
-				Vector impulse = dir * strength;
-				impulse.z = up;
-				ApplyAbsVelocityImpulse( impulse );
-			}
-		}
-	}
+	TryStartDamageStagger( info );
 
 	// fire global game event
 
@@ -2454,11 +2587,24 @@ int CCSPlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 		}
 	}
 
+	CCSPlayer *pScoringAttacker = ToCSPlayer( info.GetAttacker() );
+	if ( pScoringAttacker &&
+		 pScoringAttacker != this &&
+		 pScoringAttacker->GetTeamNumber() == TEAM_INFECTED &&
+		 pScoringAttacker->IsSpecialInfected() &&
+		 pScoringAttacker->GetZombieClass() > 0 &&
+		 pScoringAttacker->GetTeamNumber() != GetTeamNumber() &&
+		 m_lastDamageHealth > 0 )
+	{
+		pScoringAttacker->AddPoints( m_lastDamageHealth, true );
+	}
+
 	if ( event )
 	{
 		event->SetInt("userid", GetUserID() );
 		event->SetInt("health", MAX(0, m_iHealth) );
 		event->SetInt("armor", MAX(0, ArmorValue()) );
+		event->SetInt( "damageamount", m_lastDamageHealth );
 
 		event->SetInt( "dmg_health", m_lastDamageHealth );
 		event->SetInt( "dmg_armor", m_lastDamageArmor );
@@ -2615,22 +2761,7 @@ void CreateExplosion(const CTakeDamageInfo& info, float innerRadius, float outer
 			dmg.SetDamagePosition(explosionPos);
 		}
 
-		// --------------------------------------------------------------------
-		// Apply damage
-		// --------------------------------------------------------------------
-		trace_t tr;
-		UTIL_TraceLine(explosionPos, closestPoint, MASK_SHOT, NULL, COLLISION_GROUP_NONE, &tr);
-
-		if (tr.fraction == 1.0f)
-		{
-			ent->TakeDamage(dmg);
-		}
-		else
-		{
-			ClearMultiDamage();
-			ent->DispatchTraceAttack(dmg, dir, &tr);
-			ApplyMultiDamage();
-		}
+		ent->TakeDamage(dmg);
 
 		ent->TraceAttackToTriggers(dmg, explosionPos, closestPoint, dir);
 		if (ent->IsPlayer() && ent->GetTeamNumber() == TEAM_SURVIVOR)
@@ -2677,11 +2808,6 @@ void CreateExplosion(const CTakeDamageInfo& info, float innerRadius, float outer
 //-----------------------------------------------------------------------------
 bool CCSPlayer::ShouldCollide(int collisionGroup, int contentsMask) const
 {
-	if ( IsGhost() )
-	{
-		return false;
-	}
-
 	// Common infected NPCs should not collide with infected-team players (special infected / CT).
 	if ( GetTeamNumber() == TEAM_INFECTED &&
 		 ( collisionGroup == COLLISION_GROUP_NPC || collisionGroup == COLLISION_GROUP_NPC_ACTOR ) )
@@ -2795,35 +2921,6 @@ void CCSPlayer::Event_Killed( const CTakeDamageInfo &info )
 	m_flFlashDuration = 0.0f;
 
 	FlashlightTurnOff();
-
-
-	CUtlVector< CCSPlayer* > candidates;
-	const float maxDist = 1500.0f;
-	const float maxDistSqr = maxDist * maxDist;
-	const Vector spitPos = GetAbsOrigin();
-
-	for (int i = 1; i <= gpGlobals->maxClients; ++i)
-	{
-		CCSPlayer* pPlayer = ToCSPlayer(UTIL_PlayerByIndex(i));
-		if (!pPlayer || !pPlayer->IsAlive())
-			continue;
-		if (pPlayer->GetTeamNumber() != TEAM_SURVIVOR)
-			continue;
-
-		if ((pPlayer->GetAbsOrigin() - spitPos).LengthSqr() <= maxDistSqr)
-		{
-			candidates.AddToTail(pPlayer);
-		}
-	}
-
-	if (candidates.Count() <= 0)
-		return;
-
-	CCSPlayer* speaker = candidates[random->RandomInt(0, candidates.Count() - 1)];
-	if (speaker)
-	{
-		speaker->SpeakConceptIfAllowed(GetMPConceptIndexFromString("SurvivorDied"));
-	}
 
 	// show killer in death cam mode
 	if( IsValidObserverTarget( info.GetAttacker() ) )
@@ -3044,7 +3141,7 @@ void CCSPlayer::DeathSound( const CTakeDamageInfo &info )
 				dmgInfo.SetDamage(2);
 				dmgInfo.SetDamageType(DMG_BLAST|DMG_POISON);
 				dmgInfo.SetDamagePosition(GetAbsOrigin());
-				CreateExplosion(dmgInfo, 130, 200);
+				//CreateExplosion(dmgInfo, 130, 200);
 				EmitSound("Player.StopBody");
 				EmitSound("Player.StopVoice");
 				break;
@@ -3410,45 +3507,46 @@ void CCSPlayer::PostThink()
 
 	// Anti-stick for human players: if embedded in world brushes, teleport onto nearby nav mesh.
 	// This mirrors the bot anti-stick recovery and helps recover from setpos/teleport glitches.
-	if ( !IsBot() && IsAlive() && !HasPounceVictim() && !HasPounceAttacker() &&
-		 !HasChargerVictim() && !HasChargerAttacker() && m_nChargerAction == CHARGER_ACTION_NONE &&
-		 GetMoveType() != MOVETYPE_NOCLIP && GetSolid() != SOLID_NONE &&
-		 gpGlobals->curtime >= m_flNextWorldAntiStuckTime )
+	if (!IsBot() && IsAlive() && !HasPounceVictim() && !HasPounceAttacker() &&
+		!HasChargerVictim() && !HasChargerAttacker() && m_nChargerAction == CHARGER_ACTION_NONE &&
+		m_nDamageStaggerDir == PLAYER_STAGGER_DIR_NONE &&
+		GetMoveType() != MOVETYPE_NOCLIP && GetSolid() != SOLID_NONE &&
+		gpGlobals->curtime >= m_flNextWorldAntiStuckTime)
 	{
-		const Vector mins = m_Local.m_bDucked ? VEC_DUCK_HULL_MIN_SCALED( this ) : VEC_HULL_MIN_SCALED( this );
-		const Vector maxs = m_Local.m_bDucked ? VEC_DUCK_HULL_MAX_SCALED( this ) : VEC_HULL_MAX_SCALED( this );
+		const Vector mins = m_Local.m_bDucked ? VEC_DUCK_HULL_MIN_SCALED(this) : VEC_HULL_MIN_SCALED(this);
+		const Vector maxs = m_Local.m_bDucked ? VEC_DUCK_HULL_MAX_SCALED(this) : VEC_HULL_MAX_SCALED(this);
 
 		trace_t tr;
-		UTIL_TraceHull( GetAbsOrigin(), GetAbsOrigin(), mins, maxs, MASK_PLAYERSOLID_BRUSHONLY, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
-		if ( tr.startsolid || tr.allsolid )
+		UTIL_TraceHull(GetAbsOrigin(), GetAbsOrigin(), mins, maxs, MASK_PLAYERSOLID_BRUSHONLY, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr);
+		if (tr.startsolid || tr.allsolid)
 		{
-			const Vector anchor = ( m_lastStandingPos != vec3_origin ) ? m_lastStandingPos : GetAbsOrigin();
-			if ( TeleportPlayerToNearestNavArea( this, anchor ) )
+			const Vector anchor = (m_lastStandingPos != vec3_origin) ? m_lastStandingPos : GetAbsOrigin();
+			if (TeleportPlayerToNearestNavArea(this, anchor))
 			{
 				m_flNextWorldAntiStuckTime = gpGlobals->curtime + 1.0f;
 			}
 		}
 	}
 
-	if ( IsGhost() && IsAlive() && GetTeamNumber() == TEAM_INFECTED && GetZombieClass() > 0 &&
-		 m_flGhostMaterializeTime > 0.0f && gpGlobals->curtime >= m_flGhostMaterializeTime )
+	if (IsGhost() && IsAlive() && GetTeamNumber() == TEAM_INFECTED && GetZombieClass() > 0 &&
+		m_flGhostMaterializeTime > 0.0f && gpGlobals->curtime >= m_flGhostMaterializeTime)
 	{
-		SetGhost( false );
+		SetGhost(false);
 	}
 
-	if ( IsGhost() && IsAlive() && GetTeamNumber() == TEAM_INFECTED && GetZombieClass() > 0 &&
-		 m_flGhostMaterializeTime <= 0.0f &&
-		 gpGlobals->curtime >= m_flNextGhostStatusMessageTime )
+	if (IsGhost() && IsAlive() && GetTeamNumber() == TEAM_INFECTED && GetZombieClass() > 0 &&
+		m_flGhostMaterializeTime <= 0.0f &&
+		gpGlobals->curtime >= m_flNextGhostStatusMessageTime)
 	{
-		UpdateGhostSpawnFeedback( true );
+		UpdateGhostSpawnFeedback(true);
 		m_flNextGhostStatusMessageTime = gpGlobals->curtime + kGhostStatusMessageInterval;
 	}
 
 	// Hunter pounce upkeep / damage ticking.
-	if ( HasPounceVictim() )
+	if (HasPounceVictim())
 	{
-		CCSPlayer *pVictim = GetPounceVictim();
-		if ( !IsAlive() || !pVictim || !pVictim->IsAlive() || pVictim->GetTeamNumber() != TEAM_SURVIVOR || pVictim->GetPounceAttacker() != this )
+		CCSPlayer* pVictim = GetPounceVictim();
+		if (!IsAlive() || !pVictim || !pVictim->IsAlive() || pVictim->GetTeamNumber() != TEAM_SURVIVOR || pVictim->GetPounceAttacker() != this)
 		{
 			ClearPounce();
 		}
@@ -3459,30 +3557,30 @@ void CCSPlayer::PostThink()
 			const Vector targetOrigin = pVictim->GetAbsOrigin();
 			Vector toTarget = targetOrigin - currentOrigin;
 			const float dist = toTarget.NormalizeInPlace();
-			if ( dist > 1.0f )
+			if (dist > 1.0f)
 			{
 				const float pullSpeed = 150.0f;
-				const float step = MIN( dist, pullSpeed * gpGlobals->frametime );
+				const float step = MIN(dist, pullSpeed * gpGlobals->frametime);
 				const Vector desiredOrigin = currentOrigin + toTarget * step;
 
-				const Vector mins = m_Local.m_bDucked ? VEC_DUCK_HULL_MIN_SCALED( this ) : VEC_HULL_MIN_SCALED( this );
-				const Vector maxs = m_Local.m_bDucked ? VEC_DUCK_HULL_MAX_SCALED( this ) : VEC_HULL_MAX_SCALED( this );
+				const Vector mins = m_Local.m_bDucked ? VEC_DUCK_HULL_MIN_SCALED(this) : VEC_HULL_MIN_SCALED(this);
+				const Vector maxs = m_Local.m_bDucked ? VEC_DUCK_HULL_MAX_SCALED(this) : VEC_HULL_MAX_SCALED(this);
 
 				trace_t tr;
-				CTraceFilterSkipTwoEntities traceFilter( this, pVictim, COLLISION_GROUP_PLAYER_MOVEMENT );
-				UTIL_TraceHull( currentOrigin, desiredOrigin, mins, maxs, MASK_PLAYERSOLID, &traceFilter, &tr );
+				CTraceFilterSkipTwoEntities traceFilter(this, pVictim, COLLISION_GROUP_PLAYER_MOVEMENT);
+				UTIL_TraceHull(currentOrigin, desiredOrigin, mins, maxs, MASK_PLAYERSOLID, &traceFilter, &tr);
 
 				const Vector newOrigin = tr.endpos;
-				Teleport( &newOrigin, NULL, &vec3_origin );
+				Teleport(&newOrigin, NULL, &vec3_origin);
 			}
 
 			// After a short delay, deal damage at a fixed interval.
-			while ( gpGlobals->curtime >= m_flNextPounceDamageTime )
+			while (gpGlobals->curtime >= m_flNextPounceDamageTime)
 			{
-				CTakeDamageInfo pounceInfo( this, this, 5.0f, DMG_SLASH | DMG_NEVERGIB );
-				pVictim->TakeDamage( pounceInfo );
+				CTakeDamageInfo pounceInfo(this, this, 5.0f, DMG_SLASH | DMG_NEVERGIB);
+				pVictim->TakeDamage(pounceInfo);
 
-				if ( !pVictim->IsAlive() )
+				if (!pVictim->IsAlive())
 				{
 					ClearPounce();
 					break;
@@ -3492,10 +3590,10 @@ void CCSPlayer::PostThink()
 			}
 		}
 	}
-	else if ( HasPounceAttacker() )
+	else if (HasPounceAttacker())
 	{
-		CCSPlayer *pAttacker = GetPounceAttacker();
-		if ( !pAttacker || !pAttacker->IsAlive() || pAttacker->GetPounceVictim() != this )
+		CCSPlayer* pAttacker = GetPounceAttacker();
+		if (!pAttacker || !pAttacker->IsAlive() || pAttacker->GetPounceVictim() != this)
 		{
 			ClearPounce();
 		}
@@ -3504,140 +3602,143 @@ void CCSPlayer::PostThink()
 	// Charger upkeep: charge movement, carry, wall impacts, and pummel sequences.
 	{
 		// Relationship validation (both sides).
-		if ( HasChargerVictim() )
+		if (HasChargerVictim())
 		{
-			CCSPlayer *victim = GetChargerVictim();
-			if ( !IsAlive() || !victim || !victim->IsAlive() || victim->GetTeamNumber() != TEAM_SURVIVOR || victim->GetChargerAttacker() != this )
+			CCSPlayer* victim = GetChargerVictim();
+			if (!IsAlive() || !victim || !victim->IsAlive() || victim->GetTeamNumber() != TEAM_SURVIVOR || victim->GetChargerAttacker() != this)
 			{
 				ClearCharger();
 			}
+			else
+			{
+				PhysDisableEntityCollisions(this, victim);
+			}
 		}
-		else if ( HasChargerAttacker() )
+		else if (HasChargerAttacker())
 		{
-			CCSPlayer *attacker = GetChargerAttacker();
-			if ( !attacker || !attacker->IsAlive() || attacker->GetChargerVictim() != this )
+			CCSPlayer* attacker = GetChargerAttacker();
+			if (!attacker || !attacker->IsAlive() || attacker->GetChargerVictim() != this)
 			{
 				ClearCharger();
+			}
+			else
+			{
+				PhysDisableEntityCollisions(attacker, this);
 			}
 		}
 
-		auto StartChargerLockedActivity = [&]( Activity activity )
-		{
-			const int seq = SelectWeightedSequence( activity );
-			if ( seq != -1 )
+		auto StartChargerLockedActivity = [&](Activity activity)
 			{
-				SetMoveType(MOVETYPE_NONE);
-				ResetSequence( seq );
-				SetCycle( 0.0f );
-				SetPlaybackRate( 1.0f );
-				m_flChargerPrevCycle = 0.0f;
-			}
-		};
+				const int seq = SelectWeightedSequence(activity);
+				if (seq != -1)
+				{
+					SetMoveType(MOVETYPE_NONE);
+					ResetSequence(seq);
+					SetCycle(0.0f);
+					SetPlaybackRate(1.0f);
+					m_flChargerPrevCycle = 0.0f;
+				}
+			};
 
 		auto StartChargerSlam = [&]()
-		{
-			m_nChargerAction = CHARGER_ACTION_SLAM;
-			m_nChargerStaggerDir = CHARGER_STAGGER_DIR_NONE;
-			m_bChargerChargeCapturedVictim = false;
-
-			SetAbsVelocity( vec3_origin );
-			SetBaseVelocity( vec3_origin );
-			SetMoveType( MOVETYPE_NONE );
-
-			CCSPlayer *victim = GetChargerVictim();
-			if ( victim )
 			{
-				victim->m_nChargerVictimAction = CHARGER_VICTIM_SLAMMED_GROUND;
-				victim->SetAbsVelocity( vec3_origin );
-				victim->SetBaseVelocity( vec3_origin );
-				victim->SetMoveType( MOVETYPE_NONE );
-			}
+				m_nChargerAction = CHARGER_ACTION_SLAM;
+				m_nChargerStaggerDir = CHARGER_STAGGER_DIR_NONE;
+				m_bChargerChargeCapturedVictim = false;
 
-			StartChargerLockedActivity( ACT_TERROR_SLAM_GROUND );
-		};
+				SetAbsVelocity(vec3_origin);
+				SetBaseVelocity(vec3_origin);
+				SetMoveType(MOVETYPE_NONE);
+
+				CCSPlayer* victim = GetChargerVictim();
+				if (victim)
+				{
+					victim->m_nChargerVictimAction = CHARGER_VICTIM_SLAMMED_GROUND;
+					victim->SetMoveType(MOVETYPE_NONE);
+					KeepChargerVictimAttached(this, victim, GetAbsOrigin());
+				}
+
+				StartChargerLockedActivity(ACT_TERROR_SLAM_GROUND);
+			};
 
 		// Charge movement + collision checks.
-		if ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 && m_nChargerAction == CHARGER_ACTION_CHARGING )
+		if (GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 && m_nChargerAction == CHARGER_ACTION_CHARGING)
 		{
 			const float now = gpGlobals->curtime;
 
 			// Velocity ramp: 250 -> 500 within 0.1s.
 			const float ramp = 0.1f;
-			const float t = ( ramp > 0.0f ) ? clamp( ( now - m_flChargerChargeStartTime ) / ramp, 0.0f, 1.0f ) : 1.0f;
-			const float speed = Lerp( t, 250.0f, 500.0f );
+			const float t = (ramp > 0.0f) ? clamp((now - m_flChargerChargeStartTime) / ramp, 0.0f, 1.0f) : 1.0f;
+			const float speed = Lerp(t, 250.0f, 500.0f);
 
 			Vector forward;
-			AngleVectors( QAngle( 0.0f, m_flChargerChargeYaw, 0.0f ), &forward );
+			AngleVectors(QAngle(0.0f, m_flChargerChargeYaw, 0.0f), &forward);
 			forward.z = 0.0f;
 			forward.NormalizeInPlace();
 
 			Vector vel = forward * speed;
 			vel.z = GetAbsVelocity().z;
-			SetAbsVelocity( vel );
+			SetAbsVelocity(vel);
 
 			// Keep the carried victim glued to us while charging (and after, during slam/pound).
-			if ( HasChargerVictim() )
+			if (HasChargerVictim())
 			{
-				CCSPlayer *victim = GetChargerVictim();
-				if ( victim )
+				CCSPlayer* victim = GetChargerVictim();
+				if (victim)
 				{
-					const Vector carryPos = GetAbsOrigin();
-					Vector vVel( vec3_origin );
-					victim->Teleport( &carryPos, NULL, &vVel );
-					victim->SetAbsVelocity( vec3_origin );
-					victim->SetBaseVelocity( vec3_origin );
 					victim->m_nChargerVictimAction = CHARGER_VICTIM_CARRIED;
+					KeepChargerVictimAttached(this, victim, GetAbsOrigin());
 				}
 			}
 
 			// Detect nearby survivor impacts to select a carry victim and blast bystanders.
-			auto AlreadyHitDuringCharge = [&]( CCSPlayer *p ) -> bool
-			{
-				if ( !p )
-					return true;
-				for ( int i = 0; i < m_ChargerChargeHitVictims.Count(); ++i )
+			auto AlreadyHitDuringCharge = [&](CCSPlayer* p) -> bool
 				{
-					if ( m_ChargerChargeHitVictims[i].Get() == p )
+					if (!p)
 						return true;
-				}
-				return false;
-			};
+					for (int i = 0; i < m_ChargerChargeHitVictims.Count(); ++i)
+					{
+						if (m_ChargerChargeHitVictims[i].Get() == p)
+							return true;
+					}
+					return false;
+				};
 
-			auto MarkHitDuringCharge = [&]( CCSPlayer *p )
-			{
-				if ( !p )
-					return;
-				m_ChargerChargeHitVictims.AddToTail( p );
-			};
-
-			auto BlastBystander = [&]( CCSPlayer *pVictim )
-			{
-				if ( !pVictim || !pVictim->IsAlive() || pVictim->GetTeamNumber() != TEAM_SURVIVOR )
-					return;
-				if ( AlreadyHitDuringCharge( pVictim ) )
-					return;
-
-				CTakeDamageInfo info( this, this, 10.0f, DMG_CLUB | DMG_NEVERGIB );
-				pVictim->TakeDamage( info );
-
-				Vector shoveDir = pVictim->WorldSpaceCenter() - WorldSpaceCenter();
-				shoveDir.z = 72.0f;
-				if ( shoveDir.NormalizeInPlace() < 0.01f )
+			auto MarkHitDuringCharge = [&](CCSPlayer* p)
 				{
-					shoveDir = forward;
-				}
-				shoveDir.z = 0.35f;
-				shoveDir.NormalizeInPlace();
+					if (!p)
+						return;
+					m_ChargerChargeHitVictims.AddToTail(p);
+				};
 
-				Vector impulse = shoveDir * 800.0f;
-				pVictim->SetGroundEntity( NULL );
-				pVictim->ApplyAbsVelocityImpulse( impulse );
+			auto BlastBystander = [&](CCSPlayer* pVictim)
+				{
+					if (!pVictim || !pVictim->IsAlive() || pVictim->GetTeamNumber() != TEAM_SURVIVOR)
+						return;
+					if (AlreadyHitDuringCharge(pVictim))
+						return;
 
-				EmitSound( "ChargerZombie.HitPerson" );
-				MarkHitDuringCharge( pVictim );
-			};
+					CTakeDamageInfo info(this, this, 10.0f, DMG_CLUB | DMG_NEVERGIB);
+					pVictim->TakeDamage(info);
 
-			if ( now >= m_flChargerChargeEndTime && GetGroundEntity() != NULL )
+					Vector shoveDir = pVictim->WorldSpaceCenter() - WorldSpaceCenter();
+					shoveDir.z = 72.0f;
+					if (shoveDir.NormalizeInPlace() < 0.01f)
+					{
+						shoveDir = forward;
+					}
+					shoveDir.z = 0.35f;
+					shoveDir.NormalizeInPlace();
+
+					Vector impulse = shoveDir * 800.0f;
+					pVictim->SetGroundEntity(NULL);
+					pVictim->ApplyAbsVelocityImpulse(impulse);
+
+					EmitSound("ChargerZombie.HitPerson");
+					MarkHitDuringCharge(pVictim);
+				};
+
+			if (now >= m_flChargerChargeEndTime && GetGroundEntity() != NULL)
 			{
 				// Charge expired on-ground.
 				m_nChargerAction = CHARGER_ACTION_NONE;
@@ -3645,172 +3746,167 @@ void CCSPlayer::PostThink()
 				m_ChargerChargeHitVictims.Purge();
 				m_bChargerChargeCapturedVictim = false;
 
-				if ( HasChargerVictim() )
+				if (HasChargerVictim())
 				{
 					StartChargerSlam();
 				}
 			}
 			else
 			{
-				const float dt = clamp( gpGlobals->frametime, 0.01f, 0.05f );
-				const Vector curPos = GetAbsOrigin() + Vector( 0, 0, 64.0f );
+				const float dt = clamp(gpGlobals->frametime, 0.01f, 0.05f);
+				const Vector curPos = GetAbsOrigin() + Vector(0, 0, 64.0f);
 				Vector traceStart = m_vecChargerTracePos;
-				if ( traceStart == vec3_origin )
+				if (traceStart == vec3_origin)
 				{
 					traceStart = curPos;
 				}
-				const Vector nextPos = curPos + forward * ( speed * dt );
+				const Vector nextPos = curPos + forward * (speed * dt);
 
 				trace_t tr;
 				const Vector mins = CollisionProp()->OBBMins();
 				const Vector maxs = CollisionProp()->OBBMaxs();
-				
-				CTraceFilterSkipTwoEntities filter( this, GetChargerVictim(), COLLISION_GROUP_NONE );
-				UTIL_TraceHull( traceStart, nextPos, mins, maxs, MASK_SOLID, &filter, &tr );
+
+				CCSPlayer* sweptVictim = NULL;
+				float flSweptVictimFraction = 1.0f;
+				CUtlVector< CCSPlayer* > sweptOtherVictims;
+				CollectChargerChargeVictimsAlongSweep(this, traceStart, nextPos, mins, maxs, &sweptVictim, &flSweptVictimFraction, &sweptOtherVictims);
+
+				CTraceFilterSkipTwoEntities filter(this, GetChargerVictim(), COLLISION_GROUP_NONE);
+				UTIL_TraceHull(traceStart, nextPos, mins, maxs, MASK_SHOT, &filter, &tr);
 				m_vecChargerTracePos = curPos;
 
+				const bool bHitWall = (tr.startsolid || tr.allsolid || tr.fraction < 1.0f);
+				const float flWallFraction = (tr.startsolid || tr.allsolid) ? 0.0f : tr.fraction;
+				const bool bVictimBeforeWall = (sweptVictim != NULL) && (!bHitWall);
+
 				// Survivor impacts: pick up the first target, blast others.
-				if ( tr.m_pEnt )
+				if (bVictimBeforeWall)
 				{
-					CCSPlayer *hitPlayer = ToCSPlayer( tr.m_pEnt );
-					if ( hitPlayer && hitPlayer->IsAlive() && hitPlayer->GetTeamNumber() == TEAM_SURVIVOR )
+					CCSPlayer* hitPlayer = sweptVictim;
+					if (hitPlayer)
 					{
-						if ( !HasChargerVictim() && !m_bChargerChargeCapturedVictim && !hitPlayer->HasChargerAttacker() )
+						if (!HasChargerVictim() && !m_bChargerChargeCapturedVictim && !hitPlayer->HasChargerAttacker())
 						{
 							m_chargerVictim = hitPlayer;
 							m_bChargerChargeCapturedVictim = true;
 							hitPlayer->m_chargerAttacker = this;
 							hitPlayer->m_nChargerVictimAction = CHARGER_VICTIM_CARRIED;
 
-							SetAbsVelocity( vel );
-							hitPlayer->SetAbsVelocity( vec3_origin );
-							hitPlayer->SetBaseVelocity( vec3_origin );
-							hitPlayer->SetMoveType( MOVETYPE_NONE );
-							hitPlayer->SetGroundEntity( NULL );
+							SetAbsVelocity(vel);
+							hitPlayer->SetMoveType(MOVETYPE_NONE);
+							hitPlayer->SetGroundEntity(NULL);
 
-							PhysDisableEntityCollisions( this, hitPlayer );
-
-							const Vector carryPos = GetAbsOrigin();
-							Vector vVel( vec3_origin );
-							hitPlayer->Teleport( &carryPos, NULL, &vVel );
-							EmitSound( "ChargerZombie.HitPerson" );
-						}
-						else if ( hitPlayer != GetChargerVictim() )
-						{
-							BlastBystander( hitPlayer );
-						}
-					}
-					else if ( tr.m_pEnt->IsBSPModel() || tr.m_pEnt->GetMoveType() == MOVETYPE_NONE )
-					{
-						// Treat as wall/solid impact.
-						EmitSound( "ChargerZombie.ImpactHard" );
-
-						m_nChargerAction = CHARGER_ACTION_NONE;
-						m_flNextChargerChargeAllowedTime = now + 12.0f;
-						m_ChargerChargeHitVictims.Purge();
-						m_bChargerChargeCapturedVictim = false;
-
-						if ( HasChargerVictim() )
-						{
-							StartChargerSlam();
+							KeepChargerVictimAttached(this, hitPlayer, GetAbsOrigin());
+							EmitSound("ChargerZombie.HitPerson");
 						}
 						else
 						{
-							EmitSound( "ChargerZombie.Stagger" );
-							DispatchParticleEffect("charger_wall_impact", GetAbsOrigin(), GetAbsAngles());
-							m_nChargerAction = CHARGER_ACTION_STAGGER;
-							m_flChargerPrevCycle = 0.0f;
-							SetAbsVelocity( vec3_origin );
-							SetBaseVelocity( vec3_origin );
-							SetMoveType( MOVETYPE_WALK );
+							BlastBystander(hitPlayer);
+						}
+					}
 
-							Vector right;
-							AngleVectors( QAngle( 0.0f, m_flChargerChargeYaw, 0.0f ), NULL, &right, NULL );
-							right.z = 0.0f;
-							right.NormalizeInPlace();
+					for (int i = 0; i < sweptOtherVictims.Count(); ++i)
+					{
+						BlastBystander(sweptOtherVictims[i]);
+					}
+				}
+				else if (bHitWall)
+				{
+					// Treat as wall/solid impact.
+					EmitSound("ChargerZombie.ImpactHard");
 
-							const Vector impactDir = -tr.plane.normal;
-							const float dotF = DotProduct( forward, impactDir );
-							if ( dotF > 0.5f )
+					m_nChargerAction = CHARGER_ACTION_NONE;
+					m_flNextChargerChargeAllowedTime = now + 12.0f;
+					m_ChargerChargeHitVictims.Purge();
+					m_bChargerChargeCapturedVictim = false;
+
+					if (HasChargerVictim())
+					{
+						StartChargerSlam();
+					}
+					else
+					{
+						EmitSound("ChargerZombie.Stagger");
+						DispatchParticleEffect("charger_wall_impact", GetAbsOrigin(), GetAbsAngles());
+						m_nChargerAction = CHARGER_ACTION_STAGGER;
+						m_flChargerPrevCycle = 0.0f;
+						SetAbsVelocity(vec3_origin);
+						SetBaseVelocity(vec3_origin);
+						SetMoveType(MOVETYPE_WALK);
+
+						Vector right;
+						AngleVectors(QAngle(0.0f, m_flChargerChargeYaw, 0.0f), NULL, &right, NULL);
+						right.z = 0.0f;
+						right.NormalizeInPlace();
+
+						const Vector impactDir = -tr.plane.normal;
+						const float dotF = DotProduct(forward, impactDir);
+						if (dotF > 0.5f)
+						{
+							m_nChargerStaggerDir = CHARGER_STAGGER_DIR_BACK;
+							StartChargerLockedActivity(ACT_TERROR_SHOVED_BACKWARD);
+						}
+						else
+						{
+							const float dotR = DotProduct(right, impactDir);
+							if (dotR > 0.0f)
 							{
-								m_nChargerStaggerDir = CHARGER_STAGGER_DIR_BACK;
-								StartChargerLockedActivity( ACT_TERROR_SHOVED_BACKWARD );
+								m_nChargerStaggerDir = CHARGER_STAGGER_DIR_LEFT;
+								StartChargerLockedActivity(ACT_TERROR_SHOVED_LEFTWARD);
 							}
 							else
 							{
-								const float dotR = DotProduct( right, impactDir );
-								if ( dotR > 0.0f )
-								{
-									m_nChargerStaggerDir = CHARGER_STAGGER_DIR_LEFT;
-									StartChargerLockedActivity( ACT_TERROR_SHOVED_LEFTWARD );
-								}
-								else
-								{
-									m_nChargerStaggerDir = CHARGER_STAGGER_DIR_RIGHT;
-									StartChargerLockedActivity( ACT_TERROR_SHOVED_RIGHTWARD );
-								}
+								m_nChargerStaggerDir = CHARGER_STAGGER_DIR_RIGHT;
+								StartChargerLockedActivity(ACT_TERROR_SHOVED_RIGHTWARD);
 							}
 						}
 					}
 				}
 
 				// Also blast any bystanders that overlap our hull while carrying someone.
-				if ( HasChargerVictim() )
+				if (HasChargerVictim())
 				{
-					const Vector boxMins = GetAbsOrigin() + mins - Vector( 20.0f, 20.0f, 20.0f );
-					const Vector boxMaxs = GetAbsOrigin() + maxs + Vector( 20.0f, 20.0f, 20.0f );
+					const Vector boxMins = GetAbsOrigin() + mins - Vector(20.0f, 20.0f, 20.0f);
+					const Vector boxMaxs = GetAbsOrigin() + maxs + Vector(20.0f, 20.0f, 20.0f);
 
-					CBaseEntity *nearby[64];
-					const int n = UTIL_EntitiesInBox( nearby, ARRAYSIZE( nearby ), boxMins, boxMaxs, FL_CLIENT );
-					for ( int i = 0; i < n; ++i )
+					CBaseEntity* nearby[64];
+					const int n = UTIL_EntitiesInBox(nearby, ARRAYSIZE(nearby), boxMins, boxMaxs, FL_CLIENT);
+					for (int i = 0; i < n; ++i)
 					{
-						CCSPlayer *p = ToCSPlayer( nearby[i] );
-						if ( !p || p == this || p == GetChargerVictim() )
+						CCSPlayer* p = ToCSPlayer(nearby[i]);
+						if (!p || p == this || p == GetChargerVictim())
 							continue;
-						if ( !p->IsAlive() || p->GetTeamNumber() != TEAM_SURVIVOR )
+						if (!p->IsAlive() || p->GetTeamNumber() != TEAM_SURVIVOR)
 							continue;
-						BlastBystander( p );
+						BlastBystander(p);
 					}
 				}
 			}
 		}
 
 		// Keep pummel victims glued during slam/pound as well (covers edge cases).
-		if ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 && HasChargerVictim() &&
-			 ( m_nChargerAction == CHARGER_ACTION_SLAM || m_nChargerAction == CHARGER_ACTION_POUND ) )
+		if (GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 && HasChargerVictim() &&
+			(m_nChargerAction == CHARGER_ACTION_SLAM || m_nChargerAction == CHARGER_ACTION_POUND))
 		{
-			CCSPlayer *victim = GetChargerVictim();
-			if ( victim )
+			CCSPlayer* victim = GetChargerVictim();
+			if (victim)
 			{
-				const Vector carryPos = GetAbsOrigin();
-				QAngle victimAngles = victim->GetAbsAngles();
-				if ( m_nChargerAction == CHARGER_ACTION_POUND )
-				{
-					victimAngles = QAngle( 0.0f, GetAbsAngles().y, 0.0f );
-				}
-				Vector vVel( vec3_origin );
-				victim->Teleport( &carryPos, ( m_nChargerAction == CHARGER_ACTION_POUND ) ? &victimAngles : NULL, &vVel );
-				if ( m_nChargerAction == CHARGER_ACTION_POUND )
-				{
-					victim->SnapEyeAngles( victimAngles );
-				}
-				victim->SetAbsVelocity( vec3_origin );
-				victim->SetBaseVelocity( vec3_origin );
+				KeepChargerVictimAttached(this, victim, GetAbsOrigin());
 			}
 		}
 	}
 
 	// Tank rock throw: lock movement while the sequence plays.
-	if ( IsAlive() && IsHulkTank() && m_nTankAction == TANK_ACTION_ROCK_THROW )
+	if (IsAlive() && IsHulkTank() && m_nTankAction == TANK_ACTION_ROCK_THROW)
 	{
-		SetAbsVelocity( vec3_origin );
-		SetBaseVelocity( vec3_origin );
-		if ( GetMoveType() != MOVETYPE_NONE )
+		SetAbsVelocity(vec3_origin);
+		SetBaseVelocity(vec3_origin);
+		if (GetMoveType() != MOVETYPE_NONE)
 		{
-			SetMoveType( MOVETYPE_NONE );
+			SetMoveType(MOVETYPE_NONE);
 		}
 
-		if ( IsSequenceFinished() )
+		if (IsSequenceFinished())
 		{
 			ClearTankRockThrow();
 		}
@@ -3819,14 +3915,14 @@ void CCSPlayer::PostThink()
 	UpdateAddonBits();
 	UpdateZombieSounds();
 	UpdateSurvivorWarnSpecial();
-	if ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 2 && IsAlive() )
+	if (GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 2 && IsAlive())
 	{
-		if ( GetAbsVelocity().z < 0.0f )
+		if (GetAbsVelocity().z < 0.0f)
 		{
 			float now = gpGlobals->curtime;
 			if (m_nextVocalizeFallTime > now) return;
 
-			Vocalize( "BoomerZombie.Fall", 0.2f, 0.0f );
+			Vocalize("BoomerZombie.Fall", 0.2f, 0.0f);
 
 			m_nextVocalizeFallTime = now + 0.2f;
 		}
@@ -3846,71 +3942,70 @@ void CCSPlayer::PostThink()
 			}
 		}
 	}
-	if ( !(m_iDisplayHistoryBits & DHF_ROUND_STARTED) && CanPlayerBuy(false) )
+	if (!(m_iDisplayHistoryBits & DHF_ROUND_STARTED) && CanPlayerBuy(false))
 	{
-		HintMessage( "#Hint_press_buy_to_purchase", false );
+		HintMessage("#Hint_press_buy_to_purchase", false);
 		m_iDisplayHistoryBits |= DHF_ROUND_STARTED;
 	}
-	if ( m_flNextMouseoverUpdate < gpGlobals->curtime )
+	if (m_flNextMouseoverUpdate < gpGlobals->curtime)
 	{
 		m_flNextMouseoverUpdate = gpGlobals->curtime + 0.2f;
-		if ( m_bShowHints )
+		if (m_bShowHints)
 		{
 			UpdateMouseoverHints();
 		}
 	}
-	if ( GetActiveWeapon() && !(m_iDisplayHistoryBits & DHF_AMMO_EXHAUSTED) )
+	if (GetActiveWeapon() && !(m_iDisplayHistoryBits & DHF_AMMO_EXHAUSTED))
 	{
-		CBaseCombatWeapon *pWeapon = GetActiveWeapon();
-		if ( !pWeapon->HasAnyAmmo() && !(pWeapon->GetWpnData().iFlags & ITEM_FLAG_EXHAUSTIBLE) )
+		CBaseCombatWeapon* pWeapon = GetActiveWeapon();
+		if (!pWeapon->HasAnyAmmo() && !(pWeapon->GetWpnData().iFlags & ITEM_FLAG_EXHAUSTIBLE))
 		{
 			m_iDisplayHistoryBits |= DHF_AMMO_EXHAUSTED;
-			HintMessage( "#Hint_out_of_ammo", false );
+			HintMessage("#Hint_out_of_ammo", false);
 		}
 	}
 
 	QAngle angles = GetLocalAngles();
 	angles[PITCH] = 0;
-	SetLocalAngles( angles );
+	SetLocalAngles(angles);
 
 	// Store the eye angles pitch so the client can compute its animation state correctly.
 	m_angEyeAngles = EyeAngles();
 
-	m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
+	m_PlayerAnimState->Update(m_angEyeAngles[YAW], m_angEyeAngles[PITCH]);
 
 	// Survivor incapacitation: keep view/hull low (roughly head-height) while downed.
-	if ( IsAlive() && GetTeamNumber() == TEAM_SURVIVOR )
+	if (IsAlive() && GetTeamNumber() == TEAM_SURVIVOR)
 	{
-		if ( m_bIncapacitated )
+		if (m_bIncapacitated)
 		{
 			float headZ = 24.0f;
-			const int headBone = LookupBone( "ValveBiped.Bip01_Head1" );
-			if ( headBone != -1 )
+			const int headBone = LookupBone("ValveBiped.Bip01_Head1");
+			if (headBone != -1)
 			{
 				Vector headPos;
 				QAngle headAng;
-				GetBonePosition( headBone, headPos, headAng );
+				GetBonePosition(headBone, headPos, headAng);
 				headZ = headPos.z - GetAbsOrigin().z;
 			}
 
-			headZ = clamp( headZ, 16.0f, 48.0f );
-
-			SetViewOffset( Vector( 0.0f, 0.0f, headZ ) );
+			headZ = clamp(headZ, 16.0f, 48.0f);
 
 			Vector mins = VEC_DUCK_HULL_MIN;
 			Vector maxs = VEC_DUCK_HULL_MAX;
-			maxs.z = clamp( headZ + 4.0f, 22.0f, VEC_DUCK_HULL_MAX.z );
-			SetCollisionBounds( mins, maxs );
+			maxs.z = clamp(headZ + 4.0f, 22.0f, VEC_DUCK_HULL_MAX.z);
+			SetCollisionBounds(mins, maxs);
 
 			m_bIncapHullAdjusted = true;
 		}
-		else if ( m_bIncapHullAdjusted )
+		else if (m_bIncapHullAdjusted)
 		{
 			m_bIncapHullAdjusted = false;
-			SetViewOffset( VEC_VIEW_SCALED( this ) );
-			SetCollisionBounds( VEC_HULL_MIN, VEC_HULL_MAX );
+			SetViewOffset(VEC_VIEW_SCALED(this));
+			SetCollisionBounds(VEC_HULL_MIN, VEC_HULL_MAX);
 		}
 	}
+	
 
 	// Charger locked sequence movement (stagger/slam/pound) driven by root motion.
 	if ( IsAlive() && GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 &&
@@ -3972,20 +4067,7 @@ void CCSPlayer::PostThink()
 			CCSPlayer *victim = GetChargerVictim();
 			if ( victim )
 			{
-				const Vector carryPos = GetAbsOrigin();
-				QAngle victimAngles = victim->GetAbsAngles();
-				if ( m_nChargerAction == CHARGER_ACTION_POUND )
-				{
-					victimAngles = QAngle( 0.0f, GetAbsAngles().y, 0.0f );
-				}
-				Vector vVel( vec3_origin );
-				victim->Teleport( &carryPos, ( m_nChargerAction == CHARGER_ACTION_POUND ) ? &victimAngles : NULL, &vVel );
-				if ( m_nChargerAction == CHARGER_ACTION_POUND )
-				{
-					victim->SnapEyeAngles( victimAngles );
-				}
-				victim->SetAbsVelocity( vec3_origin );
-				victim->SetBaseVelocity( vec3_origin );
+				KeepChargerVictimAttached( this, victim, GetAbsOrigin() );
 			}
 		}
 
@@ -4002,7 +4084,7 @@ void CCSPlayer::PostThink()
 			// Start pummeling.
 			m_nChargerAction = CHARGER_ACTION_POUND;
 			m_nChargerStaggerDir = CHARGER_STAGGER_DIR_NONE;
-
+			EmitSound("ChargerZombie.VocalizePummel");
 			Activity poundAct = ACT_TERROR_CHARGER_POUND_DOWN;
 			CCSPlayer *victim = GetChargerVictim();
 			if ( victim )
@@ -4036,16 +4118,66 @@ void CCSPlayer::PostThink()
 			else if ( IsSequenceFinished() )
 			{
 				// If the pound activity isn't looping, restart it.
-				const Activity act = (Activity)GetSequenceActivity( GetSequence() );
-				const int seq = SelectWeightedSequence( act );
-				if ( seq != -1 )
-				{
-					ResetSequence( seq );
-					SetCycle( 0.0f );
-					SetPlaybackRate( 1.0f );
-					m_flChargerPrevCycle = 0.0f;
-				}
+				m_flChargerPrevCycle = 0.0f;
 			}
+		}
+	}
+
+	if ( IsAlive() && m_nDamageStaggerDir != PLAYER_STAGGER_DIR_NONE &&
+		 GetMoveType() == MOVETYPE_NONE && GetSolid() != SOLID_NONE )
+	{
+		const float flFromCycle = m_flDamageStaggerPrevCycle;
+		const float flToCycle = GetCycle();
+
+		Vector deltaPos( vec3_origin );
+		QAngle deltaAngles( 0.0f, 0.0f, 0.0f );
+
+		if ( flToCycle != flFromCycle )
+		{
+			Vector deltaPosLocal( vec3_origin );
+			QAngle deltaAngLocal( 0.0f, 0.0f, 0.0f );
+
+			if ( flToCycle > flFromCycle )
+			{
+				GetSequenceMovement( GetSequence(), flFromCycle, flToCycle, deltaPosLocal, deltaAngLocal );
+			}
+			else
+			{
+				Vector dp1, dp2;
+				QAngle da1, da2;
+				GetSequenceMovement( GetSequence(), flFromCycle, 1.0f, dp1, da1 );
+				GetSequenceMovement( GetSequence(), 0.0f, flToCycle, dp2, da2 );
+				deltaPosLocal = dp1 + dp2;
+				deltaAngLocal = da1 + da2;
+			}
+
+			deltaPos = deltaPosLocal;
+			deltaAngles = deltaAngLocal;
+		}
+
+		if ( deltaPos != vec3_origin || deltaAngles.y != 0.0f )
+		{
+			VectorYawRotate( deltaPos, GetAbsAngles().y, deltaPos );
+
+			const Vector start = GetAbsOrigin();
+			const Vector end = start + deltaPos;
+
+			trace_t tr;
+			CTraceFilterSimple filter( this, COLLISION_GROUP_PLAYER_MOVEMENT );
+			UTIL_TraceHull( start, end, WorldAlignMins(), WorldAlignMaxs(), MASK_PLAYERSOLID, &filter, &tr );
+
+			QAngle ang = GetAbsAngles();
+			ang.y += deltaAngles.y;
+
+			Vector vel( vec3_origin );
+			Teleport( &tr.endpos, &ang, &vel );
+		}
+
+		m_flDamageStaggerPrevCycle = flToCycle;
+
+		if ( IsSequenceFinished() )
+		{
+			ClearDamageStagger();
 		}
 	}
 
@@ -5245,6 +5377,18 @@ void CCSPlayer::PreThink()
 	if ( g_fGameOver )
 		return;
 
+	if (IsAlive()) {
+
+		if (m_bIsGhost)
+		{
+			SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE);
+		}
+		else {
+			SetCollisionGroup(COLLISION_GROUP_PLAYER_MOVEMENT);
+		}
+
+	}
+
 	State_PreThink();
 
 	// Infected should always have the flashlight on.
@@ -5581,6 +5725,9 @@ bool CCSPlayer::CanStartChargerCharge() const
 	if ( HasChargerVictim() || HasChargerAttacker() )
 		return false;
 
+	if ( m_nDamageStaggerDir != PLAYER_STAGGER_DIR_NONE )
+		return false;
+
 	if ( m_nChargerAction != CHARGER_ACTION_NONE )
 		return false;
 
@@ -5692,6 +5839,23 @@ void CCSPlayer::ClearCharger( void )
 	m_ChargerChargeHitVictims.Purge();
 }
 
+void CCSPlayer::ClearDamageStagger( void )
+{
+	m_nDamageStaggerDir = PLAYER_STAGGER_DIR_NONE;
+	m_flDamageStaggerPrevCycle = 0.0f;
+	m_angDamageStaggerEyeAngles.Init();
+
+	if ( IsAlive() && GetMoveType() == MOVETYPE_NONE &&
+		 !HasPounceVictim() && !HasPounceAttacker() &&
+		 !HasChargerVictim() && !HasChargerAttacker() &&
+		 m_nChargerAction == CHARGER_ACTION_NONE &&
+		 m_nTankAction == TANK_ACTION_NONE &&
+		 GetSolid() != SOLID_NONE )
+	{
+		SetMoveType( MOVETYPE_WALK );
+	}
+}
+
 bool CCSPlayer::CanStartTankRockThrow() const
 {
 	if ( !gpGlobals )
@@ -5707,6 +5871,9 @@ bool CCSPlayer::CanStartTankRockThrow() const
 		return false;
 
 	if ( HasChargerVictim() || HasChargerAttacker() )
+		return false;
+
+	if ( m_nDamageStaggerDir != PLAYER_STAGGER_DIR_NONE )
 		return false;
 
 	if ( m_nTankAction != TANK_ACTION_NONE )
@@ -5766,6 +5933,81 @@ void CCSPlayer::ClearTankRockThrow( void )
 	}
 }
 
+bool CCSPlayer::TryStartDamageStagger( const CTakeDamageInfo &info )
+{
+	if ( !IsAlive() )
+		return false;
+
+	const int dmgType = info.GetDamageType();
+	const bool shoveByBlast = ( dmgType & DMG_BLAST ) != 0;
+	bool shoveByClub = ( dmgType & DMG_CLUB ) != 0;
+
+	if ( shoveByClub && GetTeamNumber() == TEAM_INFECTED )
+	{
+		const int zclass = GetZombieClass();
+		if ( zclass == 6 || zclass == 8 )
+		{
+			shoveByClub = false;
+		}
+	}
+
+	if ( !shoveByBlast && !shoveByClub )
+		return false;
+
+	const Vector shoveDir = ComputeDamageShoveDir( this, info );
+	if ( shoveDir == vec3_origin )
+		return false;
+
+	Activity activity = ACT_INVALID;
+	PlayerStaggerDir_t dir = ComputePlayerStaggerDir( this, shoveDir, &activity );
+	if ( dir == PLAYER_STAGGER_DIR_NONE || activity == ACT_INVALID )
+		return false;
+
+	int seq = SelectWeightedSequence( activity );
+	if ( seq == -1 && dir != PLAYER_STAGGER_DIR_BACK )
+	{
+		dir = PLAYER_STAGGER_DIR_BACK;
+		activity = ACT_TERROR_SHOVED_BACKWARD;
+		seq = SelectWeightedSequence( activity );
+	}
+
+	if ( seq == -1 )
+		return false;
+
+	if ( HasPounceVictim() || HasPounceAttacker() )
+	{
+		ClearPounce();
+	}
+
+	if ( HasChargerVictim() || HasChargerAttacker() ||
+		 ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 && m_nChargerAction != CHARGER_ACTION_NONE ) )
+	{
+		ClearCharger();
+	}
+
+	if ( m_nTankAction != TANK_ACTION_NONE )
+	{
+		ClearTankRockThrow();
+	}
+
+	ClearDamageStagger();
+
+	m_nDamageStaggerDir = dir;
+	m_flDamageStaggerPrevCycle = 0.0f;
+	m_angDamageStaggerEyeAngles = EyeAngles();
+	m_angDamageStaggerEyeAngles.z = 0.0f;
+
+	SetAbsVelocity( vec3_origin );
+	SetBaseVelocity( vec3_origin );
+	SetMoveType( MOVETYPE_NONE );
+
+	ResetSequence( seq );
+	SetCycle( 0.0f );
+	SetPlaybackRate( 1.0f );
+
+	return true;
+}
+
 void CCSPlayer::MoveToNextIntroCamera()
 {
 	m_pIntroCamera = gEntList.FindEntityByClassname( m_pIntroCamera, "point_viewcontrol" );
@@ -5785,6 +6027,9 @@ void CCSPlayer::MoveToNextIntroCamera()
 	// if we still couldn't find a camera, goto T spawn
 	if(!m_pIntroCamera)
 		m_pIntroCamera = gEntList.FindEntityByClassname(m_pIntroCamera, "info_player_terrorist");
+
+	if(!m_pIntroCamera)
+		m_pIntroCamera = gEntList.FindEntityByClassname(m_pIntroCamera, "info_survivor_position");
 
 	SetViewOffset( vec3_origin );	// no view offset
 	UTIL_SetSize( this, vec3_origin, vec3_origin ); // no bbox
@@ -8732,7 +8977,7 @@ bool CCSPlayer::SelectSpawnSpot( const char *pEntClassName, CBaseEntity* &pSpot 
 
 	DevMsg("CCSPlayer::SelectSpawnSpot: couldn't find valid spawn point.\n");
 
-	return true;
+	return false;
 }
 
 
@@ -8781,11 +9026,6 @@ CBaseEntity* CCSPlayer::EntSelectSpawnPoint()
 				g_pLastCTSpawn = pSpot;
 				goto ReturnSpot;
 			}
-			else if (SelectSpawnSpot("info_player_start", pSpot))
-			{
-				g_pLastCTSpawn = pSpot;
-				goto ReturnSpot;
-			}
 		}
 
 		/*********************************************************/
@@ -8799,6 +9039,11 @@ CBaseEntity* CCSPlayer::EntSelectSpawnPoint()
 				g_pLastTerroristSpawn = pSpot;
 				goto ReturnSpot;
 			}
+			else if (SelectSpawnSpot("info_survivor_position", pSpot))
+			{
+				g_pLastTerroristSpawn = pSpot;
+				goto ReturnSpot;
+			}
 		}
 	}
 
@@ -8807,6 +9052,8 @@ CBaseEntity* CCSPlayer::EntSelectSpawnPoint()
 	if ( !gpGlobals->startspot || !strlen(STRING(gpGlobals->startspot)))
 	{
 		pSpot = gEntList.FindEntityByClassname(NULL, "info_player_terrorist");
+		if ( !pSpot )
+			pSpot = gEntList.FindEntityByClassname(NULL, "info_survivor_position");
 		if ( pSpot )
 			goto ReturnSpot;
 	}
@@ -8824,9 +9071,6 @@ ReturnSpot:
 			Warning( "PutClientInServer: no info_player_logo on level\n" );
 		else
 			Warning( "PutClientInServer: no info_player_start on level\n" );
-		if (SelectSpawnSpot("info_player_start", pSpot)) {
-			return pSpot;
-		}
 		if (SelectSpawnSpot("info_player_teamspawn", pSpot)) {
 			return pSpot;
 		}
@@ -9115,7 +9359,7 @@ void CCSPlayer::InputSpeakResponseConcept(inputdata_t& inputdata)
 	// null terminate just in case
 	outputmodifiers[outWritten <= 511 ? outWritten : 511] = 0;
 
-	SpeakConceptIfAllowed(GetMPConceptIndexFromString(buf), outputmodifiers[0] ? outputmodifiers : NULL);
+	//SpeakConceptIfAllowed(GetMPConceptIndexFromString(buf), outputmodifiers[0] ? outputmodifiers : NULL);
 }
 
 

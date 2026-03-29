@@ -18,6 +18,7 @@
 #include "baseparticleentity.h"
 #include "beamdraw.h"
 #include "colorcorrectionmgr.h"
+#include "iinput.h"
 
 
 class C_PhysicsProp;
@@ -298,6 +299,7 @@ public:
 	CNetworkVar( int, m_nChargerAction );
 	CNetworkVar( int, m_nChargerVictimAction );
 	CNetworkVar( int, m_nChargerStaggerDir );
+	CNetworkVar( int, m_nDamageStaggerDir );
 	CNetworkVar( int, m_nTankAction );
 
 	CWeaponCSBase* GetActiveCSWeapon() const;
@@ -357,6 +359,11 @@ private:
 
 	void UpdateRadar();
 	void UpdateSoundEvents();
+	void UpdateStaggerThirdPersonCamera();
+	void TurnOnStaggerCam();
+	void TurnOffStaggerCam();
+	void TurnOffStaggerCam_Finish();
+	void StaggerCamInterpolation();
 	void UpdatePounceThirdPersonCamera();
 	void UpdatePounceMusic();
 	void UpdateInfectedColorCorrection();
@@ -421,6 +428,17 @@ private:
 	bool m_bPounceCamBaseOverridingThirdPerson;
 	float m_flPounceCamBlend;
 	Vector m_vecPounceCamBaseDesiredOffset;
+	bool m_bStaggerCamHasSavedState;
+	bool m_bStaggerCamBaseThirdPerson;
+	bool m_bStaggerCamBaseForcedThirdPerson;
+	bool m_bStaggerCamBaseOverridingThirdPerson;
+	bool m_bStaggerCamInterpolating;
+	CameraThirdData_t m_StaggerCameraData;
+	float m_flStaggerCamCurrentDist;
+	float m_flStaggerCamTargetDist;
+	float m_flStaggerCamCurrentDistUp;
+	float m_flStaggerCamTargetDistUp;
+	Vector m_vecStaggerCamBaseDesiredOffset;
 	bool m_bLocalPounceMusicPlaying;
 	ClientCCHandle_t m_hInfectedColorCorrection;
 	bool m_bTriedCreateInfectedColorCorrection;

@@ -32,11 +32,7 @@ const float JumpCrouchHeight = 64.0f;			// (48) if delta Z is less than or equal
 const float StepHeight = 18.0f;					// if delta Z is greater than this, we have to jump to get up
 
 // TERROR: Increased DeathDrop from 200, since zombies don't take falling damage
-#if defined(CSTRIKE_DLL)
-const float DeathDrop = 200.0f;					// (300) distance at which we will die if we fall - should be about 600, and pay attention to fall damage during pathfind
-#else
 const float DeathDrop = 400.0f;					// (300) distance at which we will die if we fall - should be about 600, and pay attention to fall damage during pathfind
-#endif
 
 #if defined(CSTRIKE_DLL)
 const float ClimbUpHeight = JumpCrouchHeight;	// CSBots assume all jump up links are reachable

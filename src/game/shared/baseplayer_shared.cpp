@@ -223,112 +223,12 @@ bool CBasePlayer::UsingStandardWeaponsInVehicle( void )
 }
 
 #if defined( CLIENT_DLL )
-
-void UpdateLocalWeaponPoseParams()
-{
-	C_BasePlayer* ply = C_BasePlayer::GetLocalPlayer();
-	if (!ply || !ply->IsAlive())
-		return;
-
-	C_BaseViewModel* vm = ply->GetViewModel();
-	if (!vm)
-		return;
-
-	C_BaseCombatWeapon* weapon = ply->GetActiveWeapon();
-
-	// --------------------------------------------------
-	// Eye angles
-	// --------------------------------------------------
-
-	QAngle ang = ply->EyeAngles();
-
-	float pitch = AngleNormalize(ang.x);
-	float yawDiff = AngleNormalize(ang.y - ply->GetAbsAngles().y);
-
-	const float pitchMin = -45.0f;
-	const float pitchMax = 90.0f;
-
-	const float yawMin = -45.0f;
-	const float yawMax = 45.0f;
-
-	pitch = clamp(pitch, pitchMin, pitchMax);
-	yawDiff = clamp(yawDiff, yawMin, yawMax);
-
-	float pitchFrac = (pitch - pitchMin) / (pitchMax - pitchMin);
-	float yawFrac = (yawDiff - yawMin) / (yawMax - yawMin);
-
-	// --------------------------------------------------
-	// Vertical aim pose
-	// --------------------------------------------------
-
-	int verPose = vm->LookupPoseParameter("ver_aims");
-	if (verPose >= 0)
-	{
-		float min, max;
-		vm->GetPoseParameterRange(verPose, min, max);
-
-		float value = Lerp(pitchFrac, min, max);
-
-		vm->SetPoseParameter(verPose, value);
-
-		if (weapon)
-			weapon->SetPoseParameter("ver_aims", value);
-	}
-
-	// --------------------------------------------------
-	// Horizontal aim pose
-	// --------------------------------------------------
-
-	int horPose = vm->LookupPoseParameter("hor_aims");
-	if (horPose >= 0)
-	{
-		float min, max;
-		vm->GetPoseParameterRange(horPose, min, max);
-
-		float value = Lerp(yawFrac, min, max);
-
-		vm->SetPoseParameter(horPose, value);
-
-		if (weapon)
-			weapon->SetPoseParameter("hor_aims", value);
-	}
-
-	// --------------------------------------------------
-	// Movement pose
-	// --------------------------------------------------
-
-	Vector vel = ply->GetAbsVelocity();
-
-	bool moving =
-		vel.Length2D() > (50 - 1.0f) &&
-		(ply->GetFlags() & FL_ONGROUND);
-
-	float targetMove = moving ? 1.0f : 0.0f;
-
-	static float moveX = 0.0f;
-
-	float lerpRate = gpGlobals->frametime / 0.5f;
-	moveX = Lerp(lerpRate, moveX, targetMove);
-
-	int movePose = vm->LookupPoseParameter("move_x");
-	if (movePose >= 0)
-	{
-		vm->SetPoseParameter(movePose, moveX);
-
-		if (weapon)
-			weapon->SetPoseParameter("move_x", moveX);
-	}
-}
-
 #endif
 //-----------------------------------------------------------------------------
 // Purpose: Called every usercmd by the player PostThink
 //-----------------------------------------------------------------------------
 void CBasePlayer::ItemPostFrame()
 {
-#if defined( CLIENT_DLL )
-	UpdateLocalWeaponPoseParams();
-#endif
 	VPROF( "CBasePlayer::ItemPostFrame" );
 
 	// Put viewmodels into basically correct place based on new player origin

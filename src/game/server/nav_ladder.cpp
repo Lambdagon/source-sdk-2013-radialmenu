@@ -259,7 +259,7 @@ void CNavLadder::SetDir( NavDirType dir )
 	// TERROR: use the MASK_ZOMBIESOLID_BRUSHONLY contents, since that's what zombies use
 	UTIL_TraceLine( from, to, MASK_ZOMBIESOLID_BRUSHONLY, NULL, COLLISION_GROUP_NONE, &result );
 #else
-	UTIL_TraceLine( from, to, MASK_NPCSOLID_BRUSHONLY, NULL, COLLISION_GROUP_NONE, &result );
+	UTIL_TraceLine( from, to, MASK_PLAYERSOLID_BRUSHONLY, NULL, COLLISION_GROUP_NONE, &result );
 #endif
 
 	if (result.fraction != 1.0f)

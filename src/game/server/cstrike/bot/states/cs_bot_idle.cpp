@@ -107,6 +107,25 @@ void IdleState::OnUpdate( CCSBot *me )
 		return;
 	}
 
+	// L4D-style campaign maps reuse func_hostage_rescue as the end saferoom.
+	// If the map has rescue zones but no hostage entities, survivor bots should treat the
+	// authored rescue zone as their objective instead of stock CS hostage logic.
+	if ( me->GetTeamNumber() == TEAM_SURVIVOR &&
+		 TheCSBots()->GetScenario() == CCSBotManager::SCENARIO_RESCUE_HOSTAGES )
+	{
+		const CCSBotManager::Zone *zone = TheCSBots()->GetClosestZone( me->GetLastKnownArea(), PathCost( me, FASTEST_ROUTE ) );
+		const Vector *zonePos = TheCSBots()->GetRandomPositionInZone( zone );
+		if ( zonePos )
+		{
+			me->SetTask( CCSBot::RESCUE_HOSTAGES );
+			me->Run();
+			me->SetDisposition( CCSBot::SELF_DEFENSE );
+			me->MoveTo( *zonePos, FASTEST_ROUTE );
+			me->PrintIfWatched( "I'm moving to the saferoom\n" );
+			return;
+		}
+	}
+
 	//
 	// Scenario logic
 	//
@@ -887,4 +906,3 @@ void IdleState::OnUpdate( CCSBot *me )
 	// if we have nothing special to do, go hunting for enemies
 	me->Hunt();
 }
-

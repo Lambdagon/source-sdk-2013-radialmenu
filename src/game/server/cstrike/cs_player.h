@@ -498,6 +498,7 @@ public:
 	bool CanStartChargerCharge() const;
 	void StartChargerCharge();
 	void ClearCharger( void );
+	void ClearDamageStagger( void );
 
 	// Tank (hulk) rock throw.
 	bool IsTankRockThrowing() const { return m_nTankAction == TANK_ACTION_ROCK_THROW; }
@@ -631,6 +632,7 @@ private:
 	void State_Enter_DEATH_ANIM();
 	void State_PreThink_DEATH_ANIM();
 
+	bool TryStartDamageStagger( const CTakeDamageInfo &info );
 	bool TryStartTankDeath( const CTakeDamageInfo &info );
 	void HandleTankDeathPostThink( float flFromCycle );
 	void FinishTankDeath( void );
@@ -810,7 +812,10 @@ public:
 	CNetworkVar( int, m_nChargerAction );
 	CNetworkVar( int, m_nChargerVictimAction );
 	CNetworkVar( int, m_nChargerStaggerDir );
+	CNetworkVar( int, m_nDamageStaggerDir );
 	CNetworkVar( int, m_nTankAction );
+	float m_flDamageStaggerPrevCycle;
+	QAngle m_angDamageStaggerEyeAngles;
 
 	// Bots and hostages auto-duck during jumps
 	bool m_duckUntilOnGround;

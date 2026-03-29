@@ -1,0 +1,160 @@
+Population
+{
+	//------------------------------------------------------------------------
+	// Areas are defined in the map or the nav file.  Right now we're using
+	// nav place names.  If no place name is used, we look for 'default'.
+	// Populations are lists of models, with percentages adding up to 100.
+	// Model names should be specified without the .mdl extension, and
+	// without the directory name (this assumes all infected models are in
+	// models/infected).
+
+	
+
+	//------------------------------------------------------------------------
+	default
+	{
+		common_male01		30
+		common_female01		25
+		common_police_male01	15
+		common_military_male01	10
+		common_worker_male01	10
+		common_male_suit 	10
+	}
+
+
+	//------------------------------------------------------------------------
+	test_common_male_suit
+	{
+		common_male_suit	100
+	}
+
+
+	//Urban Populations and sub-populations
+	//------------------------------------------------------------------------
+	defaulturban
+	{
+		common_male01		30
+		common_female01		25
+		common_police_male01	10
+		common_military_male01	10
+		common_worker_male01	10
+		common_male_suit 	15
+	}
+
+		//------------------------------------------------------------------------
+		police
+		{
+			common_male01		20
+			common_female01		20
+			common_military_male01	10
+			common_police_male01 	50
+		}
+
+		//------------------------------------------------------------------------
+		maintenance
+		{
+			common_male01		25
+			common_female01		20
+			common_military_male01	20
+			common_worker_male01	35
+		}
+
+		//------------------------------------------------------------------------
+		hospitalgrounds
+		{
+			common_male01		20
+			common_female01		20
+			common_police_male01	15
+			common_military_male01	15
+			common_worker_male01	15
+			common_male_suit 	15
+		}
+
+
+
+	//------------------------------------------------------------------------
+	hospital
+	{
+		common_male01		15
+		common_patient_male01 	40
+		common_worker_male01	15
+		common_female_nurse01	15
+		common_surgeon_male01	10
+	}
+
+		//------------------------------------------------------------------------
+		hospitalconstruction
+		{
+			common_patient_male01 	20
+			common_worker_male01	30
+			common_female_nurse01	20
+			common_surgeon_male01	10
+			common_male01	 	20
+		}
+
+
+
+	//------------------------------------------------------------------------
+	airport
+	{
+		common_female01			20
+		common_male_suit 		20
+		common_worker_male01		15
+		common_male_baggagehandler_01	15
+		common_tsaagent_male01		15
+		common_male_pilot		15
+	}
+	
+		//------------------------------------------------------------------------
+		airportfinale
+		{
+			common_female01			10
+			common_male_suit 		10
+			common_worker_male01		10
+			common_male_baggagehandler_01	30
+			common_tsaagent_male01		20
+			common_male_pilot		20
+		}
+	
+
+
+
+	//Rural Populations and sub-populations
+	//------------------------------------------------------------------------
+	defaultrural
+	{
+		common_male_rural01 	50
+		common_female_rural01	20
+		common_police_male01	10
+		common_military_male01	10
+		common_worker_male01	10
+	}
+
+	//------------------------------------------------------------------------
+	// random zombie type spawned at the church after the mini-finale
+	church
+	{
+		hunter	25
+		smoker	25
+		boomer	50
+	}
+
+	zoo
+	{
+		common_female_rural01                         5
+		common_female01                                 10
+		common_female_nurse01                       5
+		common_male01                                   20                     
+		common_male_baggagehandler_01         5
+		common_male_pilot                               5
+		common_male_rural01                           10
+		common_male_suit                                10
+		common_military_male01                       5
+		common_patient_male01                        5
+		common_police_male01                         5
+		common_surgeon_male01                      5
+		common_TSAAgent_male01                   5
+		common_worker_male01                        5          
+	}
+
+}

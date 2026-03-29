@@ -716,15 +716,11 @@ bool CNPC_BaseZombie::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDa
 	if ( info.GetDamageType() & DMG_REMOVENORAGDOLL )
 		return false;
 
-	if ( m_fIsTorso )
+	if (m_fIsTorso)
 	{
 		// Already split.
 		return false;
 	}
-
-	// Not if we're in a dss
-	if ( IsRunningDynamicInteraction() )
-		return false;
 
 	// Break in half IF:
 	// 
@@ -733,23 +729,6 @@ bool CNPC_BaseZombie::ShouldBecomeTorso( const CTakeDamageInfo &info, float flDa
 	{
 		return true;
 	}
-
-	if ( hl2_episodic.GetBool() )
-	{
-		// Always split after a cannon hit
-		if ( info.GetAmmoType() == GetAmmoDef()->Index("CombineHeavyCannon") )
-			return true;
-	}
-
-#if 0
-	if( info.GetDamageType() & DMG_BUCKSHOT )
-	{
-		if( m_iHealth <= 0 || flDamageThreshold >= 0.5 )
-		{
-			return true;
-		}
-	}
-#endif 
 	
 	return false;
 }
@@ -894,39 +873,6 @@ int CNPC_BaseZombie::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 			SetCondition( COND_ZOMBIE_RELEASECRAB );
 			break;
 		}
-
-		if( ShouldBecomeTorso( info, flDamageThreshold ) )
-		{
-			bool bHitByCombineCannon = (inputInfo.GetAmmoType() == GetAmmoDef()->Index("CombineHeavyCannon"));
-
-			if ( CanBecomeLiveTorso() )
-			{
-				BecomeTorso( vec3_origin, inputInfo.GetDamageForce() * 0.50 );
-
-				if ( ( info.GetDamageType() & DMG_BLAST) && random->RandomInt( 0, 1 ) == 0 )
-				{
-					Ignite( 5.0 + random->RandomFloat( 0.0, 5.0 ) );
-				}
-
-				// For Combine cannon impacts
-				if ( hl2_episodic.GetBool() )
-				{
-					if ( bHitByCombineCannon )
-					{
-						// Catch on fire.
-						Ignite( 5.0f + random->RandomFloat( 0.0f, 5.0f ) );
-					}
-				}
-
-				if (flDamageThreshold >= 1.0)
-				{
-					m_iHealth = 0;
-					BecomeRagdollOnClient( info.GetDamageForce() );
-				}
-			}
-			else if ( random->RandomInt(1, 3) == 1 )
-				DieChopped( info );
-		}
 	}
 
 	if( tookDamage > 0 && (info.GetDamageType() & (DMG_BURN|DMG_DIRECT)) && m_ActBusyBehavior.IsActive() ) 
@@ -949,12 +895,6 @@ int CNPC_BaseZombie::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 //-----------------------------------------------------------------------------
 void CNPC_BaseZombie::MakeAISpookySound( float volume, float duration )
 {
-#ifdef HL2_EPISODIC
-	if ( HL2GameRules()->IsAlyxInDarknessMode() )
-	{
-		CSoundEnt::InsertSound( SOUND_COMBAT, EyePosition(), volume, duration, this, SOUNDENT_CHANNEL_SPOOKY_NOISE );
-	}
-#endif // HL2_EPISODIC
 }
 
 //-----------------------------------------------------------------------------
@@ -1053,13 +993,7 @@ bool CNPC_BaseZombie::IsChopped( const CTakeDamageInfo &info )
 //-----------------------------------------------------------------------------
 bool CNPC_BaseZombie::ShouldIgniteZombieGib( void )
 {
-#ifdef HL2_EPISODIC
-	// If we're in darkness mode, don't ignite giblets, because we don't want to
-	// pay the perf cost of multiple dynamic lights per giblet.
-	return ( IsOnFire() && !HL2GameRules()->IsAlyxInDarknessMode() );
-#else
 	return IsOnFire();
-#endif 
 }
 
 //-----------------------------------------------------------------------------
@@ -1207,12 +1141,6 @@ void CNPC_BaseZombie::Ignite( float flFlameLifetime, bool bNPCOnly, float flSize
 {
 	BaseClass::Ignite( flFlameLifetime, bNPCOnly, flSize, bCalledByLevelDesigner );
 
-#ifdef HL2_EPISODIC
-	if ( HL2GameRules()->IsAlyxInDarknessMode() == true && GetEffectEntity() != NULL )
-	{
-		GetEffectEntity()->AddEffects( EF_DIMLIGHT );
-	}
-#endif // HL2_EPISODIC
 
 	// Set the zombie up to burn to death in about ten seconds.
 	SetHealth( MIN( m_iHealth, FLAME_DIRECT_DAMAGE_PER_SEC * (ZOMBIE_BURN_TIME + random->RandomFloat( -ZOMBIE_BURN_TIME_NOISE, ZOMBIE_BURN_TIME_NOISE)) ) );

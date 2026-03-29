@@ -1533,23 +1533,9 @@ bool CBaseCombatCharacter::BecomeRagdoll( const CTakeDamageInfo &info, const Vec
 	CTakeDamageInfo newinfo = info;
 	newinfo.SetDamageForce( forceVector );
 
-#ifdef HL2_EPISODIC
-	// Burning corpses are server-side in episodic, if we're in darkness mode
-	if ( IsOnFire() && HL2GameRules()->IsAlyxInDarknessMode() )
-	{
-		CBaseEntity *pRagdoll = CreateServerRagdoll( this, m_nForceBone, newinfo, COLLISION_GROUP_DEBRIS );
-		FixupBurningServerRagdoll( pRagdoll );
-		RemoveDeferred();
-		return true;
-	}
-#endif
-
 #ifdef HL2_DLL	
 
 	bool bMegaPhyscannonActive = false;
-#if !defined( HL2MP )
-	bMegaPhyscannonActive = HL2GameRules()->MegaPhyscannonActive();
-#endif // !HL2MP
 
 	// Mega physgun requires everything to be a server-side ragdoll
 	if ( m_bForceServerRagdoll == true || ( ( bMegaPhyscannonActive == true ) && !IsPlayer() && Classify() != CLASS_PLAYER_ALLY_VITAL && Classify() != CLASS_PLAYER_ALLY ) )
@@ -3130,13 +3116,6 @@ void CBaseCombatCharacter::VPhysicsShadowCollision( int index, gamevcollisioneve
 	// Player can't damage himself if he's was physics attacker *on this frame*
 	// which can occur owing to ordering issues it appears.
 	float flOtherAttackerTime = 0.0f;
-
-#if defined( HL2_DLL ) && !defined( HL2MP )
-	if ( HL2GameRules()->MegaPhyscannonActive() == true )
-	{
-		flOtherAttackerTime = 1.0f;
-	}
-#endif // HL2_DLL && !HL2MP
 
 	if ( this == pOther->HasPhysicsAttacker( flOtherAttackerTime ) )
 		return;

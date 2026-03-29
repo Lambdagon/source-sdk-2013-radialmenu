@@ -41,6 +41,7 @@
 #include "usermessages.h"
 #include "prediction.h"
 #include "datacache/imdlcache.h"
+#include "ienginevgui.h"
 #ifdef GLOWS_ENABLE
 #include "glow_outline_effect.h"
 #endif
@@ -59,7 +60,9 @@
 
 // [tj] We need to forward declare this, since the definition is all inside the implementation file 
 class CHudHintDisplay;
- 
+
+vgui::HScheme g_hVGuiCombineScheme = 0;
+
 //=============================================================================
 // HPE_END
 //=============================================================================
@@ -243,6 +246,12 @@ void CCSModeManager::Init()
 	g_pClientMode = GetClientModeNormal();
 	
 	PanelMetaClassMgr()->LoadMetaClassDefinitionFile( SCREEN_FILE );
+	// Load up the combine control panel scheme
+	g_hVGuiCombineScheme = vgui::scheme()->LoadSchemeFromFileEx(enginevgui->GetPanel(PANEL_CLIENTDLL), "resource/CombinePanelScheme.res", "CombineScheme");
+	if (!g_hVGuiCombineScheme)
+	{
+		Warning("Couldn't load combine panel scheme!\n");
+	}
 }
 
 void CCSModeManager::LevelInit( const char *newmap )

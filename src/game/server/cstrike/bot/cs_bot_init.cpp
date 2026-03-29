@@ -235,6 +235,11 @@ void CCSBot::ResetValues( void )
 	m_commonInfectedEngageUntil = 0.0f;
 	m_commonInfectedNextScanTimestamp = 0.0f;
 	m_commonInfectedMeleeUntil = 0.0f;
+	m_hostileNPCAttacker = NULL;
+	m_hostileNPCAttackedTimestamp = 0.0f;
+	m_hostileNPCTarget = NULL;
+	m_hostileNPCEngageUntil = 0.0f;
+	m_hostileNPCNextScanTimestamp = 0.0f;
 	m_enemyDeathTimestamp = 0.0f;
 	m_friendDeathTimestamp = 0.0f;
 	m_lastVictimID = 0;

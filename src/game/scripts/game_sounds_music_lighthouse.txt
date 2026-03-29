@@ -1,0 +1,405 @@
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+// The Last Stand - Lighthouse
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+// --------------------------------------------------------------------
+// Note: All the "dotd" sounds are borrowed from SFM
+// --------------------------------------------------------------------
+// --------------------------------------------------------------------
+// Intro
+// --------------------------------------------------------------------
+"Event.MissionStart_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"	"SNDLVL_NONE"
+	
+	"wave"			"common/null.wav"
+//	"wave"			"@#music/stmusic/intro_music_laststand.wav"
+	
+	"GameData"
+	{
+		"MusicTrack"            "checkpoint"
+		"MusicAutoQueue"        "Event.MissionStart_BaseLoop_Lighthouse"
+		"MusicPriority"			"MEDIUM"
+		"MusicParameters"		"AFTER_DEATH"
+		"MusicMaster"           "PLAY_TO_END"
+		"MusicMasterTags"
+		{
+//			"loopStart" "23.070"
+			"loopStart" "0"
+		}
+	}
+}
+"Intro_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"	"SNDLVL_NONE"
+	
+	"wave"			"@#music/stmusic/intro_music_laststand.wav"
+	
+	"GameData"
+	{
+		"MusicAutoQueue"        "Event.MissionStart_BaseLoop_Lighthouse"
+		"MusicPriority"			"MEDIUM"
+		"MusicParameters"		"AFTER_DEATH"
+		"MusicMaster"           "PLAY_TO_END"
+		"MusicMasterTags"
+		{
+			"loopStart" "23.070"
+//			"loopStart" "0"
+		}
+	}
+}
+"Event.MissionStart_BaseLoop_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.7"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"common/null.wav"
+//	"wave"			"@#music/cpmusic/DeathTollCollector.wav"
+	"GameData"
+	{
+		"MusicPriority"			"MEDIUM"
+		"MusicTrack"            "checkpoint"
+		"MusicTagTrack"         "checkpoint"
+		"MusicFadeOut"         	"5.0"
+	}
+}
+
+// --------------------------------------------------------------------
+// checkpoints
+// --------------------------------------------------------------------
+"Event.CheckPointIntro_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"@#music/stmusic/DeathTollIntro.wav"
+	"GameData"
+	{
+		"MusicTrack"            "checkpoint"
+		"MusicAutoQueue"        "Event.CheckPointBaseLoop_Lighthouse"
+		"MusicPriority"			"MEDIUM"
+		"MusicMaster"           "PLAY_TO_END"
+		"MusicMasterTags"
+		{
+			"loopStart" "1.95"
+		}
+	}
+}
+"Event.CheckPointBaseLoop_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"	"SNDLVL_NONE"
+
+	"rndwave"
+	{
+		"wave"			"@#music/cpmusic/DeathTollCollector.wav"
+		"wave"			"@#music/cpmusic/DeathTollCollector2.wav"
+ 	}
+	
+	"GameData"
+	{
+		"MusicPriority"			"MEDIUM"
+		"MusicTrack"            "checkpoint"
+		"MusicTagTrack"         "checkpoint"
+		"MusicFadeOut"         	"5.0"
+	}
+}
+
+/////////////////////////////////
+//
+/////////////////////////////////
+
+"Event.LeavingSafety_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.4, 0.4"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+ 		"wave"	"@#music/mob/germs1a.wav"
+ 		"wave"	"@#music/mob/germs1b.wav"
+	}
+	"GameData"
+	{
+		"MusicDelayTime"        "2.0"
+		"MusicPriority"			"LOW"
+		"MusicTrack"            "overdub"	
+	}
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// zombat music
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// C14 Lighthouse - for when you're playing with survivorset = 2 for some reason                                                         //
+// --------------------------------------------------------------------------------------------------------------------------------------//
+// --------------------------------------------------------------------
+// Horde
+// --------------------------------------------------------------------
+// "Event.Zombat_Intro_Lighthouse"
+// {
+	// "channel"		"CHAN_STATIC"
+	// "volume"		"1.0"
+	// "soundlevel"	"SNDLVL_NONE"
+
+	// "wave"			"@#music/zombat/GatesOfHell.wav"
+		
+	// GameData
+	// {
+		// "MusicTrack"		"zombatIntro"
+		// "MusicAutoQueue"	"Event.Zombat_Lighthouse"
+		// "MusicPriority"		"CRITICAL"
+	// }
+// }
+// "Event.Zombat_Lighthouse"
+// {
+	// "channel"			"CHAN_STATIC"
+	// "volume"			"0.9"
+	// "soundlevel"		"SNDLVL_NONE"
+	// "rndwave"
+	// {
+		// "wave"			"@#music/zombat/dotd_170_08.wav"
+	// }
+	// GameData
+	// {
+		// "MusicTrack"			"zombat"
+		// "MusicPriority"			"CRITICAL"
+		// "MusicMasterDivTags"	"8.0"
+ 		// "MusicMasterTags"
+		// {
+			// "tag1" "1.033"
+			// "tag2" "2.806"
+			// "tag3" "5.647"
+		// }
+	// }
+// }
+// --------------------------------------------------------------------
+// C14 Lighthouse Slayer
+// --------------------------------------------------------------------
+
+"Event.Zombat2_Intro_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.9"
+	"soundlevel"	"SNDLVL_NONE"
+
+	"rndwave"
+	{
+		"wave"			"@#music/zombat/slayer/HordeSlayer_01.wav"
+		"wave"			"@#music/zombat/slayer/HordeSlayer_02.wav"
+		"wave"			"@#music/zombat/slayer/HordeSlayer_03.wav"
+		"wave"			"@#music/zombat/slayer/HordeSlayer_04.wav"
+	}
+
+	GameData
+	{
+		"MusicTrack"		"zombat2c"
+		"MusicPriority"		"CRITICAL"
+		"MusicTagTrack"		"zombat"
+		"MusicTagIndex"		"0"
+	}
+}
+
+// --------------------------------------------------------------------
+// C14 Lighthouse Danger
+// --------------------------------------------------------------------
+"Event.Zombat3_Intro_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.7"
+	"soundlevel"	"SNDLVL_NONE"
+
+	"rndwave"
+	{
+		"wave"			"@#music/zombat/danger/HordeDanger_01.wav"
+		"wave"			"@#music/zombat/danger/HordeDanger_02.wav"
+		"wave"			"@#music/zombat/danger/HordeDanger_03.wav"
+		"wave"			"@#music/zombat/danger/HordeDanger_04.wav"
+	}
+
+	GameData
+	{
+		"MusicTrack" 		"zombat3"
+		"MusicTagTrack"		"zombat"
+		"MusicPriority"		"CRITICAL"
+	}
+}
+
+///////////////////////////////// Zombies!! //////////////////////////
+// --------------------------------------------------------------------
+// L4D1 - The Lighthouse
+// --------------------------------------------------------------------
+
+"Event.MobSignal1_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.55, 0.7"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+ 		"wave"	"@#music/mob/GermL1a.wav"
+ 		"wave"	"@#music/mob/GermL1b.wav"
+ 		"wave"	"@#music/mob/GermM1a.wav"
+ 		"wave"	"@#music/mob/GermM1b.wav"
+ 		"wave"	"@#music/mob/GermS1a.wav"
+ 		"wave"	"@#music/mob/GermS1b.wav"
+ 		"wave"	"@#music/mob/GermX1a.wav"
+ 		"wave"	"@#music/mob/GermX1b.wav"
+	}
+	"GameData"
+	{
+		"MusicPriority"			"LOW"
+		"MusicTrack"            "mobsignal"	
+	}
+}
+"Event.MobSignal2_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.55, 0.7"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+ 		"wave"	"@#music/mob/GermL2a.wav"
+ 		"wave"	"@#music/mob/GermL2b.wav"
+ 		"wave"	"@#music/mob/GermM2a.wav"
+ 		"wave"	"@#music/mob/GermM2b.wav"
+ 		"wave"	"@#music/mob/GermS2a.wav"
+ 		"wave"	"@#music/mob/GermS2b.wav"
+ 		"wave"	"@#music/mob/GermX2a.wav"
+ 		"wave"	"@#music/mob/GermX2b.wav"
+	}
+	"GameData"
+	{
+		"MusicPriority"			"LOW"
+		"MusicTrack"            "mobsignal"	
+	}
+}
+
+// --------------------------------------------------------------------
+// Atmosphere
+// --------------------------------------------------------------------
+
+/////////////////////////////////
+//
+/////////////////////////////////
+
+"Event.StartAtmosphere_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.6, 0.8"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+		"wave" "@#music/contagion/DT_Quarantine_01.wav"
+		"wave" "@#music/contagion/DT_Quarantine_02.wav"
+		"wave" "@#music/contagion/DT_Quarantine_03.wav"
+
+		"wave" "@#music/contagion/TLS_Quarantine_01.wav"
+		"wave" "@#music/contagion/TLS_Quarantine_02.wav"
+		"wave" "@#music/contagion/TLS_Quarantine_03.wav"
+	}
+	"GameData"
+	{
+		"MusicPriority"			"LOW"
+		"MusicTrack"            "safeAmbient"	
+	}
+}
+
+// --------------------------------------------------------------------
+// Safe
+// When you first leave a checkpoint
+// --------------------------------------------------------------------
+
+"Event.SafeAtmosphere_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.6, 0.8"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+		"wave" "@#music/contagion/DT_Quarantine_01.wav"
+		"wave" "@#music/contagion/DT_Quarantine_02.wav"
+		"wave" "@#music/contagion/DT_Quarantine_03.wav"
+
+		"wave" "@#music/contagion/TLS_Quarantine_01.wav"
+		"wave" "@#music/contagion/TLS_Quarantine_02.wav"
+		"wave" "@#music/contagion/TLS_Quarantine_03.wav"
+	}
+	"GameData"
+	{
+		"MusicPriority"			"LOW"
+		"MusicTrack"            "safeAmbient"	
+		"MusicParameters"		"INTENSITY_CELING"
+		"MusicFadeOut"         	"1.0"
+	}
+}
+
+// --------------------------------------------------------------------
+// Danger
+// --------------------------------------------------------------------
+
+"Event.DangerAtmosphere_Lighthouse"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.6, 0.8"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+		"wave" "@#music/contagion/DT_Rabies_01.wav"
+		"wave" "@#music/contagion/DT_Rabies_02.wav"
+		"wave" "@#music/contagion/DT_Rabies_03.wav"
+		"wave" "@#music/contagion/DT_Rabies_04.wav"
+		"wave" "@#music/contagion/DT_Rabies_05.wav"
+		"wave" "@#music/contagion/DT_Rabies_06.wav"
+		"wave" "@#music/contagion/DT_Rabies_07.wav"
+		"wave" "@#music/contagion/DT_Rabies_08.wav"
+		"wave" "@#music/contagion/DT_Rabies_09.wav"
+		"wave" "@#music/contagion/DT_Rabies_10.wav"
+
+		"wave" "@#music/contagion/L4D_Rabies_01.wav"
+		"wave" "@#music/contagion/L4D_Rabies_02.wav"
+		"wave" "@#music/contagion/L4D_Rabies_03.wav"
+		"wave" "@#music/contagion/L4D_Rabies_04.wav"
+		"wave" "@#music/contagion/L4D_Rabies_05.wav"
+		"wave" "@#music/contagion/L4D_Rabies_06.wav"
+		"wave" "@#music/contagion/L4D_Rabies_07.wav"
+		"wave" "@#music/contagion/L4D_Rabies_08.wav"
+		"wave" "@#music/contagion/L4D_Rabies_09.wav"
+		"wave" "@#music/contagion/L4D_Rabies_10.wav"
+	}
+	"GameData"
+	{
+		"MusicPriority"			"LOW"
+		"MusicTrack"            "ambient"	
+		"MusicFadeOut"         	"1.0"
+	}
+}
+
+///////////////////////////////// Bosses!! //////////////////////////
+
+// --------------------------------------------------------------------
+// TANKS
+// --------------------------------------------------------------------
+
+//The Last Stand tank brothers music
+"Event.TankMidpoint_Metal"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"@#music/tank/Tank_Metal.wav"
+	
+	GameData
+	{
+		"MusicTrack"            "tank"
+		"MusicPriority"			"HIGH"
+		"MusicBlockTrackList"    "zombat_tp, zombat, zombat2, zombat3, zombatIntro, ambient"
+		"MusicStopTrackList"    "concert1, concert2"
+	}
+}

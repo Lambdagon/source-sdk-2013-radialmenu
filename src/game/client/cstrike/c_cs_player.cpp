@@ -60,6 +60,9 @@
 #include "engine/IEngineSound.h"
 
 static const float CS_DEPLOY_ANIM_DELAY = 0.02f;
+static const float CS_STAGGER_TAUNTCAM_DIST = 120.0f;
+static const float CS_STAGGER_TAUNTCAM_DIST_UP = 0.0f;
+static const float CS_STAGGER_TAUNTCAM_SPEED = 300.0f;
 
 //=============================================================================
 // HPE_BEGIN:
@@ -81,6 +84,8 @@ extern ConVar	spec_freeze_distance_max;
 ConVar cl_left_hand_ik( "cl_left_hand_ik", "0", 0, "Attach player's left hand to rifle with IK." );
 
 ConVar cl_ragdoll_physics_enable( "cl_ragdoll_physics_enable", "1", 0, "Enable/disable ragdoll physics." );
+extern ConVar g_ragdoll_fadespeed;
+extern ConVar g_ragdoll_lvfadespeed;
 
 ConVar cl_minmodels( "cl_minmodels", "0", 0, "Uses one player model for each team." );
 ConVar cl_min_ct( "cl_min_ct", "1", 0, "Controls which CT model is used when cl_minmodels is set.", true, 1, true, 4 );
@@ -201,6 +206,7 @@ public:
 	~C_CSRagdoll();
 
 	virtual void OnDataChanged( DataUpdateType_t type );
+	virtual void ClientThink() OVERRIDE;
 
 	int GetPlayerEntIndex() const;
 	IRagdoll* GetIRagdoll() const;
@@ -238,6 +244,7 @@ private:
 	CNetworkVar(int, m_iDeathPose );
 	CNetworkVar(int, m_iDeathFrame );
 	float m_flRagdollSinkStart;
+	float m_flFadeOutStartTime;
 	bool m_bInitialized;
 	bool m_bCreatedWhilePlaybackSkipping;
 };
@@ -261,6 +268,7 @@ END_RECV_TABLE()
 C_CSRagdoll::C_CSRagdoll()
 {
 	m_flRagdollSinkStart = -1;
+	m_flFadeOutStartTime = -1;
 	m_bInitialized = false;
 	m_bCreatedWhilePlaybackSkipping = engine->IsSkippingPlayback();
 }
@@ -560,6 +568,34 @@ bool C_CSRagdoll::IsTransparent( void )
 	}
 }
 
+void C_CSRagdoll::ClientThink()
+{
+	if ( m_flFadeOutStartTime < 0.0f || IsEffectActive( EF_NODRAW ) )
+		return;
+
+	if ( gpGlobals->curtime < m_flFadeOutStartTime )
+	{
+		SetNextClientThink( m_flFadeOutStartTime );
+		return;
+	}
+
+	const int fadeSpeed = g_RagdollLVManager.IsLowViolence() ? g_ragdoll_lvfadespeed.GetInt() : g_ragdoll_fadespeed.GetInt();
+	int alpha = GetRenderColor().a;
+	alpha = MAX( alpha - ( fadeSpeed * gpGlobals->frametime ), 0 );
+
+	SetRenderMode( kRenderTransAlpha );
+	SetRenderColorA( alpha );
+
+	if ( alpha <= 0 )
+	{
+		AddEffects( EF_NODRAW );
+		SetNextClientThink( CLIENT_THINK_NEVER );
+		return;
+	}
+
+	SetNextClientThink( CLIENT_THINK_ALWAYS );
+}
+
 
 void C_CSRagdoll::OnDataChanged( DataUpdateType_t type )
 {
@@ -585,6 +621,11 @@ void C_CSRagdoll::OnDataChanged( DataUpdateType_t type )
 		{
 			CreateCSRagdoll();
 		}
+
+		SetRenderColorA( 255 );
+		// Normal ragdolls linger for a bit before fading. Low-violence starts fading immediately.
+		m_flFadeOutStartTime = gpGlobals->curtime + ( g_RagdollLVManager.IsLowViolence() ? 0.0f : 15.0f );
+		SetNextClientThink( m_flFadeOutStartTime );
 	}
 	else
 	{
@@ -809,6 +850,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropInt( RECVINFO( m_nChargerAction ) ),
 	RecvPropInt( RECVINFO( m_nChargerVictimAction ) ),
 	RecvPropInt( RECVINFO( m_nChargerStaggerDir ) ),
+	RecvPropInt( RECVINFO( m_nDamageStaggerDir ) ),
 	RecvPropInt( RECVINFO( m_nTankAction ) ),
 	RecvPropInt( RECVINFO( m_cycleLatch ), 0, &C_CSPlayer::RecvProxy_CycleLatch ),
 
@@ -868,6 +910,22 @@ C_CSPlayer::C_CSPlayer() :
 	m_bPounceCamBaseOverridingThirdPerson = false;
 	m_flPounceCamBlend = 0.0f;
 	m_vecPounceCamBaseDesiredOffset.Init();
+	m_bStaggerCamHasSavedState = false;
+	m_bStaggerCamBaseThirdPerson = false;
+	m_bStaggerCamBaseForcedThirdPerson = false;
+	m_bStaggerCamBaseOverridingThirdPerson = false;
+	m_bStaggerCamInterpolating = false;
+	m_flStaggerCamCurrentDist = 0.0f;
+	m_flStaggerCamTargetDist = 0.0f;
+	m_flStaggerCamCurrentDistUp = 0.0f;
+	m_flStaggerCamTargetDistUp = 0.0f;
+	m_vecStaggerCamBaseDesiredOffset.Init();
+	m_StaggerCameraData.m_flPitch = 0.0f;
+	m_StaggerCameraData.m_flYaw = 0.0f;
+	m_StaggerCameraData.m_flDist = 0.0f;
+	m_StaggerCameraData.m_flLag = 1.0f;
+	m_StaggerCameraData.m_vecHullMin.Init( -9.0f, -9.0f, -9.0f );
+	m_StaggerCameraData.m_vecHullMax.Init( 9.0f, 9.0f, 9.0f );
 	m_bLocalPounceMusicPlaying = false;
 	m_hInfectedColorCorrection = INVALID_CLIENT_CCHANDLE;
 	m_bTriedCreateInfectedColorCorrection = false;
@@ -1342,6 +1400,155 @@ void C_CSPlayer::UpdateSoundEvents()
 	}
 }
 
+void C_CSPlayer::TurnOnStaggerCam()
+{
+	if ( !IsLocalPlayer() || !input )
+		return;
+
+	m_bStaggerCamHasSavedState = true;
+	m_bStaggerCamBaseThirdPerson = input->CAM_IsThirdPerson();
+	m_bStaggerCamBaseForcedThirdPerson = g_ThirdPersonManager.GetForcedThirdPerson();
+	m_bStaggerCamBaseOverridingThirdPerson = g_ThirdPersonManager.IsOverridingThirdPerson();
+	m_vecStaggerCamBaseDesiredOffset = g_ThirdPersonManager.GetDesiredCameraOffset();
+
+	m_flStaggerCamCurrentDist = 0.0f;
+	m_flStaggerCamCurrentDistUp = 0.0f;
+	m_flStaggerCamTargetDist = CS_STAGGER_TAUNTCAM_DIST;
+	m_flStaggerCamTargetDistUp = CS_STAGGER_TAUNTCAM_DIST_UP;
+
+	m_StaggerCameraData.m_flPitch = 0.0f;
+	m_StaggerCameraData.m_flYaw = 0.0f;
+	m_StaggerCameraData.m_flDist = m_flStaggerCamTargetDist;
+	m_StaggerCameraData.m_flLag = 1.0f;
+
+	g_ThirdPersonManager.SetDesiredCameraOffset( vec3_origin );
+	g_ThirdPersonManager.SetOverridingThirdPerson( true );
+
+	input->CAM_ToThirdPerson();
+	ThirdPersonSwitch( true );
+
+	m_bStaggerCamInterpolating = true;
+}
+
+void C_CSPlayer::TurnOffStaggerCam()
+{
+	if ( !m_bStaggerCamHasSavedState )
+		return;
+
+	m_flStaggerCamTargetDist = 0.0f;
+	m_flStaggerCamTargetDistUp = 0.0f;
+	m_StaggerCameraData.m_flDist = 0.0f;
+
+	g_ThirdPersonManager.SetOverridingThirdPerson( false );
+
+	if ( m_bStaggerCamBaseForcedThirdPerson )
+	{
+		TurnOffStaggerCam_Finish();
+	}
+}
+
+void C_CSPlayer::TurnOffStaggerCam_Finish()
+{
+	if ( !IsLocalPlayer() || !input )
+		return;
+
+	QAngle angles = vec3_angle;
+	const Vector &vecOffset = g_ThirdPersonManager.GetCameraOffsetAngles();
+	angles[PITCH] = vecOffset[PITCH];
+	angles[YAW] = vecOffset[YAW];
+	angles[DIST] = vecOffset[DIST];
+
+	input->CAM_SetCameraThirdData( NULL, angles );
+
+	g_ThirdPersonManager.SetDesiredCameraOffset( m_vecStaggerCamBaseDesiredOffset );
+	g_ThirdPersonManager.SetOverridingThirdPerson( m_bStaggerCamBaseOverridingThirdPerson );
+	g_ThirdPersonManager.SetForcedThirdPerson( m_bStaggerCamBaseForcedThirdPerson );
+
+	if ( !m_bStaggerCamBaseThirdPerson )
+	{
+		input->CAM_ToFirstPerson();
+		ThirdPersonSwitch( false );
+		input->CAM_SetCameraThirdData( NULL, vec3_angle );
+	}
+
+	m_bStaggerCamHasSavedState = false;
+	m_bStaggerCamInterpolating = false;
+	m_flStaggerCamCurrentDist = 0.0f;
+	m_flStaggerCamTargetDist = 0.0f;
+	m_flStaggerCamCurrentDistUp = 0.0f;
+	m_flStaggerCamTargetDistUp = 0.0f;
+}
+
+void C_CSPlayer::StaggerCamInterpolation()
+{
+	if ( !IsLocalPlayer() || !input || !m_bStaggerCamInterpolating )
+		return;
+
+	m_flStaggerCamCurrentDist = Approach( m_flStaggerCamTargetDist, m_flStaggerCamCurrentDist, gpGlobals->frametime * CS_STAGGER_TAUNTCAM_SPEED );
+	m_flStaggerCamCurrentDistUp = Approach( m_flStaggerCamTargetDistUp, m_flStaggerCamCurrentDistUp, gpGlobals->frametime * CS_STAGGER_TAUNTCAM_SPEED );
+
+	const Vector &vecCamOffset = g_ThirdPersonManager.GetCameraOffsetAngles();
+
+	Vector vecOrigin = GetLocalOrigin();
+	vecOrigin += GetViewOffset();
+
+	Vector vecForward, vecUp;
+	AngleVectors( QAngle( vecCamOffset[PITCH], vecCamOffset[YAW], 0.0f ), &vecForward, NULL, &vecUp );
+
+	trace_t trace;
+	UTIL_TraceHull(
+		vecOrigin,
+		vecOrigin - ( vecForward * m_flStaggerCamCurrentDist ) + ( vecUp * m_flStaggerCamCurrentDistUp ),
+		Vector( -9.0f, -9.0f, -9.0f ),
+		Vector( 9.0f, 9.0f, 9.0f ),
+		MASK_SOLID_BRUSHONLY,
+		this,
+		COLLISION_GROUP_DEBRIS,
+		&trace );
+
+	if ( trace.fraction < 1.0f )
+	{
+		m_flStaggerCamCurrentDist *= trace.fraction;
+	}
+
+	QAngle angCameraOffset( vecCamOffset[PITCH], vecCamOffset[YAW], m_flStaggerCamCurrentDist );
+	input->CAM_SetCameraThirdData( &m_StaggerCameraData, angCameraOffset );
+
+	g_ThirdPersonManager.SetDesiredCameraOffset( Vector( m_flStaggerCamCurrentDist, 0.0f, m_flStaggerCamCurrentDistUp ) );
+
+	if ( m_flStaggerCamCurrentDist == m_flStaggerCamTargetDist &&
+		 m_flStaggerCamCurrentDistUp == m_flStaggerCamTargetDistUp &&
+		 m_flStaggerCamTargetDist == 0.0f )
+	{
+		TurnOffStaggerCam_Finish();
+	}
+}
+
+void C_CSPlayer::UpdateStaggerThirdPersonCamera()
+{
+	if ( !IsLocalPlayer() || !input )
+		return;
+
+	const bool wantsStaggerCam =
+		IsAlive() &&
+		GetObserverMode() == OBS_MODE_NONE &&
+		( m_nDamageStaggerDir != PLAYER_STAGGER_DIR_NONE );
+
+	if ( wantsStaggerCam )
+	{
+		if ( !m_bStaggerCamHasSavedState )
+		{
+			TurnOnStaggerCam();
+		}
+	}
+	else if ( m_bStaggerCamHasSavedState )
+	{
+		TurnOffStaggerCam();
+	}
+
+	StaggerCamInterpolation();
+}
+
 void C_CSPlayer::UpdatePounceThirdPersonCamera()
 {
 	if ( !IsLocalPlayer() || !input )
@@ -1624,7 +1831,12 @@ static void CS_UpdatePlayerGlow( C_CSPlayer *pPlayer )
 		if ( pLocal && pLocal->GetTeamNumber() == TEAM_INFECTED )
 		{
 			bShouldGlow = true;
-			vGlowColor = Vector( 1.0f, 0.0f, 0.0f );
+			if (pLocal->IsGhost()) {
+				vGlowColor = Vector(1.0f, 1.0f, 1.0f);
+			}
+			else {
+				vGlowColor = Vector(1.0f, 0.0f, 0.0f);
+			}
 		}
 	}
 
@@ -1989,7 +2201,17 @@ bool C_CSPlayer::CreateMove( float flInputSampleTime, CUserCmd *pCmd )
 	// Bleh... we will wind up needing to access bones for attachments in here.
 	C_BaseAnimating::AutoAllowBoneAccess boneaccess( true, true );
 
-	return BaseClass::CreateMove( flInputSampleTime, pCmd );
+	const bool result = BaseClass::CreateMove( flInputSampleTime, pCmd );
+
+	if ( IsLocalPlayer() && m_nDamageStaggerDir != PLAYER_STAGGER_DIR_NONE )
+	{
+		pCmd->forwardmove = 0.0f;
+		pCmd->sidemove = 0.0f;
+		pCmd->upmove = 0.0f;
+		pCmd->buttons &= ~( IN_ATTACK | IN_ATTACK2 | IN_JUMP );
+	}
+
+	return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -2165,9 +2387,20 @@ void C_CSPlayer::UpdateClientSideAnimation()
 	// Update the animation data. It does the local check here so this works when using
 	// a third-person camera (and we don't have valid player angles).
 	if (this == C_CSPlayer::GetLocalCSPlayer())
-		m_PlayerAnimState->Update(EyeAngles()[YAW], m_angEyeAngles[PITCH]);
+	{
+		if ( m_nDamageStaggerDir != PLAYER_STAGGER_DIR_NONE )
+		{
+			m_PlayerAnimState->Update( m_angEyeAngles[YAW], m_angEyeAngles[PITCH] );
+		}
+		else
+		{
+			m_PlayerAnimState->Update( EyeAngles()[YAW], m_angEyeAngles[PITCH] );
+		}
+	}
 	else
+	{
 		m_PlayerAnimState->Update(m_angEyeAngles[YAW], m_angEyeAngles[PITCH]);
+	}
 
 	BaseClass::UpdateClientSideAnimation();
 }
@@ -2180,10 +2413,13 @@ void C_CSPlayer::UpdateClientSideAnimation()
 //-----------------------------------------------------------------------------
 bool C_CSPlayer::ShouldCollide(int collisionGroup, int contentsMask) const
 {
-	if ( m_bIsGhost )
+	// Common infected NPCs should not collide with infected-team players (special infected / CT).
+	if (GetTeamNumber() == TEAM_INFECTED &&
+		(collisionGroup == COLLISION_GROUP_NPC || collisionGroup == COLLISION_GROUP_NPC_ACTOR))
 	{
 		return false;
 	}
+
 
 	if (collisionGroup == COLLISION_GROUP_PLAYER_MOVEMENT)
 	{
@@ -2285,11 +2521,13 @@ void C_CSPlayer::ProcessMuzzleFlashEvent()
 
 const QAngle& C_CSPlayer::EyeAngles()
 {
-	const bool bPounced = ( m_pounceVictim.Get() != NULL ) || ( m_pounceAttacker.Get() != NULL );
+	const bool bServerOwnedViewAngles =
+		( m_pounceVictim.Get() != NULL ) ||
+		( m_pounceAttacker.Get() != NULL );
 
-	// While pounced, the server owns the player's eye angles (for animation/pose),
-	// but the local camera is still free to look around in third person.
-	if ( IsLocalPlayer() && !g_nKillCamMode && !bPounced )
+	// During locked gameplay states the server owns the player's eye angles
+	// (for animation/pose), but the local camera is still free to look around in third person.
+	if ( IsLocalPlayer() && !g_nKillCamMode && !bServerOwnedViewAngles )
 	{
 		return BaseClass::EyeAngles();
 	}
@@ -2303,6 +2541,9 @@ bool C_CSPlayer::ShouldDraw( void )
 {
 	// If we're dead, our ragdoll will be drawn for us instead.
 	if ( !IsAlive() )
+		return false;
+
+	if (IsGhost())
 		return false;
 
 	if( GetTeamNumber() == TEAM_SPECTATOR )
@@ -2725,6 +2966,7 @@ const Vector& C_CSPlayer::GetRenderOrigin( void )
 		}
 		else
 		{
+			UpdateStaggerThirdPersonCamera();
 			UpdatePounceThirdPersonCamera();
 			UpdatePounceMusic();
 			UpdateInfectedColorCorrection();

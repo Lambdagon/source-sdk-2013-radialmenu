@@ -32,23 +32,8 @@ void MoveToState::OnEnter( CCSBot *me )
 	}
 
 
-	// if we need to find the bomb, get there as quick as we can
-	RouteType route;
-	switch (me->GetTask())
-	{
-		case CCSBot::FIND_TICKING_BOMB:
-		case CCSBot::DEFUSE_BOMB:
-		case CCSBot::MOVE_TO_LAST_KNOWN_ENEMY_POSITION:
-			route = FASTEST_ROUTE;
-			break;
-
-		default:
-			route = SAFEST_ROUTE;
-			break;
-	}
-		
 	// build path to, or nearly to, goal position
-	me->ComputePath( m_goalPosition, route );
+	me->ComputePath( m_goalPosition, m_routeType );
 
 	m_radioedPlan = false;
 	m_askedForCover = false;
@@ -81,7 +66,35 @@ void MoveToState::OnUpdate( CCSBot *me )
 		CCSPlayer *reviveTarget = dynamic_cast< CCSPlayer * >( me->GetGoalEntity() );
 		if ( reviveTarget && reviveTarget->GetTeamNumber() == TEAM_SURVIVOR )
 		{
-			if ( !reviveTarget->IsAlive() || !reviveTarget->IsIncapacitated() )
+			const bool isPouncedTarget = reviveTarget->HasPounceAttacker();
+			if ( isPouncedTarget )
+			{
+				const Vector targetOrigin = GetCentroid( reviveTarget );
+
+				// Stay locked on the pinned teammate and repath as needed until we're close enough to rescue.
+				const float repathToleranceSq = 75.0f * 75.0f;
+				if ( ( targetOrigin - m_goalPosition ).LengthSqr() > repathToleranceSq )
+				{
+					m_goalPosition = targetOrigin;
+					me->ComputePath( m_goalPosition, FASTEST_ROUTE );
+				}
+
+				if ( !me->IsUsingLadder() )
+				{
+					const float rescueCommitRange = 200.0f;
+					if ( ( targetOrigin - myOrigin ).Length2DSqr() <= Square( rescueCommitRange ) )
+					{
+						me->SetGoalEntity( NULL );
+						me->Idle();
+						return;
+					}
+
+					CCSPlayer *attacker = reviveTarget->GetPounceAttacker();
+					const Vector focusPos = attacker ? attacker->EyePosition() : reviveTarget->EyePosition();
+					me->SetLookAt( "Pounce Rescue", focusPos, PRIORITY_UNINTERRUPTABLE, 0.25f );
+				}
+			}
+			else if ( !reviveTarget->IsAlive() || !reviveTarget->IsIncapacitated() )
 			{
 				me->SetGoalEntity( NULL );
 				me->Idle();

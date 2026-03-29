@@ -1,4 +1,4 @@
-﻿//========= Copyright � 1996-2005, Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -15,12 +15,6 @@
 #include "utlvector.h"
 #include "baseplayer_shared.h"
 #include "shared_classnames.h"
-#if defined( CSTRIKE_DLL )
-#include "weapon_csbase.h"
-#ifdef CLIENT_DLL
-#include "c_cs_player.h"
-#endif
-#endif
 
 #if defined( CLIENT_DLL )
 #define CPredictedViewModel C_PredictedViewModel
@@ -37,18 +31,6 @@ public:
 	virtual ~CPredictedViewModel(void);
 
 	virtual void CalcViewModelLag(Vector& origin, QAngle& angles, QAngle& original_angles);
-	virtual void AddViewModelBob(CBasePlayer* owner, Vector& eyePosition, QAngle& eyeAngles);
-	virtual void ApplyViewModelPitchAndDip(CBasePlayer* owner, Vector& origin, QAngle& angles);
-
-#if defined( CSTRIKE_DLL )
-	virtual void CalcViewModelView(const Vector& eyePosition, const QAngle& eyeAngles);
-
-#if defined( CLIENT_DLL )
-	BobState_t& GetBobState() { return m_BobState; }
-#endif //CLIENT_DLL
-
-#endif //CSTRIKE15
-
 
 #if defined( CLIENT_DLL )
 	virtual bool ShouldPredict(void)
@@ -57,6 +39,17 @@ public:
 			return true;
 
 		return BaseClass::ShouldPredict();
+	}
+
+	virtual bool PredictionErrorShouldResetLatchedForAllPredictables(void) OVERRIDE
+	{
+#ifdef HL2MP
+		// misyl: If viewmodel mispred's on HL2MP don't reset all the player's variables.
+		return false;
+#else
+		// Not changing this behaviour for other games without testing. They also don't have the same issues.
+		return BaseClass::PredictionErrorShouldResetLatchedForAllPredictables();
+#endif
 	}
 #endif
 
@@ -70,14 +63,6 @@ private:
 	Vector	m_vPredictedOffset;
 
 	CPredictedViewModel(const CPredictedViewModel&); // not defined, not accessible
-
-#if defined( CSTRIKE_DLL )
-protected:
-	BobState_t		m_BobState;		// view model head bob state
-	QAngle m_vLoweredWeaponOffset;
-	float m_flInaccuracyTilt;
-	float m_flOldAccuracyDiffSmoothed;
-#endif //CSTRIKE15
 
 #endif
 };

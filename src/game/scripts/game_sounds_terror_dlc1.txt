@@ -1,0 +1,21 @@
+
+//----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+// Terror DLC1
+
+"Scavenge.ClusterSpawned"
+{
+	"channel"		"CHAN_STATIC"
+	"soundlevel" 	"SNDLVL_NORM"
+	"pitch"			"PITCH_NORM"
+
+	"wave"			"UI/gascan_spawn.wav"
+}
+
+"Survival.versus_record"
+{
+	"channel"		"CHAN_STATIC"
+	"soundlevel"	"SNDLVL_NORM"
+	"pitch"			"PITCH_NORM"
+	"wave"		"UI/Survival_TeamRec.wav"
+}

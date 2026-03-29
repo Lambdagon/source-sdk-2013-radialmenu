@@ -139,6 +139,15 @@ enum ChargerStaggerDir_t
 	CHARGER_STAGGER_DIR_RIGHT,
 };
 
+enum PlayerStaggerDir_t
+{
+	PLAYER_STAGGER_DIR_NONE = 0,
+	PLAYER_STAGGER_DIR_FORWARD,
+	PLAYER_STAGGER_DIR_BACK,
+	PLAYER_STAGGER_DIR_LEFT,
+	PLAYER_STAGGER_DIR_RIGHT,
+};
+
 // Tank gameplay states (special infected class 8).
 enum TankAction_t
 {

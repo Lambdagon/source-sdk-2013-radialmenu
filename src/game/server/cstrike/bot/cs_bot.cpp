@@ -10,6 +10,7 @@
 #include "cbase.h"
 #include "cs_simple_hostage.h"
 #include "cs_gamerules.h"
+#include "ai_basenpc.h"
 #include "func_breakablesurf.h"
 #include "obstacle_pushaway.h"
 
@@ -155,6 +156,16 @@ int CCSBot::OnTakeDamage( const CTakeDamageInfo &info )
 		// Track which common infected is actively hurting us so we can prioritize killing it.
 		m_commonInfectedAttacker = attacker;
 		m_commonInfectedAttackedTimestamp = gpGlobals->curtime;
+	}
+	else if ( GetTeamNumber() == TEAM_SURVIVOR )
+	{
+		CAI_BaseNPC *npc = attacker->MyNPCPointer();
+		if ( npc && !FClassnameIs( attacker, "infected" ) && npc->IRelationType( this ) == D_HT )
+		{
+			// Track hostile NPC attackers separately so survivor bots can return fire.
+			m_hostileNPCAttacker = attacker;
+			m_hostileNPCAttackedTimestamp = gpGlobals->curtime;
+		}
 	}
 
 	// extend

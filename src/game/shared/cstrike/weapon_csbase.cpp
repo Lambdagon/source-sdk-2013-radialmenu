@@ -134,6 +134,7 @@ WeaponAliasInfo s_weaponAliasInfo[] =
 	{ WEAPON_ASSAULTSUIT,		"assaultsuit" },
 	{ WEAPON_NVG,				"nightvision" },
 	{ WEAPON_NVG,				"nvg" },
+	{ WEAPON_MOLOTOV,				"molotov" },
 
 	{ WEAPON_NONE,				"none" },
 };
@@ -1729,13 +1730,14 @@ bool CWeaponCSBase::IsUseable()
 
 float	g_lateralBob = 0;
 float	g_verticalBob = 0;
+float	g_verticalHLBob = 0;
 
 static ConVar	cl_bob_version("cl_bob_version", "0", FCVAR_CHEAT);
 static ConVar	cl_bobcycle("cl_bobcycle", "0.98", FCVAR_ARCHIVE, "the frequency at which the viewmodel bobs.", true, 0.1, true, 2.0);
 //static ConVar	cl_bob( "cl_bob","0.002", FCVAR_ARCHIVE );
 static ConVar	cl_bobup("cl_bobup", "0.5", FCVAR_CHEAT);
 
-ConVar	cl_use_new_headbob("cl_use_new_headbob", "0", FCVAR_CHEAT);
+ConVar	cl_use_new_headbob("cl_use_new_headbob", "0", FCVAR_CLIENTDLL);
 static ConVar	cl_bobamt_vert("cl_bobamt_vert", "0.25", FCVAR_ARCHIVE, "The amount the viewmodel moves up and down when running", true, 0.1, true, 2);
 static ConVar	cl_bobamt_lat("cl_bobamt_lat", "0.4", FCVAR_ARCHIVE, "The amount the viewmodel moves side to side when running", true, 0.1, true, 2);
 static ConVar	cl_bob_lower_amt("cl_bob_lower_amt", "21", FCVAR_ARCHIVE, "The amount the viewmodel lowers when running", true, 5, true, 30);
@@ -1973,14 +1975,86 @@ float CWeaponCSBase::CalcViewmodelBob(void)
 	if (cl_use_new_headbob.GetBool() == true)
 	{
 		CBasePlayer* player = ToBasePlayer(GetOwner());
-		//Assert( player );
-		BobState_t* pBobState = GetBobState();
-		if (pBobState)
+
+		C_BaseViewModel* vm = player->GetViewModel();
+		if (!vm)
+			return 0.0f;
+
+		// --------------------------------------------------
+		// Eye angles
+		// --------------------------------------------------
+
+		QAngle ang = player->EyeAngles();
+
+		float pitch = AngleNormalize(ang.x);
+		float yawDiff = AngleNormalize(ang.y - player->GetAbsAngles().y);
+
+		const float pitchMin = -45.0f;
+		const float pitchMax = 90.0f;
+
+		const float yawMin = -45.0f;
+		const float yawMax = 45.0f;
+
+		pitch = clamp(pitch, pitchMin, pitchMax);
+		yawDiff = clamp(yawDiff, yawMin, yawMax);
+
+		float pitchFrac = (pitch - pitchMin) / (pitchMax - pitchMin);
+		float yawFrac = (yawDiff - yawMin) / (yawMax - yawMin);
+
+		// --------------------------------------------------
+		// Vertical aim pose
+		// --------------------------------------------------
+
+		int verPose = vm->LookupPoseParameter("ver_aims");
+		if (verPose >= 0)
 		{
-			return ::CalcViewModelBobHelper(player, pBobState);
+			float min, max;
+			vm->GetPoseParameterRange(verPose, min, max);
+
+			float value = Lerp(pitchFrac, min, max);
+
+			vm->SetPoseParameter(verPose, value);
+			SetPoseParameter(verPose, value);
 		}
-		else
-			return 0;
+
+		// --------------------------------------------------
+		// Horizontal aim pose
+		// --------------------------------------------------
+
+		int horPose = vm->LookupPoseParameter("hor_aims");
+		if (horPose >= 0)
+		{
+			float min, max;
+			vm->GetPoseParameterRange(horPose, min, max);
+
+			float value = Lerp(yawFrac, min, max);
+
+			vm->SetPoseParameter(horPose, value);
+			SetPoseParameter(horPose, value);
+		}
+
+		// --------------------------------------------------
+		// Movement pose
+		// --------------------------------------------------
+
+		Vector vel = player->GetAbsVelocity();
+
+		bool moving =
+			vel.Length2D() > (50 - 1.0f);
+
+		float targetMove = moving ? 1.0f : 0.0f;
+
+		static float moveX = 0.0f;
+
+		float lerpRate = gpGlobals->frametime / 0.5f;
+		moveX = Lerp(lerpRate, moveX, targetMove);
+
+		int movePose = vm->LookupPoseParameter("move_x");
+		if (movePose >= 0)
+		{
+			vm->SetPoseParameter(movePose, moveX);
+			SetPoseParameter(movePose, moveX);
+		}
 	}
 
 	static	float bobtime;
@@ -2110,27 +2184,10 @@ float CalcVerticalBob(CBasePlayer* tfPlayer)
 		cycle = M_PI + M_PI * (cycle - HL2_BOB_UP) / (1.0 - HL2_BOB_UP);
 	}
 
-	g_verticalBob = speed * 0.005f;
-	g_verticalBob = g_verticalBob * 0.3 + g_verticalBob * 0.7 * sin(cycle);
+	g_verticalHLBob = speed * 0.005f;
+	g_verticalHLBob = g_verticalHLBob * 0.3 + g_verticalHLBob * 0.7 * sin(cycle);
 
-	g_verticalBob = clamp(g_verticalBob, -7.0f, 4.0f);
-
-	//Calculate the lateral bob
-	cycle = bobtime - (int)(bobtime / HL2_BOB_CYCLE_MAX * 2) * HL2_BOB_CYCLE_MAX * 2;
-	cycle /= HL2_BOB_CYCLE_MAX * 2;
-
-	if (cycle < HL2_BOB_UP)
-	{
-		cycle = M_PI * cycle / HL2_BOB_UP;
-	}
-	else
-	{
-		cycle = M_PI + M_PI * (cycle - HL2_BOB_UP) / (1.0 - HL2_BOB_UP);
-	}
-
-	g_lateralBob = speed * 0.005f;
-	g_lateralBob = g_lateralBob * 0.3 + g_lateralBob * 0.7 * sin(cycle);
-	g_lateralBob = clamp(g_lateralBob, -7.0f, 4.0f);
+	g_verticalHLBob = clamp(g_verticalHLBob, -7.0f, 4.0f);
 
 	//NOTENOTE: We don't use this return value in our case (need to restructure the calculation function setup!)
 	return 0.0f;
@@ -2144,18 +2201,6 @@ float CalcVerticalBob(CBasePlayer* tfPlayer)
 //-----------------------------------------------------------------------------
 void CWeaponCSBase::AddViewmodelBob(CBaseViewModel* viewmodel, Vector& origin, QAngle& angles)
 {
-	if (cl_use_new_headbob.GetBool() == true)
-	{
-		// call helper functions to do the calculation
-		BobState_t* pBobState = GetBobState();
-		if (pBobState)
-		{
-			CalcViewmodelBob();
-			::AddViewModelBobHelper(origin, angles, pBobState);
-		}
-		return;
-	}
-
 	Vector	forward, right;
 	AngleVectors(angles, &forward, &right, NULL);
 
@@ -2164,9 +2209,8 @@ void CWeaponCSBase::AddViewmodelBob(CBaseViewModel* viewmodel, Vector& origin, Q
 		return;
 
 	CalcVerticalBob(pPlayer);
-
+	CalcViewmodelBob();
 	// Apply bob, but scaled down to 40%
-	/*
 	VectorMA(origin, g_verticalBob * 0.4f, forward, origin);
 
 	// Z bob a bit more
@@ -2178,8 +2222,7 @@ void CWeaponCSBase::AddViewmodelBob(CBaseViewModel* viewmodel, Vector& origin, Q
 
 	angles[YAW] -= g_lateralBob * 0.3f;
 
-	//	VectorMA( origin, g_lateralBob * 0.2f, right, origin );
-	*/
+	VectorMA( origin, g_lateralBob * 0.2f, right, origin );
 }
 
 //-----------------------------------------------------------------------------
@@ -2203,7 +2246,7 @@ BobState_t* CWeaponCSBase::GetBobState()
 	//Assert( viewModel );
 
 	// get the bob state out of the view model
-	return &(viewModel->GetBobState());
+	return NULL;
 }
 
 #else

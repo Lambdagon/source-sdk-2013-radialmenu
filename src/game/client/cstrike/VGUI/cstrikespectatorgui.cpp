@@ -22,7 +22,7 @@
 #include "clientmode.h"
 #include <vgui_controls/AnimationController.h>
 #include "voice_status.h"
-#include "hud_radar.h"
+#include "cstrike/hud_radar.h"
 
 using namespace vgui;
 DECLARE_HUDELEMENT( CCSMapOverview )

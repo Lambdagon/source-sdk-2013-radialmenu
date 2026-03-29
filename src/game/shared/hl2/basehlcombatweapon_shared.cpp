@@ -226,8 +226,8 @@ void CBaseHLCombatWeapon::WeaponIdle( void )
 	}
 }
 
-float	g_lateralBob;
-float	g_verticalBob;
+extern float	g_lateralBob;
+extern float	g_verticalBob;
 
 #if defined( CLIENT_DLL ) && ( !defined( HL2MP ) && !defined( PORTAL ) )
 

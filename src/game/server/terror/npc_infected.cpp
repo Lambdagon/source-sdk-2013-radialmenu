@@ -23,6 +23,8 @@ static ConVar z_throttle_hit_interval_easy( "z_throttle_hit_interval_easy", "0.5
 static ConVar z_throttle_hit_interval_normal( "z_throttle_hit_interval_normal", "0.33", FCVAR_GAMEDLL | FCVAR_CHEAT, "Minimum time between damaging a Survivor from a mob", true, 0.0f, true, 10.0f );
 static ConVar z_throttle_hit_interval_hard( "z_throttle_hit_interval_hard", "0.5", FCVAR_GAMEDLL | FCVAR_CHEAT, "Minimum time between damaging a Survivor from a mob", true, 0.0f, true, 10.0f );
 static ConVar z_throttle_hit_interval_expert( "z_throttle_hit_interval_expert", "1", FCVAR_GAMEDLL | FCVAR_CHEAT, "Minimum time between damaging a Survivor from a mob", true, 0.0f, true, 10.0f );
+static ConVar z_common_separation_radius( "z_common_separation_radius", "40", FCVAR_GAMEDLL, "How close common infected can get before they push each other apart.", true, 1.0f, true, 128.0f );
+static ConVar z_common_separation_force( "z_common_separation_force", "35", FCVAR_GAMEDLL, "Horizontal push impulse applied when common infected crowd each other.", true, 0.0f, true, 500.0f );
 
 //-----------------------------------------------------------------------------
 // Custom schedules/tasks
@@ -40,6 +42,73 @@ enum
 	LAST_INFECTED_TASK,
 };
 
+struct CommonModel_t
+{
+	const char* model;
+	int weight;
+};
+
+CommonModel_t g_CommonModels_Default[] =
+{
+	{ "models/infected/common_male_tshirt_cargos.mdl", 30 },
+	{ "models/infected/common_male_tankTop_jeans.mdl", 20 },
+	{ "models/infected/common_male_dressShirt_jeans.mdl", 15 },
+	{ "models/infected/common_female_tankTop_jeans.mdl", 15 },
+	{ "models/infected/common_female_tshirt_skirt.mdl", 20 },
+};
+
+CommonModel_t g_CommonModels_L4D1[] =
+{
+	{ "models/infected/common_male01.mdl", 15 },
+	{ "models/infected/common_male02.mdl", 15 },
+	{ "models/infected/common_female01.mdl", 15 },
+	{ "models/infected/common_police_male01.mdl", 15 },
+	{ "models/infected/common_military_male01.mdl", 10 },
+	{ "models/infected/common_worker_male01.mdl", 10 },
+	{ "models/infected/common_male_suit.mdl", 10 },
+	{ "models/infected/common_female01_suit.mdl", 10 },
+};
+extern ConVar survivor_set;
+
+const char* PickCommonModel()
+{
+	CommonModel_t* table = nullptr;
+	int count = 0;
+
+	if (survivor_set.GetInt() == 1)
+	{
+		table = g_CommonModels_L4D1;
+		count = ARRAYSIZE(g_CommonModels_L4D1);
+	}
+	else
+	{
+		table = g_CommonModels_Default;
+		count = ARRAYSIZE(g_CommonModels_Default);
+	}
+
+	int totalWeight = 0;
+
+	for (int i = 0; i < count; i++)
+	{
+		totalWeight += table[i].weight;
+	}
+
+	int r = RandomInt(0, totalWeight - 1);
+
+	int cumulative = 0;
+
+	for (int i = 0; i < count; i++)
+	{
+		cumulative += table[i].weight;
+
+		if (r < cumulative)
+		{
+			return table[i].model;
+		}
+	}
+
+	return table[0].model; // fallback
+}
 //-----------------------------------------------------------------------------
 // Custom Activities
 //-----------------------------------------------------------------------------
@@ -50,9 +119,7 @@ Activity ACT_TERROR_WALK_INTENSE;
 Activity ACT_TERROR_RUN_INTENSE;
 Activity ACT_TERROR_JUMP;
 Activity ACT_TERROR_JUMP_OVER_GAP;
-Activity ACT_TERROR_FALL;
 Activity ACT_TERROR_JUMP_LANDING;
-Activity ACT_TERROR_JUMP_LANDING_HARD;
 Activity ACT_TERROR_SHOVED_BACKWARD_INTO_WALL;
 Activity ACT_TERROR_SHOVED_FORWARD_INTO_WALL;
 Activity ACT_TERROR_SHOVED_LEFTWARD_INTO_WALL;
@@ -63,6 +130,7 @@ Activity ACT_TERROR_SHOVED_RIGHTWARD_INTO_WALL;
 //-----------------------------------------------------------------------------
 
 static const char *s_szInfectedInsideWorldThinkContext = "InfectedInsideWorldThink";
+static const char *s_szInfectedSeparationThinkContext = "InfectedSeparationThink";
 
 static bool IsPipeBombClassname( const char *pszClassname )
 {
@@ -194,6 +262,7 @@ public:
 	virtual int		SelectFailSchedule( int failedSchedule, int failedTask, AI_TaskFailureCode_t taskFailCode ) OVERRIDE;
 
 	void			InsideWorldFixupThink();
+	void			CommonSeparationThink();
 	bool		ShouldPlayIdleSound(void);
 	virtual	bool		AllowedToIgnite(void) { return true; }
 
@@ -279,22 +348,15 @@ CNPC_Infected::~CNPC_Infected()
 
 void CNPC_Infected::Precache()
 {
-	PrecacheModel( "models/infected/common_male01.mdl" );
-	PrecacheModel( "models/infected/common_female_rural01.mdl");
-	PrecacheModel( "models/infected/common_worker_male01.mdl");
-	PrecacheModel( "models/infected/common_tsaagent_male01.mdl");
-	PrecacheModel( "models/infected/common_worker_male01.mdl");
-	PrecacheModel( "models/infected/common_surgeon_male01.mdl");
-	PrecacheModel( "models/infected/common_police_male01.mdl");
-	PrecacheModel( "models/infected/common_surgeon_male01.mdl");
-	PrecacheModel( "models/infected/common_patient_male01.mdl");
-	PrecacheModel( "models/infected/common_military_male01.mdl");
-	PrecacheModel( "models/infected/common_male_suit.mdl");
-	PrecacheModel( "models/infected/common_male_rural01.mdl");
-	PrecacheModel( "models/infected/common_male_pilot.mdl");
-	PrecacheModel( "models/infected/common_male_baggagehandler_01.mdl");
-	PrecacheModel( "models/infected/common_female01.mdl");
-	PrecacheModel( "models/infected/common_female_nurse01.mdl");
+	for (int i = 0; i < ARRAYSIZE(g_CommonModels_Default); i++)
+	{
+		PrecacheModel(g_CommonModels_Default[i].model);
+	}
+
+	for (int i = 0; i < ARRAYSIZE(g_CommonModels_L4D1); i++)
+	{
+		PrecacheModel(g_CommonModels_L4D1[i].model);
+	}
 
     PrecacheScriptSound("Zombie.Sleeping");
     PrecacheScriptSound("Zombie.Wander");
@@ -349,6 +411,7 @@ void CNPC_Infected::Spawn()
 
 	m_lastNonSolidSpot = GetAbsOrigin();
 	SetContextThink( &CNPC_Infected::InsideWorldFixupThink, gpGlobals->curtime + 0.5f, s_szInfectedInsideWorldThinkContext );
+	SetContextThink( &CNPC_Infected::CommonSeparationThink, gpGlobals->curtime + 0.05f, s_szInfectedSeparationThinkContext );
 }
 
 void CNPC_Infected::Activate()
@@ -483,6 +546,65 @@ void CNPC_Infected::InsideWorldFixupThink()
 	SetContextThink( &CNPC_Infected::InsideWorldFixupThink, gpGlobals->curtime + 0.5f, s_szInfectedInsideWorldThinkContext );
 }
 
+void CNPC_Infected::CommonSeparationThink()
+{
+	if ( m_lifeState == LIFE_DEAD )
+		return;
+
+	if ( GetFlags() & FL_ONGROUND )
+	{
+		const float flRadius = MAX( 1.0f, z_common_separation_radius.GetFloat() );
+		Vector avoid = vec3_origin;
+		float flAvoidWeight = 0.0f;
+
+		for ( CEntitySphereQuery sphere( GetAbsOrigin(), flRadius ); CBaseEntity *pEntity = sphere.GetCurrentEntity(); sphere.NextEntity() )
+		{
+			if ( !pEntity || pEntity == this )
+				continue;
+
+			if ( V_stricmp( pEntity->GetClassname(), "infected" ) != 0 )
+				continue;
+
+			CNPC_Infected *pOther = dynamic_cast< CNPC_Infected * >( pEntity );
+			if ( !pOther || pOther->m_lifeState == LIFE_DEAD )
+				continue;
+
+			Vector toOther = pOther->GetAbsOrigin() - GetAbsOrigin();
+			toOther.z = 0.0f;
+
+			float flDist = toOther.NormalizeInPlace();
+			if ( flDist >= flRadius )
+				continue;
+
+			if ( flDist <= 0.001f )
+			{
+				const float flYaw = random->RandomFloat( 0.0f, 360.0f );
+				float s, c;
+				SinCos( DEG2RAD( flYaw ), &s, &c );
+				toOther.Init( c, s, 0.0f );
+				flDist = 0.0f;
+			}
+
+			const float flWeight = ( flRadius - flDist ) / flRadius;
+			avoid -= toOther * flWeight;
+			flAvoidWeight += flWeight;
+		}
+
+		if ( flAvoidWeight > 0.0f )
+		{
+			avoid /= flAvoidWeight;
+			avoid.z = 0.0f;
+			const float flLength = avoid.NormalizeInPlace();
+			if ( flLength > 0.0f )
+			{
+				ApplyAbsVelocityImpulse( avoid * z_common_separation_force.GetFloat() );
+			}
+		}
+	}
+
+	SetContextThink( &CNPC_Infected::CommonSeparationThink, gpGlobals->curtime + 0.05f, s_szInfectedSeparationThinkContext );
+}
+
 Disposition_t CNPC_Infected::IRelationType( CBaseEntity *pTarget )
 {
 	if ( IsPipeBombEntity( pTarget ) )
@@ -510,14 +632,7 @@ Class_T CNPC_Infected::Classify()
 //---------------------------------------------------------
 void CNPC_Infected::SetZombieModel( void )
 {
-	if (random->RandomInt( 0, 3 ) == 0)
-	{
-		SetModel("models/infected/common_female01.mdl");
-	}
-	else
-	{
-		SetModel("models/infected/common_male01.mdl");
-	}
+	SetModel(PickCommonModel());
 	m_nSkin = random->RandomInt(0, INFECTED_SKIN_COUNT - 1);
 
 
@@ -1027,7 +1142,7 @@ void CNPC_Infected::PainSound( const CTakeDamageInfo &info )
 		return;
 	}
 
-	EmitSound( "Zombie.Pain" );
+	EmitSound( "Zombie.Shot" );
 }
 
 //-----------------------------------------------------------------------------
@@ -1358,9 +1473,7 @@ AI_BEGIN_CUSTOM_NPC( npc_infected, CNPC_Infected )
 	DECLARE_ACTIVITY( ACT_TERROR_RUN_INTENSE )
 	DECLARE_ACTIVITY( ACT_TERROR_JUMP )
 	DECLARE_ACTIVITY( ACT_TERROR_JUMP_OVER_GAP )
-	DECLARE_ACTIVITY( ACT_TERROR_FALL )
 	DECLARE_ACTIVITY( ACT_TERROR_JUMP_LANDING )
-	DECLARE_ACTIVITY( ACT_TERROR_JUMP_LANDING_HARD )
 	DECLARE_ACTIVITY( ACT_TERROR_SHOVED_BACKWARD_INTO_WALL )
 	DECLARE_ACTIVITY( ACT_TERROR_SHOVED_FORWARD_INTO_WALL )
 	DECLARE_ACTIVITY( ACT_TERROR_SHOVED_LEFTWARD_INTO_WALL )

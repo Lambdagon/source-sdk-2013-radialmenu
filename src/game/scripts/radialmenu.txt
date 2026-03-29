@@ -1,0 +1,47 @@
+"RadialMenu"
+{
+	//--------------------------------------------------------------
+	"Default"
+	{
+		"Center"
+		{
+			"command"	"voicemenu 0 0"
+			"text"		"#Voice_Menu_Medic"
+		}
+		"North"
+		{
+			"command"	"voicemenu 0 1"
+			"text"		"#Voice_Menu_Thanks"
+		}
+		"NorthEast"
+		{
+			"command"	"voicemenu 0 2"
+			"text"		"#Voice_Menu_Go"
+		}	
+		"East"
+		{
+			"command"	"voicemenu 0 3"
+			"text"		"#Voice_Menu_MoveUp"
+		}
+		"SouthEast"
+		{
+			"command"	"voicemenu 1 0"
+			"text"		"#Voice_Menu_Incoming"
+		}	
+		"South"
+		{
+			"command"	"voicemenu 1 5"
+			"text"		"#Voice_Menu_NiceShot"
+		}
+		"SouthWest"
+		{
+			"command"	"voicemenu 0 6"
+			"text"		"#Voice_Menu_Yes"
+		}
+		"West"
+		{
+			"command"	"voicemenu 0 7"
+			"text"		"#Voice_Menu_No"
+		}	
+	}
+}

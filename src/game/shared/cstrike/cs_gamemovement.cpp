@@ -385,6 +385,9 @@ void CCSGameMovement::PlayerMove()
 		// Check if our eye height is too close to the ceiling and lower it.
 		// This is needed because we have taller models with the old collision bounds.
 
+		Vector mins, maxs, center;
+
+		modelinfo->GetModelBounds(player->GetModel(), mins, maxs);
 		const float eyeClearance = 12.0f; // eye pos must be this far below the ceiling
 
 		Vector offset = player->GetViewOffset();
@@ -397,7 +400,7 @@ void CCSGameMovement::PlayerMove()
 		start.z += vHullMax.z;
 		Vector end = start;
 		end.z += eyeClearance - vHullMax.z; 
-		end.z += player->m_Local.m_bDucked ? VEC_DUCK_VIEW_SCALED( player ).z : VEC_VIEW_SCALED( player ).z;
+		end.z += player->m_Local.m_bDucked ? VEC_DUCK_VIEW_SCALED(player).z : VEC_VIEW_SCALED(player).z;
 
 		vHullMax.z = 0.0f;
 
@@ -427,8 +430,7 @@ void CCSGameMovement::PlayerMove()
 		{
 			if ( ( player->GetFlags() & FL_DUCKING ) == 0 && !player->m_Local.m_bDucking && !player->m_Local.m_bDucked )
 			{
-
-				player->SetViewOffset( VEC_VIEW_SCALED( player ) );
+				player->SetViewOffset(VEC_VIEW_SCALED(player));
 			}
 			else if ( m_pCSPlayer->m_duckUntilOnGround )
 			{
@@ -443,7 +445,7 @@ void CCSGameMovement::PlayerMove()
 			}
 			else if( player->m_Local.m_bDucked && !player->m_Local.m_bDucking )
 			{
-				player->SetViewOffset( VEC_DUCK_VIEW );
+				player->SetViewOffset(VEC_DUCK_VIEW_SCALED(player));
 			}
 		}
 	}

@@ -1696,6 +1696,7 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 	if (!pOwner)
 		return;
 
+	StudioFrameAdvance();
 	UpdateAutoFire();
 
 	//Track the duration of the fire

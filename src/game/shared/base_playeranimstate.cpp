@@ -311,7 +311,7 @@ void CBasePlayerAnimState::UpdateAimSequenceLayers(
 	if (m_pOuter && m_pOuter->GetMoveType() == MOVETYPE_LADDER)
 		return;
 
-	if (GetOuter()->GetTeamNumber() == 3) 
+	if (GetOuter()->GetTeamNumber() == 3 || GetOuter()->GetTeamNumber() == 2)
 		return;
 	int iAimSequence = CalcAimLayerSequence( &flCycle, &flAimSequenceWeight, bForceIdle );
 	if ( iAimSequence == -1 )

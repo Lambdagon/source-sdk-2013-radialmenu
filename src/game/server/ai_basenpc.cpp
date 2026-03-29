@@ -641,19 +641,6 @@ void CAI_BaseNPC::Event_Killed( const CTakeDamageInfo &info )
 void CAI_BaseNPC::Ignite( float flFlameLifetime, bool bNPCOnly, float flSize, bool bCalledByLevelDesigner )
 {
 	BaseClass::Ignite( flFlameLifetime, bNPCOnly, flSize, bCalledByLevelDesigner );
-
-#ifdef HL2_EPISODIC
-	CBasePlayer *pPlayer = AI_GetSinglePlayer();
-	if ( pPlayer->IRelationType( this ) != D_LI )
-	{
-		CNPC_Alyx *alyx = CNPC_Alyx::GetAlyx();
-
-		if ( alyx )
-		{
-			alyx->EnemyIgnited( this );
-		}
-	}
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -13960,24 +13947,6 @@ void CAI_BaseNPC::CalculateForcedInteractionPosition( void )
 //-----------------------------------------------------------------------------
 void CAI_BaseNPC::PlayerHasIlluminatedNPC( CBasePlayer *pPlayer, float flDot )
 {
-#ifdef HL2_EPISODIC
-	if ( IsActiveDynamicInteraction() )
-	{
-		ScriptedNPCInteraction_t *pInteraction = GetRunningDynamicInteraction();
-		if ( pInteraction->iLoopBreakTriggerMethod & SNPCINT_LOOPBREAK_ON_FLASHLIGHT_ILLUM )
-		{
-			// Only do this in alyx darkness mode
-			if ( HL2GameRules()->IsAlyxInDarknessMode() )
-			{
-				// Can only break when we're in the action anim
-				if ( m_hCine->IsPlayingAction() )
-				{
-					m_hCine->StopActionLoop( true );
-				}
-			}
-		}
-	}
-#endif
 }
 
 //-----------------------------------------------------------------------------

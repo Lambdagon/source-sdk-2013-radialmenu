@@ -762,7 +762,10 @@ Vector CGameMovement::GetPlayerMaxs( void ) const
 //-----------------------------------------------------------------------------
 Vector CGameMovement::GetPlayerViewOffset( bool ducked ) const
 {
-	return ducked ? VEC_DUCK_VIEW_SCALED( player ) : VEC_VIEW_SCALED( player );
+	Vector mins, maxs, center;
+
+	modelinfo->GetModelBounds(player->GetModel(), mins, maxs);
+	return ducked ? (Vector(0, 0, maxs.z) * 0.5f) * player->GetModelScale() : Vector(0, 0, maxs.z) * player->GetModelScale();
 }
 
 #if 0
@@ -2509,19 +2512,6 @@ bool CGameMovement::CheckJumpButton( void )
 		player->m_Local.m_flJumpTime = GAMEMOVEMENT_JUMP_TIME;
 		player->m_Local.m_bInDuckJump = true;
 	}
-
-#if defined( HL2_DLL )
-
-	if ( xc_uncrouch_on_jump.GetBool() )
-	{
-		// Uncrouch when jumping
-		if ( player->GetToggledDuckState() )
-		{
-			player->ToggleDuck();
-		}
-	}
-
-#endif
 
 	// Flag that we jumped.
 	mv->m_nOldButtons |= IN_JUMP;	// don't jump again until released

@@ -63,6 +63,7 @@ private:
 
 extern IClientMode *GetClientModeNormal();
 extern ClientModeCSNormal* GetClientModeCSNormal();
+extern vgui::HScheme g_hVGuiCombineScheme;
 
 
 #endif // CS_CLIENTMODE_H

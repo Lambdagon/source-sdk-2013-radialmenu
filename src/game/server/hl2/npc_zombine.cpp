@@ -614,11 +614,6 @@ bool CNPC_Zombine::AllowedToSprint( void )
 
 	if ( pPlayer )
 	{
-		if ( HL2GameRules()->IsAlyxInDarknessMode() && pPlayer->FlashlightIsOn() == false )
-		{
-			iChance = SPRINT_CHANCE_VALUE_DARKNESS;
-		}
-
 		//Bigger chance of this happening if the player is not looking at the zombie
 		if ( pPlayer->FInViewCone( this ) == false )
 		{

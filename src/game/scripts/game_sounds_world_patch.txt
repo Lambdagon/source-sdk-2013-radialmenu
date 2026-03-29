@@ -1,0 +1,243 @@
+//---------------------------------------------------------------------------------------
+// Campaign 14 - map 1: Junkyard
+//---------------------------------------------------------------------------------------
+////////////////////////////////////
+// Container
+////////////////////////////////////
+"container.double_impact"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"PITCH_NORM"
+
+//	"rndwave"
+//	{
+		"wave"			")animation/metal_heavy_impact_double_impact.wav"		
+//		"wave"			")animation/metal_heavy_impact_original.wav"
+//		"wave"			")animation/metal_heavy_impact_sudden_impact.wav"
+//	}
+}
+
+"container.original_impact"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"PITCH_NORM"
+	"wave"			")animation/metal_heavy_impact_original.wav"
+}
+
+"container.sudden_impact"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"PITCH_NORM"
+	"wave"			")animation/metal_heavy_impact_sudden_impact.wav"
+}
+
+////////////////////////////////////
+// Le plane
+////////////////////////////////////
+
+"junkyard.plane_flyover"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"PITCH_NORM"
+	"wave"			")animation/plane_flyover.wav"
+}
+
+"junkyard.plane_flyover_b"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"PITCH_NORM"
+	"wave"			")animation/plane_flyover_short.wav"
+}
+
+"junkyard.plane_explosion"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.7"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"90"
+	"wave"			")animation/plane_dist_explosion.wav"
+}
+
+"junkyard.plane_engine_explosion"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"PITCH_NORM"
+	"wave"			")animation/plane_engine_explode.wav"
+}
+"Crane.Lifting"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"115"
+	//"wave"			")plats/rackmove1.wav"
+	"wave"			")level/loud/climb_loop.wav"
+}
+
+//---------------------------------------------------------------------------------------
+// Campaign 14 - map 2: Lighthouse Finale
+//---------------------------------------------------------------------------------------
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// John Doe's voicelines
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//[all mighty laugh]
+"npc.johndoe_beel"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\beel.wav"
+}
+
+//[Cough] Hello?
+"npc.johndoe_radio_1a"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\radio_1a.wav"
+}
+
+//Hello?
+"npc.johndoe_radio_1b"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\radio_1b.wav"
+}
+
+//[Coughing] Hello?
+"npc.johndoe_radio_1ca"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\radio_1ca.wav"
+}
+
+//[Coughing] Hello?
+"npc.johndoe_radio_1cb"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\radio_1cb.wav"
+}
+
+//Hello?
+"npc.johndoe_radio_1d"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\radio_1d.wav"
+}
+
+//[Coughing] Hello?
+"npc.johndoe_radio_1e"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\radio_1e.wav"
+}
+
+//[Coughing] Hello?
+"npc.johndoe_radio_1f"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\radio_1f.wav"
+}
+
+//[Coughing] Hello?
+"npc.johndoe_radio_1g"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			"npc\tower_radio\radio_1g.wav"
+}
+
+//[radio static]
+"TowerRadio.staticloop"
+{
+	"channel"		"CHAN_VOICE"
+	"volume"		"1.0"
+	"pitch"			"PITCH_NORM"
+	"soundlevel"	"SNDLVL_NONE"
+	"wave"			")npc\tower_radio\staticloop.wav"
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Da Finale
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+"ThirdDimension.Horn"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"PITCH_NORM"
+	"wave"			")ambient/random_amb_sfx/foghorn_close.wav"
+}
+
+"gaspump.powerdown"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"  	"SNDLVL_150dB"
+	"pitch"			"PITCH_NORM"
+	"wave"			")animation/powerdown1c.wav"
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Da Flare Gun
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+"Flaregun.Fire"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"	"SNDLVL_NONE"
+	"pitch"			"PITCH_NORM"
+	"rndwave"
+	{
+		"wave"			")weapons/flaregun/gunfire/flaregun_fire_1.wav"
+		"wave"			")weapons/flaregun/gunfire/flaregun_fire_2.wav"
+	}	
+}
+
+"Flaregun.Detonate"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"	"SNDLVL_NONE"
+	"pitch"			"PITCH_NORM"
+	"wave"			")weapons/flaregun/gunfire/flaregun_explode_1.wav"
+}

@@ -10,6 +10,8 @@
 #include "cbase.h"
 #include "cs_gamerules.h"
 #include "cs_bot.h"
+#include "ai_basenpc.h"
+#include "terror/weapon_scripted_spawn.h"
 #include "weapon_knife.h"
 #include "fmtstr.h"
 
@@ -200,6 +202,135 @@ static CBaseEntity *FindClosestVisibleCommonInfected( CCSBot *me, float maxRange
 	}
 
 	return closest;
+}
+
+static bool IsHostileNPCToAnySurvivor( CCSBot *me, CAI_BaseNPC *npc )
+{
+	if ( !me || !npc || !npc->IsAlive() )
+		return false;
+
+	if ( FClassnameIs( npc, "infected" ) )
+		return false;
+
+	if ( npc->IRelationType( me ) == D_HT )
+		return true;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *player = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !player || !player->IsAlive() || player->GetTeamNumber() != TEAM_SURVIVOR )
+			continue;
+
+		if ( npc->IRelationType( player ) == D_HT )
+			return true;
+	}
+
+	return false;
+}
+
+static CBaseEntity *FindClosestVisibleHostileNPC( CCSBot *me, float maxRange )
+{
+	if ( !me )
+		return NULL;
+
+	const float maxRangeSqr = maxRange * maxRange;
+	const Vector myOrigin = me->GetAbsOrigin();
+
+	CBaseEntity *closest = NULL;
+	float bestDistSqr = 1e30f;
+
+	CAI_BaseNPC **ppAIs = g_AI_Manager.AccessAIs();
+	for ( int i = 0; i < g_AI_Manager.NumAIs(); ++i )
+	{
+		CAI_BaseNPC *npc = ppAIs[i];
+		if ( !IsHostileNPCToAnySurvivor( me, npc ) )
+			continue;
+
+		const Vector target = npc->BodyTarget( me->EyePosition(), false );
+		const float distSqr = ( target - myOrigin ).LengthSqr();
+		if ( distSqr > maxRangeSqr || distSqr >= bestDistSqr )
+			continue;
+
+		if ( !me->IsVisible( target ) )
+			continue;
+
+		bestDistSqr = distSqr;
+		closest = npc;
+	}
+
+	return closest;
+}
+
+static bool TryUseNearbyScriptedWeaponPickup( CCSBot *me )
+{
+	if ( !me )
+		return false;
+
+	if ( me->GetTeamNumber() != TEAM_SURVIVOR || me->IsSpecialInfected() )
+		return false;
+
+	if ( me->IsUsingLadder() || me->IsAttacking() || me->IsAimingAtEnemy() || me->IsThrowingGrenade() || me->HasPounceAttacker() || me->HasPounceVictim() || me->IsIncapacitated() )
+		return false;
+
+	CBaseEntity *pUseEntity = me->FindUseEntity();
+	if ( !Terror_IsScriptedWeaponPickupEntity( pUseEntity ) )
+		return false;
+
+	if ( !Terror_ScriptedWeaponPickupIsUsefulForPlayer( pUseEntity, me ) )
+		return false;
+
+	const Vector pickupPos = pUseEntity->WorldSpaceCenter();
+	const Vector to = pickupPos - me->EyePosition();
+	const float watchRange = PLAYER_USE_RADIUS + 20.0f;
+	if ( !to.IsLengthLessThan( watchRange ) )
+		return false;
+
+	me->SetLookAt( "Pickup Weapon", pickupPos, PRIORITY_HIGH, 0.2f );
+
+	const float useRange = PLAYER_USE_RADIUS - 10.0f;
+	if ( to.IsLengthLessThan( useRange ) )
+	{
+		me->UseEnvironment();
+		me->ResetStuckMonitor();
+		me->ClearMovement();
+		return true;
+	}
+
+	return false;
+}
+
+static bool IsSurvivorSniperBot( CCSBot *me )
+{
+	return me && me->GetTeamNumber() == TEAM_SURVIVOR && !me->IsSpecialInfected() && me->IsSniper();
+}
+
+static void EngageInfectedWithSniperRifle( CCSBot *me, const Vector &targetPos )
+{
+	if ( !me )
+		return;
+
+	me->EquipBestWeapon( true );
+	if ( !me->IsUsingSniperRifle() )
+		return;
+
+	const Vector to = targetPos - me->EyePosition();
+	QAngle idealAngle;
+	VectorAngles( to, idealAngle );
+	me->SetLookAngles( idealAngle.y, idealAngle.x );
+
+	const float targetRange = to.Length();
+	if ( me->GetZoomLevel() == CCSBot::NO_ZOOM )
+	{
+		me->AdjustZoom( targetRange );
+	}
+
+	if ( me->IsWaitingForZoom() )
+		return;
+
+	if ( me->IsLookingAtPosition( targetPos, 6.0f ) && !me->IsFriendInLineOfFire() )
+	{
+		me->PrimaryAttack();
+	}
 }
 
 static bool IsFriendlyPlayerNearPosition( CCSBot *me, const Vector &pos, float radius )
@@ -490,6 +621,7 @@ void CCSBot::Upkeep( void )
 		{
 			const Vector targetPos = combat->WorldSpaceCenter();
 			const float dist = ( targetPos - GetAbsOrigin() ).Length();
+			const bool preferSniper = IsSurvivorSniperBot( this ) && dist > 150.0f;
 
 			// Aim towards the infected.
 			Vector to = targetPos - EyePosition();
@@ -515,10 +647,56 @@ void CCSBot::Upkeep( void )
 			else
 			{
 				m_commonInfectedMeleeUntil = 0.0f;
-				if ( IsUsingKnife() )
+				if ( preferSniper )
 				{
-					EquipBestWeapon( true );
+					EngageInfectedWithSniperRifle( this, targetPos );
 				}
+				else
+				{
+					if ( IsUsingKnife() )
+					{
+						EquipBestWeapon( true );
+					}
+					PrimaryAttack();
+				}
+			}
+		}
+	}
+	else if ( GetTeamNumber() == TEAM_SURVIVOR &&
+		!IsSpecialInfected() &&
+		!m_isOpeningDoor &&
+		!IsAttacking() &&
+		!IsAimingAtEnemy() &&
+		!IsThrowingGrenade() &&
+		gpGlobals->curtime < m_hostileNPCEngageUntil &&
+		m_hostileNPCTarget != NULL )
+	{
+		CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( m_hostileNPCTarget.Get() );
+		if ( combat && combat->IsAlive() )
+		{
+			const Vector targetPos = combat->BodyTarget( EyePosition(), false );
+			const float dist = ( targetPos - GetAbsOrigin() ).Length();
+
+			Vector to = targetPos - EyePosition();
+			QAngle idealAngle;
+			VectorAngles( to, idealAngle );
+			SetLookAngles( idealAngle.y, idealAngle.x );
+
+			StandUp();
+			Run();
+			if ( dist < 220.0f )
+			{
+				MoveAwayFromPosition( targetPos );
+			}
+
+			EquipBestWeapon( true );
+
+			if ( IsSurvivorSniperBot( this ) && dist > 150.0f )
+			{
+				EngageInfectedWithSniperRifle( this, targetPos );
+			}
+			else if ( IsLookingAtPosition( targetPos, 10.0f ) && !IsFriendInLineOfFire() )
+			{
 				PrimaryAttack();
 			}
 		}
@@ -765,7 +943,7 @@ void CCSBot::Update( void )
 			const Vector victimOrigin = GetCentroid( pounceVictim );
 			const float distToVictimSqr = ( victimOrigin - myOrigin ).LengthSqr();
 
-			const float rescueEngageDist = 550.0f;
+			const float rescueEngageDist = 200.0f;
 			const bool shouldApproachVictim = ( distToVictimSqr > ( rescueEngageDist * rescueEngageDist ) );
 
 			if ( shouldApproachVictim )
@@ -914,6 +1092,13 @@ void CCSBot::Update( void )
 				{
 					doAttack = true;
 				}
+			}
+			else if ( GetTeamNumber() == TEAM_SURVIVOR &&
+					  threat->GetTeamNumber() == TEAM_INFECTED &&
+					  threat->GetZombieClass() > 0 &&
+					  IsSniper() )
+			{
+				doAttack = true;
 			}
 
 			if (doAttack)
@@ -1243,6 +1428,8 @@ void CCSBot::Update( void )
 	// Survivor bots should fight common infected when they see them.
 	if ( GetTeamNumber() == TEAM_SURVIVOR && !IsSpecialInfected() && !m_isOpeningDoor )
 	{
+		bool isEngagingCommonInfected = false;
+
 		// Acquire a visible common infected target to shoot/shove (separate from player enemies).
 		if ( !IsAttacking() && !IsAimingAtEnemy() )
 		{
@@ -1267,7 +1454,7 @@ void CCSBot::Update( void )
 				// Otherwise, shoot the closest visible one in range.
 				if ( !target )
 				{
-					const float maxCommonRange = 750.0f;
+					const float maxCommonRange = IsSurvivorSniperBot( this ) ? 2500.0f : 750.0f;
 					target = FindClosestVisibleCommonInfected( this, maxCommonRange );
 				}
 
@@ -1276,6 +1463,7 @@ void CCSBot::Update( void )
 				{
 					// Keep engaging for a short time even if LOS flickers between updates.
 					m_commonInfectedEngageUntil = gpGlobals->curtime + 0.5f;
+					isEngagingCommonInfected = true;
 					SetLookAt( "Common Infected", target->WorldSpaceCenter(), PRIORITY_HIGH, 0.2f, true, 15.0f, true );
 				}
 				else
@@ -1379,6 +1567,7 @@ void CCSBot::Update( void )
 			CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( m_commonInfectedAttacker.Get() );
 			if ( combat && combat->IsAlive() )
 			{
+				isEngagingCommonInfected = true;
 				EquipBestWeapon();
 
 				const Vector target = combat->WorldSpaceCenter();
@@ -1394,7 +1583,11 @@ void CCSBot::Update( void )
 					}
 				}
 
-				if ( GetActiveWeapon() )
+				if ( IsSurvivorSniperBot( this ) && ( target - GetAbsOrigin() ).Length2DSqr() > Square( 150.0f ) )
+				{
+					EngageInfectedWithSniperRifle( this, target );
+				}
+				else if ( GetActiveWeapon() )
 				{
 					const bool canShoot = IsLookingAtPosition( target, 10.0f ) && !IsFriendInLineOfFire();
 					CWeaponCSBase* active = GetActiveCSWeapon();
@@ -1415,12 +1608,126 @@ void CCSBot::Update( void )
 		const bool hasPlayerThreat = ( threat != NULL ) || ( m_enemy != NULL );
 		if ( !hasPlayerThreat )
 		{
-			const float commonInfectedEngageRange = 1400.0f;
+			const float commonInfectedEngageRange = IsSurvivorSniperBot( this ) ? 3000.0f : 1400.0f;
 			CBaseEntity *common = FindClosestVisibleCommonInfected( this, commonInfectedEngageRange );
 			if ( common )
 			{
-				EquipBestWeapon();
-				SetLookAt( "Common Infected", common->WorldSpaceCenter(), PRIORITY_HIGH, 0.2f, true, 10.0f, true );
+				isEngagingCommonInfected = true;
+				const Vector targetPos = common->WorldSpaceCenter();
+				SetLookAt( "Common Infected", targetPos, PRIORITY_HIGH, 0.2f, true, 10.0f, true );
+
+				if ( IsSurvivorSniperBot( this ) && ( targetPos - GetAbsOrigin() ).Length2DSqr() > Square( 150.0f ) )
+				{
+					EngageInfectedWithSniperRifle( this, targetPos );
+				}
+				else
+				{
+					EquipBestWeapon();
+				}
+			}
+		}
+
+		if ( !hasPlayerThreat && !isEngagingCommonInfected )
+		{
+			// Survivor bots should also return fire at hostile NPCs that hate survivors.
+			if ( !IsAttacking() && !IsAimingAtEnemy() )
+			{
+				const float scanInterval = 0.35f;
+				if ( gpGlobals->curtime >= m_hostileNPCNextScanTimestamp )
+				{
+					m_hostileNPCNextScanTimestamp = gpGlobals->curtime + scanInterval;
+
+					CBaseEntity *target = NULL;
+
+					const float attackerMemory = 1.25f;
+					if ( m_hostileNPCAttacker && ( gpGlobals->curtime - m_hostileNPCAttackedTimestamp ) < attackerMemory )
+					{
+						CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( m_hostileNPCAttacker.Get() );
+						if ( combat && combat->IsAlive() )
+						{
+							CAI_BaseNPC *npc = combat->MyNPCPointer();
+							if ( npc && IsHostileNPCToAnySurvivor( this, npc ) )
+							{
+								const Vector targetPos = combat->BodyTarget( EyePosition(), false );
+								if ( IsVisible( targetPos ) )
+								{
+									target = combat;
+								}
+							}
+						}
+					}
+
+					if ( !target )
+					{
+						const float maxNPCRange = IsSurvivorSniperBot( this ) ? 2500.0f : 1200.0f;
+						target = FindClosestVisibleHostileNPC( this, maxNPCRange );
+					}
+
+					m_hostileNPCTarget = target;
+					if ( target )
+					{
+						CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( target );
+						if ( combat )
+						{
+							const Vector targetPos = combat->BodyTarget( EyePosition(), false );
+							m_hostileNPCEngageUntil = gpGlobals->curtime + 0.5f;
+							SetLookAt( "Hostile NPC", targetPos, PRIORITY_HIGH, 0.2f, true, 15.0f, true );
+						}
+						else
+						{
+							m_hostileNPCTarget = NULL;
+							m_hostileNPCEngageUntil = 0.0f;
+						}
+					}
+					else
+					{
+						m_hostileNPCEngageUntil = 0.0f;
+					}
+				}
+			}
+
+			const float hostileAttackerFocusTime = 2.0f;
+			if ( m_hostileNPCAttacker && ( gpGlobals->curtime - m_hostileNPCAttackedTimestamp ) <= hostileAttackerFocusTime )
+			{
+				CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( m_hostileNPCAttacker.Get() );
+				if ( combat && combat->IsAlive() )
+				{
+					CAI_BaseNPC *npc = combat->MyNPCPointer();
+					if ( npc && IsHostileNPCToAnySurvivor( this, npc ) )
+					{
+						const Vector targetPos = combat->BodyTarget( EyePosition(), false );
+						EquipBestWeapon();
+						SetLookAt( "Hostile NPC (attacker)", targetPos, PRIORITY_HIGH, 0.2f, true, 10.0f, true );
+
+						if ( IsSurvivorSniperBot( this ) && ( targetPos - GetAbsOrigin() ).Length2DSqr() > Square( 150.0f ) )
+						{
+							EngageInfectedWithSniperRifle( this, targetPos );
+						}
+						else if ( IsLookingAtPosition( targetPos, 10.0f ) && !IsFriendInLineOfFire() )
+						{
+							PrimaryAttack();
+						}
+					}
+					else
+					{
+						m_hostileNPCAttacker = NULL;
+						m_hostileNPCAttackedTimestamp = 0.0f;
+					}
+				}
+				else
+				{
+					m_hostileNPCAttacker = NULL;
+					m_hostileNPCAttackedTimestamp = 0.0f;
+				}
+			}
+			else if ( m_hostileNPCTarget )
+			{
+				CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( m_hostileNPCTarget.Get() );
+				if ( !combat || !combat->IsAlive() )
+				{
+					m_hostileNPCTarget = NULL;
+					m_hostileNPCEngageUntil = 0.0f;
+				}
 			}
 		}
 
@@ -1616,6 +1923,23 @@ void CCSBot::Update( void )
 			{
 				MoveTo( targetPos, FASTEST_ROUTE );
 			}
+		}
+	}
+
+	// Survivor bots should press +use on nearby scripted weapon spawns when there is no immediate combat or rescue task.
+	if ( GetTeamNumber() == TEAM_SURVIVOR &&
+		 !IsSpecialInfected() &&
+		 !m_isOpeningDoor &&
+		 !threat &&
+		 !m_enemy &&
+		 !isRescuingPounce &&
+		 !isRevivingIncap &&
+		 gpGlobals->curtime >= m_commonInfectedEngageUntil &&
+		 gpGlobals->curtime >= m_hostileNPCEngageUntil )
+	{
+		if ( TryUseNearbyScriptedWeaponPickup( this ) )
+		{
+			return;
 		}
 	}
 

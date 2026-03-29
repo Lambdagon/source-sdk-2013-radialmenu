@@ -1,0 +1,121 @@
+"sprites/640_hud"
+{
+	TextureData
+	{
+		"Warning"
+		{
+				"font"		"L4D_Icons"
+				"character"	"%"
+		}
+
+		"FirstAidKit"
+		{
+				"font"		"L4D_Icons"
+				"character"	"!"
+		}
+		"PainPills"
+		{
+				"font"		"L4D_Icons"
+				"character"	"a"
+		}
+		"Molotov"
+		{
+				"font"		"L4D_Icons"
+				"character"	"b"
+		}
+		"PipeBomb"
+		{
+				"font"		"L4D_Icons"
+				"character"	"$"
+		}
+		"Pistol"
+		{
+				"font"		"L4D_Icons"
+				"character"	"&"
+		}
+		"SMG"
+		{
+				"font"		"L4D_Icons"
+				"character"	"'"
+		}
+		"PumpShotgun"
+		{
+				"font"		"L4D_Icons"
+				"character"	"("
+		}
+		"AutoShotgun"
+		{
+				"font"		"L4D_Icons"
+				"character"	")"
+		}
+		"Rifle"
+		{
+				"font"		"L4D_Icons"
+				"character"	"*"
+		}
+		"HuntingRifle"
+		{
+				"font"		"L4D_Icons"
+				"character"	"+"
+		}
+
+		"crosshair"
+		{
+				"file"		"sprites/crosshairs"
+				"x"			"64"
+				"y"			"0"
+				"width"		"32"
+				"height"	"32"
+		}
+		"crosshair_default"
+		{
+				"file"		"sprites/crosshairs"
+				"x"			"64"
+				"y"			"0"
+				"width"		"32"
+				"height"	"32"
+		}
+
+		"PZ_crosshair_open"
+		{
+				"file"		"sprites/crosshairs"
+				"x"			"32"
+				"y"			"32"
+				"width"		"32"
+				"height"	"32"
+		}
+		"PZ_crosshair_precision"
+		{
+				"file"		"sprites/crosshairs"
+				"x"			"64"
+				"y"			"0"
+				"width"		"32"
+				"height"	"32"
+		}
+		"PZ_crosshair_huge"
+		{
+				"file"		"sprites/crosshairs"
+				"x"			"64"
+				"y"			"64"
+				"width"		"64"
+				"height"	"64"
+		}
+
+		"WeaponBackgroundActive"
+		{
+				"file"		"vgui/HUD/s_equip_bg_active"
+				"x"			"0"
+				"y"			"0"
+				"width"		"128"
+				"height"	"64"
+		}
+		"WeaponBackgroundInactive"
+		{
+				"file"		"vgui/HUD/s_equip_bg_inactive"
+				"x"			"0"
+				"y"			"0"
+				"width"		"128"
+				"height"	"32"
+		}
+	}	
+}

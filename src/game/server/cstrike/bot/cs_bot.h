@@ -1214,6 +1214,11 @@ private:
 	float m_commonInfectedEngageUntil;								///< keep engaging common infected until this time
 	float m_commonInfectedNextScanTimestamp;						///< throttle scanning for visible common infected
 	float m_commonInfectedMeleeUntil;								///< if > curtime, stay in melee mode against common infected
+	mutable CHandle< CBaseEntity > m_hostileNPCAttacker;				///< last hostile NPC that hurt us
+	float m_hostileNPCAttackedTimestamp;							///< when we were hurt by m_hostileNPCAttacker
+	mutable CHandle< CBaseEntity > m_hostileNPCTarget;				///< current hostile NPC we want to shoot
+	float m_hostileNPCEngageUntil;									///< keep engaging hostile NPCs until this time
+	float m_hostileNPCNextScanTimestamp;							///< throttle scanning for visible hostile NPCs
 
 	int m_lastVictimID;												///< the entindex of the last victim we killed, or zero
 	bool m_isAimingAtEnemy;											///< if true, we are trying to aim at our enemy

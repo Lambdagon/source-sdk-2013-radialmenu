@@ -24,8 +24,9 @@
 #include "props_shared.h"
 #include "func_breakablesurf.h"
 
-#ifdef TERROR
 #include "func_elevator.h"
+
+#ifdef TERROR
 #include "AmbientLight.h"
 #endif
 
@@ -562,7 +563,6 @@ void CNavArea::ConnectElevators( void )
 	m_attributeFlags &= ~NAV_MESH_HAS_ELEVATOR;
 	m_elevatorAreas.RemoveAll();
 
-#ifdef TERROR
 	// connect elevators
 	CFuncElevator *elevator = NULL;
 	while( ( elevator = (CFuncElevator *)gEntList.FindEntityByClassname( elevator, "func_elevator" ) ) != NULL )
@@ -654,7 +654,6 @@ void CNavArea::ConnectElevators( void )
 			}
 		}
 	}
-#endif // TERROR
 }
 
 

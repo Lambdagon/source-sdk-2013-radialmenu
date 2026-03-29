@@ -1,0 +1,448 @@
+// --------------------------------------------------------------------
+//
+// Filling out the Waterfront music postfix
+// 
+// The default music postfix for maps in L4D2 is set as "Waterfront", which is a music set that does not actually exist.
+// A lot of custom campaigns neglect changing it, and as a result, those campaigns lack most of their music events.
+// This aims to fix that.
+// 
+// -RR
+//  
+// --------------------------------------------------------------------
+
+// --------------------------------------------------------------------
+// Intro
+// may interfere with certain campaigns' intended atmospheres - but I'm at least going to include the CP intro cue
+// --------------------------------------------------------------------
+
+"Event.MissionStart_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"		"SNDLVL_NONE"
+
+	"rndwave"
+	{
+//		"wave"			"@#music/stmusic/CrashCourse.wav"
+		"wave"			"@#music/stmusic/DeathTollIntro.wav"
+		"wave"			"@#music/stmusic/YouHadBetterPray.wav"
+//		"wave"			"@#music/stmusic/NoHopeInHell.wav"
+	}
+	GameData
+	{
+		"MusicTrack"            "checkpoint"
+		"MusicAutoQueue"        "Event.MissionStart_BaseLoop_Waterfront"
+		"MusicPriority"			"MEDIUM"
+		"MusicParameters"		"AFTER_DEATH"
+		"MusicMaster"           "PLAY_TO_END"	
+		"MusicMasterTags"
+		{
+//			"loopStart" "78.187"
+			"loopStart" "1.95"
+		}
+	}
+}
+"Event.MissionStart_BaseLoop_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.5, 0.7" // setting volume low, as to not intrude if the map is playing music, but so there's *something* there if it's not
+	"soundlevel"		"SNDLVL_NONE"
+
+	"rndwave"
+	{
+		"wave"			"@#music/cpmusic/CrashCourseCP.wav"
+		"wave"			"@#music/cpmusic/PrayForPassing.wav"
+		"wave"			"@#music/cpmusic/DeathTollCollector.wav"
+		"wave"			"@#music/cpmusic/DeathTollCollector2.wav"
+	}
+	GameData
+	{
+		"MusicPriority"			"MEDIUM"
+		"MusicTrack"            "checkpoint"
+		"MusicTagTrack"         "checkpoint"
+		"MusicFadeOut"         	"5.0"
+	}
+}
+
+
+// --------------------------------------------------------------------
+// Checkpoint
+// This is basically never going to get used. If the mapper knows enough to change the intro type, they know to change the post-fix.
+// --------------------------------------------------------------------
+
+"Event.CheckPointIntro_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"1.0"
+	"soundlevel"		"SNDLVL_NONE"
+
+	"wave"			"@#music/stmusic/DeathTollIntro.wav"
+
+	GameData
+	{
+		"MusicTrack"            "checkpoint"
+		"MusicAutoQueue"        "Event.CheckPointBaseLoop_Waterfront"
+		"MusicPriority"			"MEDIUM"
+		"MusicParameters"		"NO_INTENSITY_TRACK"
+		"MusicMaster"           "PLAY_TO_END"
+		"MusicMasterTags"
+		{
+			"loopStart" "1.95"
+		}
+	}
+}
+
+"Event.CheckPointBaseLoop_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.9"
+	"soundlevel"		"SNDLVL_NONE"
+
+	"rndwave"
+	{
+		"wave"			"@#music/cpmusic/CrashCourseCP.wav"
+//		"wave"			"@#music/cpmusic/DeathTollCollector.wav"
+//		"wave"			"@#music/cpmusic/DeathTollCollector2.wav"
+ 	}
+	GameData
+	{
+		"MusicPriority"			"MEDIUM"
+		"MusicTrack"            "checkpoint"
+		"MusicTagTrack"         "checkpoint"
+		"MusicFadeOut"         	"5.0"
+	}
+}
+
+"Event.LeavingSafety_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.4, 0.4"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+ 		"wave"	"@#music/mob/GermS1a.wav"
+ 		"wave"	"@#music/mob/GermS1b.wav"
+	}
+
+	GameData
+	{
+		"MusicDelayTime"        "4.0"
+		"MusicPriority"		"LOW"
+		"MusicTrack"            "overdub"	
+	}
+}
+
+"Event.StartAtmosphere_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.6, 0.8"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+		"wave" "@#music/contagion/Quarantine_01.wav"
+		"wave" "@#music/contagion/Quarantine_02.wav"
+		"wave" "@#music/contagion/Quarantine_03.wav"
+
+		"wave" "@#music/contagion/DT_Quarantine_01.wav"
+		"wave" "@#music/contagion/DT_Quarantine_02.wav"
+		"wave" "@#music/contagion/DT_Quarantine_03.wav"
+	}
+
+	GameData
+	{
+		"MusicPriority"		"LOW"
+		"MusicTrack"            "safeAmbient"	
+	}
+}
+
+
+// --------------------------------------------------------------------
+// zombat
+// All this down here only used if L4D2 characters are in play
+// --------------------------------------------------------------------
+"Event.Zombat2_Intro_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.9"
+	"soundlevel"	"SNDLVL_NONE"
+
+	"wave"			"@#music/zombat/slayer/lectric/Slayer_01a.wav"
+
+	GameData
+	{
+		"MusicTrack"            "zombat2c"
+		"MusicPriority"		"CRITICAL"
+		"MusicTagTrack"         "zombat"
+		"MusicTagIndex"         "0"
+	}
+}
+
+// --------------------------------------------------------------------
+// Danger
+// --------------------------------------------------------------------
+"Event.Zombat3_Intro_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.6"
+	"soundlevel"	"SNDLVL_NONE"
+
+
+	"wave"			"@#music/zombat/danger/HordeDanger_01.wav"
+
+
+	GameData
+	{
+		"MusicTrack"            "zombat3"
+		"MusicPriority"			"CRITICAL"
+	}
+}
+
+// "Event.Zombat3_Intro_Waterfront"
+// {
+	// "channel"		"CHAN_STATIC"
+	// "volume"		"0.77"
+	// "soundlevel"	"SNDLVL_NONE"
+
+	// "rndwave"
+	// {
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_02.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_04.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_06.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_08.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_10.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_12.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_14.wav"
+	// }
+	// GameData
+	// {
+		// "MusicAutoQueue"        "Event.Zombat3_A_Waterfront"
+		// "MusicTrack"            "zombat3"
+		// "MusicPriority"			"CRITICAL"
+	// }
+// }
+
+// "Event.Zombat3_A_Waterfront"
+// {
+	// "channel"		"CHAN_STATIC"
+	// "volume"		"0.77"
+	// "soundlevel"	"SNDLVL_NONE"
+
+	// "rndwave"
+	// {
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_01.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_03.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_05.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_07.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_09.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_11.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_13.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_15.wav"
+	// }
+
+
+	// GameData
+	// {
+		// "MusicAutoQueue"        "Event.Zombat3_B_Waterfront"
+		// "MusicTrack"            "zombat3"
+		// "MusicTagTrack"         "zombat"
+		// "MusicPriority"			"CRITICAL"
+		// "MusicTagDelay"         "1, 3"
+	// }
+// }
+// "Event.Zombat3_B_Waterfront"
+// {
+	// "channel"		"CHAN_STATIC"
+	// "volume"		"0.77"
+	// "soundlevel"	"SNDLVL_NONE"
+
+	// "rndwave"
+	// {
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_02.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_04.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_06.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_08.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_10.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_12.wav"
+ 		// "wave" "@#music/zombat/danger/trumpet/Trumpet_Danger_02_14.wav"
+	// }
+
+	// GameData
+	// {
+		// "MusicAutoQueue"        "Event.Zombat3_A_Waterfront"
+		// "MusicTrack"            "zombat3"
+		// "MusicTagTrack"         "zombat"
+		// "MusicTagDelay"         "1, 3"
+		// "MusicPriority"			"CRITICAL"
+	// }
+// }
+
+
+// --------------------------------------------------------------------
+// MobSignal
+// I only realized long after adding these to this file that they actually already exist in game_sounds_music_dlc3, but I'm leaving them in to keep it all in one place
+// --------------------------------------------------------------------
+
+"Event.MobSignal1_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.45, 0.6"
+	"soundlevel"		"SNDLVL_NONE"
+	"rndwave"
+	{
+ 		"wave"	"@#music/mob/GermL1a.wav"
+ 		"wave"	"@#music/mob/GermL1b.wav"
+ 		"wave"	"@#music/mob/GermM1a.wav"
+ 		"wave"	"@#music/mob/GermM1b.wav"
+ 		"wave"	"@#music/mob/GermS1a.wav"
+ 		"wave"	"@#music/mob/GermS1b.wav"
+ 		"wave"	"@#music/mob/GermX1a.wav"
+ 		"wave"	"@#music/mob/GermX1b.wav"
+
+	}
+
+	GameData
+	{
+		"MusicPriority"		"LOW"
+		"MusicTrack"            "mobsignal"	
+	}
+}
+"Event.MobSignal2_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.45, 0.6"
+	"soundlevel"		"SNDLVL_NONE"
+	"rndwave"
+	{
+ 		"wave"	"@#music/mob/GermL2a.wav"
+ 		"wave"	"@#music/mob/GermL2b.wav"
+ 		"wave"	"@#music/mob/GermM2a.wav"
+ 		"wave"	"@#music/mob/GermM2b.wav"
+ 		"wave"	"@#music/mob/GermS2a.wav"
+ 		"wave"	"@#music/mob/GermS2b.wav"
+ 		"wave"	"@#music/mob/GermX2a.wav"
+ 		"wave"	"@#music/mob/GermX2b.wav"
+	}
+
+	GameData
+	{
+		"MusicPriority"		"LOW"
+		"MusicTrack"            "mobsignal"	
+	}
+}
+
+
+// --------------------------------------------------------------------
+// Atmosphere
+// --------------------------------------------------------------------
+
+// --------------------------------------------------------------------
+// Safe
+// When you first leave a checkpoint
+// --------------------------------------------------------------------
+
+"Event.SafeAtmosphere_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.6, 0.8"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+		"wave" "@#music/contagion/Quarantine_01.wav"
+		"wave" "@#music/contagion/Quarantine_02.wav"
+		"wave" "@#music/contagion/Quarantine_03.wav"
+	}
+
+	GameData
+	{
+		"MusicPriority"			"LOW"
+		"MusicTrack"            "safeAmbient"	
+		"MusicParameters"		"INTENSITY_CELING"
+		"MusicFadeOut"         	"1.0"
+
+	}
+}
+
+
+// --------------------------------------------------------------------
+// Danger
+// --------------------------------------------------------------------
+
+"Event.DangerAtmosphere_Waterfront"
+{
+	"channel"		"CHAN_STATIC"
+	"volume"		"0.6, 0.8"
+	"soundlevel"	"SNDLVL_NONE"
+	"rndwave"
+	{
+		"wave" "@#music/contagion/CC_Rabies_01.wav"
+		"wave" "@#music/contagion/CC_Rabies_02.wav"
+		"wave" "@#music/contagion/CC_Rabies_03.wav"
+		"wave" "@#music/contagion/CC_Rabies_04.wav"
+		"wave" "@#music/contagion/CC_Rabies_05.wav"
+		"wave" "@#music/contagion/CC_Rabies_06.wav"
+		"wave" "@#music/contagion/CC_Rabies_07.wav"
+		"wave" "@#music/contagion/CC_Rabies_08.wav"
+		"wave" "@#music/contagion/CC_Rabies_09.wav"
+		"wave" "@#music/contagion/CC_Rabies_10.wav"
+		"wave" "@#music/contagion/CC_Rabies_11.wav"
+		"wave" "@#music/contagion/CC_Rabies_12.wav"
+
+		"wave" "@#music/contagion/C5Rabies_01.wav"
+		"wave" "@#music/contagion/C5Rabies_02.wav"
+		"wave" "@#music/contagion/C5Rabies_03.wav"
+		"wave" "@#music/contagion/C5Rabies_04.wav"
+		"wave" "@#music/contagion/C5Rabies_05.wav"
+		"wave" "@#music/contagion/C5Rabies_06.wav"
+		"wave" "@#music/contagion/C5Rabies_07.wav"
+		"wave" "@#music/contagion/C5Rabies_08.wav"
+		"wave" "@#music/contagion/C5Rabies_09.wav"
+		"wave" "@#music/contagion/C5Rabies_10.wav"
+		"wave" "@#music/contagion/C5Rabies_11.wav"
+		"wave" "@#music/contagion/C5Rabies_12.wav"
+		"wave" "@#music/contagion/C5Rabies_13.wav"
+		"wave" "@#music/contagion/C5Rabies_14.wav"
+		"wave" "@#music/contagion/C5Rabies_15.wav"
+
+//		"wave" "@#music/contagion/L4D_Rabies_01.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_02.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_03.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_04.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_05.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_06.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_07.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_08.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_09.wav"
+//		"wave" "@#music/contagion/L4D_Rabies_10.wav"
+
+//		"wave" "@#music/contagion/l4d2_rabies_01.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_02.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_03.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_04.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_05.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_06.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_07.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_08.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_09.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_10.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_11.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_12.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_13.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_14.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_15.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_16.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_17.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_18.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_19.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_20.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_21.wav"
+//		"wave" "@#music/contagion/l4d2_rabies_22.wav"
+	}
+
+	GameData
+	{
+		"MusicPriority"			"LOW"
+		"MusicTrack"            "ambient"	
+		"MusicFadeOut"         	"1.0"
+
+	}
+}

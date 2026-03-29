@@ -1457,7 +1457,7 @@ enum
 //-----------------------------------------------------------------------------
 bool PlayerHasMegaPhysCannon()
 {
-	return ( HL2GameRules()->MegaPhyscannonActive() == true );
+	return ( false );
 }
 
 
@@ -2746,18 +2746,6 @@ bool CGrabController::UpdateObject( CBasePlayer *pPlayer, float flError )
 	Vector forward, right, up;
 	QAngle playerAngles = pPlayer->EyeAngles();
 	AngleVectors( playerAngles, &forward, &right, &up );
-
-	if ( HL2GameRules()->MegaPhyscannonActive() )
-	{
-		Vector los = ( pEntity->WorldSpaceCenter() - pPlayer->Weapon_ShootPosition() );
-		VectorNormalize( los );
-
-		float flDot = DotProduct( los, forward );
-
-		//Let go of the item if we turn around too fast.
-		if ( flDot <= 0.35f )
-			return false;
-	}
 	
 	float pitch = AngleDistance(playerAngles.x,0);
 

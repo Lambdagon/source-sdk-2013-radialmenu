@@ -37,6 +37,7 @@ public:
 	virtual void EmitGrenade( Vector vecSrc, QAngle vecAngles, Vector vecVel, AngularImpulse angImpulse, CBasePlayer *pPlayer );
 #endif
 
+	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_MOLOTOV; }
 private:
 	CMolotovGrenade( const CMolotovGrenade & ) {}
 };

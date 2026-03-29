@@ -81,6 +81,28 @@ void CCSBot::FireWeaponAtEnemy( void )
 
 			if (onTarget > aimTolerance)
 			{
+				CCSPlayer *csEnemy = ToCSPlayer( enemy );
+				const bool shouldShoveSpecialInfected =
+					GetTeamNumber() == TEAM_SURVIVOR &&
+					!IsSpecialInfected() &&
+					!IsUsingKnife() &&
+					csEnemy != NULL &&
+					csEnemy->GetTeamNumber() == TEAM_INFECTED &&
+					csEnemy->IsSpecialInfected() &&
+					!csEnemy->IsGhost() &&
+					!csEnemy->IsHulkTank() &&
+					rangeToEnemy <= 85.0f;
+
+				if ( shouldShoveSpecialInfected )
+				{
+					CWeaponCSBase *active = GetActiveCSWeapon();
+					if ( active && active->m_flNextSecondaryAttack <= gpGlobals->curtime )
+					{
+						SecondaryAttack();
+						return;
+					}
+				}
+
 				bool doAttack;
 
 				// if friendly fire is on, don't fire if a teammate is blocking our line of fire

@@ -1,0 +1,584 @@
+// borrowed from HL2
+"Crowbar.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"volume"		"0.6,0.9"
+	"soundlevel"		"SNDLVL_90dB"
+	"pitch"			"90,120"
+
+	"rndwave"
+	{
+		"wave"		"physics/metal/crowbar_impact1.wav"
+		"wave"		"physics/metal/crowbar_impact2.wav"
+	}
+}
+
+"MetalVehicle.ImpactHard"
+{
+	"soundlevel"		"SNDLVL_110dB"
+	"volume"		"1.0" //was 0.9
+	"pitch"			"80,110"
+	"rndwave"
+	{
+		"wave"		"physics/metal/vehicle_impact_heavy1.wav"
+		"wave"		"physics/metal/vehicle_impact_heavy2.wav"
+		"wave"		"physics/metal/vehicle_impact_heavy3.wav"
+		"wave"		"physics/metal/vehicle_impact_heavy4.wav"
+	}
+}
+
+"MetalVehicle.ImpactSoft"
+{
+	"soundlevel"		"SNDLVL_90dB"
+	"volume"		"0.8" //was 0.5
+	"pitch"			"80,110"
+	"rndwave"
+	{
+		"wave"		"physics/metal/vehicle_impact_medium1.wav"
+		"wave"		"physics/metal/vehicle_impact_medium2.wav"
+		"wave"		"physics/metal/vehicle_impact_medium3.wav"
+		"wave"		"physics/metal/vehicle_impact_medium4.wav"
+	}
+}
+
+"MetalVehicle.ScrapeRough"
+{
+	"soundlevel"		"SNDLVL_90dB"
+	"volume"		"0.8" //was 0.5
+	"pitch"			"100,130"
+	"rndwave"
+	{
+		"wave"		"physics/metal/vehicle_rollover1.wav"
+		"wave"		"physics/metal/vehicle_rollover2.wav"
+	}
+}
+
+"MetalVehicle.ScrapeSmooth"
+{
+	"soundlevel"		"SNDLVL_90dB"
+	"volume"		"0.45" //was 0.3
+	"pitch"			"110,130"
+	"rndwave"
+	{
+		"wave"		"physics/metal/vehicle_rollover1.wav"
+		"wave"		"physics/metal/vehicle_rollover2.wav"
+	}
+}
+
+//New melee weapon impacts
+"Sword.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"volume"		"0.9"
+
+	"rndwave"
+	{
+		"wave"		")physics/metal/sword_impact1.wav"
+		"wave"		")physics/metal/sword_impact2.wav"
+		"wave"		")physics/metal/sword_impact3.wav"
+	}
+}
+
+"Blade.ImpactSoft"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"volume"		"0.85"
+
+	"rndwave"
+	{
+		"wave"		")physics/metal/blade_impact_soft1.wav"
+		"wave"		")physics/metal/blade_impact_soft2.wav"
+		"wave"		")physics/metal/blade_impact_soft3.wav"
+		"wave"		")physics/metal/blade_impact_soft4.wav"
+	}
+}
+
+"Blade.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"volume"		"0.85"
+
+	"rndwave"
+	{
+		"wave"		")physics/metal/blade_impact_hard1.wav"
+		"wave"		")physics/metal/blade_impact_hard2.wav"
+		"wave"		")physics/metal/blade_impact_hard3.wav"
+		"wave"		")physics/metal/blade_impact_hard4.wav"
+	}
+}
+
+"Fireaxe.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_100dB"
+
+	"rndwave"
+	{
+		"wave"		")physics/metal/fireaxe_impact1.wav"
+		"wave"		")physics/metal/fireaxe_impact2.wav"
+		"wave"		")physics/metal/fireaxe_impact3.wav"
+		"wave"		")physics/metal/fireaxe_impact4.wav"
+	}
+}
+
+"Bat.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"rndwave"
+	{
+		"wave"		")physics/wood/bat_impact1.wav"
+		"wave"		")physics/wood/bat_impact2.wav"
+	}
+}
+
+"CricketBat.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"volume"		"0.8"
+	"rndwave"
+	{
+		"wave"		")physics/wood/cricketbat_impact1.wav"
+		"wave"		")physics/wood/cricketbat_impact2.wav"
+		"wave"		")physics/wood/cricketbat_impact3.wav"
+		"wave"		")physics/wood/cricketbat_impact4.wav"
+	}
+}
+
+"Chainsaw.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_100dB"
+	"volume"		"0.8"
+	"rndwave"
+	{
+		"wave"		")physics/metal/chainsaw_impact1.wav"
+		"wave"		")physics/metal/chainsaw_impact2.wav"
+		"wave"		")physics/metal/chainsaw_impact3.wav"
+		"wave"		")physics/metal/chainsaw_impact4.wav"
+	}
+}
+
+"GolfClub.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"rndwave"
+	{
+		"wave"		")physics/metal/golfclub_impact1.wav"
+		"wave"		")physics/metal/golfclub_impact2.wav"
+		"wave"		")physics/metal/golfclub_impact3.wav"
+		"wave"		")physics/metal/golfclub_impact4.wav"
+	}
+}
+
+"Pan.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"volume"		"0.8"
+	"rndwave"
+	{
+		"wave"		")physics/metal/pan_impact1.wav"
+		"wave"		")physics/metal/pan_impact2.wav"
+		"wave"		")physics/metal/pan_impact3.wav"
+		"wave"		")physics/metal/pan_impact4.wav"
+	}
+}
+
+"PitchFork.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"rndwave"
+	{
+		"wave"		")physics/wood/pitchfork_impact1.wav"
+		"wave"		")physics/wood/pitchfork_impact2.wav"
+		"wave"		")physics/wood/pitchfork_impact3.wav"
+		"wave"		")physics/wood/pitchfork_impact4.wav"
+	}
+}
+
+"Shovel.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"soundlevel"		"SNDLVL_90dB"
+	"rndwave"
+	{
+		"wave"		")physics/wood/shovel_impact1.wav"
+		"wave"		")physics/wood/shovel_impact2.wav"
+		"wave"		")physics/wood/shovel_impact3.wav"
+		"wave"		")physics/wood/shovel_impact4.wav"
+	}
+}
+
+// shuffle between guitar and wood sounds
+"Guitar.ImpactHard"
+{
+	"channel"		"CHAN_WEAPON"
+	"volume"		"0.6,0.9"
+	"soundlevel"		"SNDLVL_90dB"
+	"pitch"			"90,110"
+
+	"rndwave"
+	{
+		"wave"		")weapons/guitar/guitar_hit_world_01.wav"
+		"wave"		")weapons/guitar/guitar_hit_world_02.wav"
+		"wave"		")weapons/guitar/guitar_hit_world_03.wav"
+		"wave"		")weapons/guitar/guitar_hit_world_04.wav"
+		"wave"		")weapons/guitar/guitar_hit_world_05.wav"
+		"wave"		"physics/wood/wood_crate_impact_hard2.wav"
+		"wave"		"physics/wood/wood_crate_impact_hard3.wav"
+		"wave"		"physics/wood/wood_crate_impact_hard5.wav"
+	}
+}
+
+
+// I'M JUST GONNA CHANGE THIS AND SEE WHAT HAPPENS
+"BaseEntity.EnterWater"
+{
+	"channel"	"CHAN_AUTO"
+	"volume"	"0.6"
+	"soundlevel"	"SNDLVL_NORM"
+	"pitch"		"PITCH_NORM"
+
+	"rndwave"
+	{
+//		"wave"	"player/footsteps/survivor/run/wade1.wav"
+//		"wave"	"player/footsteps/survivor/run/wade4.wav"
+		"wave"	"ambient/water/water_splash1.wav"
+		"wave"	"ambient/water/water_splash2.wav"
+		"wave"	"ambient/water/water_splash3.wav"
+	}
+}
+
+"BaseEntity.ExitWater"
+{
+	"channel"	"CHAN_AUTO"
+	"volume"	"0.6"
+	"soundlevel"	"SNDLVL_NORM"
+	"pitch"		"PITCH_NORM"
+
+	"rndwave"
+	{
+		"wave"	"player/footsteps/survivor/run/wade2.wav"
+		"wave"	"player/footsteps/survivor/run/wade3.wav"
+	}
+}
+
+
+// -------------------------------------------------------------
+// ALL SNOW FOOTSTEPS
+// sounds borrowed from CSGO
+// going to cut them down to 4 each later, to match all the other footsteps
+
+"Survivor.Snow.RunLeft"
+{
+	"channel"		"CHAN_VOICE_BASE"
+
+	"soundlevel"		"SNDLVL_NORM"
+	"pitch"			"95,105"
+	"volume"		"0.7" //was .66
+	"rndwave"
+	{
+		"wave"		"player/footsteps/survivor/run/snow1.wav"
+		"wave"		"player/footsteps/survivor/run/snow3.wav"
+		"wave"		"player/footsteps/survivor/run/snow5.wav"
+		"wave"		"player/footsteps/survivor/run/snow7.wav"
+		"wave"		"player/footsteps/survivor/run/snow9.wav"
+		"wave"		"player/footsteps/survivor/run/snow11.wav"
+	}
+
+}
+
+"Survivor.Snow.RunRight"
+{
+	"channel"		"CHAN_VOICE_BASE"
+
+	"soundlevel"		"SNDLVL_NORM"
+	"pitch"			"95,105"
+	"volume"		"0.7"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/survivor/run/snow2.wav"
+		"wave"		"player/footsteps/survivor/run/snow4.wav"
+		"wave"		"player/footsteps/survivor/run/snow6.wav"
+		"wave"		"player/footsteps/survivor/run/snow8.wav"
+		"wave"		"player/footsteps/survivor/run/snow10.wav"
+		"wave"		"player/footsteps/survivor/run/snow12.wav"
+	}
+
+}
+
+"Survivor.Snow.WalkLeft"
+{
+	"channel"		"CHAN_VOICE_BASE"
+
+	"soundlevel"		"SNDLVL_NORM"
+	"pitch"			"95,105"
+	"volume"		".3" //was .15
+	"rndwave"
+	{
+		"wave"		"player/footsteps/survivor/walk/snow1.wav"
+		"wave"		"player/footsteps/survivor/walk/snow3.wav"
+		"wave"		"player/footsteps/survivor/walk/snow5.wav"
+	}
+
+}
+
+"Survivor.Snow.WalkRight"
+{
+	"channel"		"CHAN_VOICE_BASE"
+
+	"soundlevel"		"SNDLVL_NORM"
+	"pitch"			"95,105"
+	"volume"		".3"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/survivor/walk/snow2.wav"
+		"wave"		"player/footsteps/survivor/walk/snow4.wav"
+		"wave"		"player/footsteps/survivor/walk/snow6.wav"
+	}
+
+}
+
+"Infected.Snow.RunLeft"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"        "1.0"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow1.wav"
+		"wave"		"player/footsteps/snow2.wav"
+		"wave"		"player/footsteps/snow3.wav"
+	}
+}
+
+"Infected.Snow.RunRight"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"        "1.0"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow4.wav"
+		"wave"		"player/footsteps/snow5.wav"
+		"wave"		"player/footsteps/snow6.wav"
+	}
+}
+
+"Infected.Snow.WalkLeft"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".85"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow1.wav"
+		"wave"		"player/footsteps/snow2.wav"
+		"wave"		"player/footsteps/snow3.wav"
+	}
+}
+
+"Infected.Snow.WalkRight"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".85"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow1.wav"
+		"wave"		"player/footsteps/snow2.wav"
+		"wave"		"player/footsteps/snow3.wav"
+	}
+}
+
+"Boomer.Snow.RunLeft"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".96"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow1.wav"
+		"wave"		"player/footsteps/snow2.wav"
+		"wave"		"player/footsteps/snow3.wav"
+	}
+}
+
+"Boomer.Snow.RunRight"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".96"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow4.wav"
+		"wave"		"player/footsteps/snow5.wav"
+		"wave"		"player/footsteps/snow6.wav"
+	}
+}
+
+"Boomer.Snow.WalkLeft"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".96"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow1.wav"
+		"wave"		"player/footsteps/snow2.wav"
+		"wave"		"player/footsteps/snow3.wav"
+	}
+}
+
+"Boomer.Snow.WalkRight"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".96"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow4.wav"
+		"wave"		"player/footsteps/snow5.wav"
+		"wave"		"player/footsteps/snow6.wav"
+	}
+}
+
+"Jockey.Snow.RunLeft"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".96"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow1.wav"
+		"wave"		"player/footsteps/snow2.wav"
+		"wave"		"player/footsteps/snow3.wav"
+	}
+}
+
+"Jockey.Snow.RunRight"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".96"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow4.wav"
+		"wave"		"player/footsteps/snow5.wav"
+		"wave"		"player/footsteps/snow6.wav"
+	}
+}
+
+"Jockey.Snow.WalkLeft"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".96"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow1.wav"
+		"wave"		"player/footsteps/snow2.wav"
+		"wave"		"player/footsteps/snow3.wav"
+	}
+}
+
+"Jockey.Snow.WalkRight"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"volume"		".96"
+	"pitch"			"95,105"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/snow4.wav"
+		"wave"		"player/footsteps/snow5.wav"
+		"wave"		"player/footsteps/snow6.wav"
+	}
+}
+
+"Witch.Snow.RunLeft"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"pitch"			"95,105"
+	"volume"		".94"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/witch/run/dirt1.wav"
+		"wave"		"player/footsteps/witch/run/dirt3.wav"
+	}
+}
+
+"Witch.Snow.RunRight"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"pitch"			"95,105"
+	"volume"		".94"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/witch/run/dirt1.wav"
+		"wave"		"player/footsteps/witch/run/dirt3.wav"
+	}
+}
+
+"Witch.Snow.WalkLeft"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"pitch"			"95,105"
+	"volume"		".94"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/witch/run/dirt1.wav"
+		"wave"		"player/footsteps/witch/run/dirt3.wav"
+	}
+}
+
+"Witch.Snow.WalkRight"
+{
+	"channel"       "CHAN_VOICE_BASE"
+
+	"soundlevel"	"SNDLVL_NORM"
+	"pitch"			"95,105"
+	"volume"		".94"
+	"rndwave"
+	{
+		"wave"		"player/footsteps/witch/run/dirt1.wav"
+		"wave"		"player/footsteps/witch/run/dirt3.wav"
+	}
+}
+

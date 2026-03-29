@@ -1048,14 +1048,4 @@ BaseClass( pParent, pName, pText )
 //-----------------------------------------------------------------------------
 void CHiddenHUDToggleButton::DoClick( void )
 {
-    if ( input()->IsKeyDown(KEY_LSHIFT) || input()->IsKeyDown(KEY_RSHIFT) ) 
-    {
-        // Process when a group button is hit
-        CAchievementsPageItemPanel*    pParent = static_cast<CAchievementsPageItemPanel*>(GetParent());
-
-        if (pParent)
-        {
-            pParent->ToggleShowOnHUDButton();
-        }
-    }
 }
