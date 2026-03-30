@@ -8538,10 +8538,6 @@ bool CCSPlayer::ClientCommand( const CCommand &args )
 		}
 		return true;
 	}
-	else if ( FStrEq( pcmd, "voice_menuselect" ) )
-	{
-		return true;
-	}
 	else if ( FStrEq( pcmd, "menuselect" ) )
 	{
 		return true;

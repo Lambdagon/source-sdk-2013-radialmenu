@@ -34,6 +34,7 @@
 #include "ai_behavior_lead.h"
 #include "gameinterface.h"
 #include "ilagcompensationmanager.h"
+#include "BasePropDoor.h"
 
 #ifdef HL2_DLL
 #include "hl2_player.h"
@@ -1454,21 +1455,11 @@ void CChangeLevel::Spawn( void )
 		Msg( "trigger_changelevel to %s doesn't have a landmark", m_szMapName );
 	}
 
-	if ( FClassnameIs( this, "info_changelevel" ) )
-	{
-		SetSolid( SOLID_NONE );
-		SetMoveType( MOVETYPE_NONE );
-		AddEffects( EF_NODRAW );
-		SetTouch( NULL );
-	}
-	else
-	{
-		InitTrigger();
+	InitTrigger();
 
-		if ( !HasSpawnFlags(SF_CHANGELEVEL_NOTOUCH) )
-		{
-			SetTouch( &CChangeLevel::TouchChangeLevel );
-		}
+	if ( !HasSpawnFlags(SF_CHANGELEVEL_NOTOUCH) )
+	{
+		SetTouch( &CChangeLevel::TouchChangeLevel );
 	}
 
 //	Msg( "TRANSITION: %s (%s)\n", m_szMapName, m_szLandmarkName );
@@ -1730,7 +1721,7 @@ void CChangeLevel::ChangeLevelNow( CBaseEntity *pActivator )
 		SetTouch( NULL );
 	}
 }
-
+extern bool IsCheckpointSaferoomDoorModel(const char* pszModelName);
 //
 // GLOBALS ASSUMED SET:  st_szNextMap
 //
@@ -1762,6 +1753,17 @@ void CChangeLevel::TouchChangeLevel( CBaseEntity *pOther )
 	{
 		DevMsg("In level transition: %s %s\n", st_szNextMap, st_szNextSpot );
 		return;
+	}
+
+	CBaseEntity* pDoorEntity = NULL;
+	while ((pDoorEntity = gEntList.FindEntityByClassname(pDoorEntity, "prop_door_rotating_checkpoint")) != NULL)
+	{
+		CBasePropDoor* pDoor = dynamic_cast<CBasePropDoor*>(pDoorEntity);
+		if (!pDoor || !IsCheckpointSaferoomDoorModel(STRING(pDoorEntity->GetModelName())))
+			continue;
+
+		if (!pDoor->IsDoorClosed())
+			return;
 	}
 
 	ChangeLevelNow( pOther );
@@ -3517,6 +3519,424 @@ void CTriggerCamera::Move()
 #endif
 }
 
+
+#define SF_CAMERA_MULTIPLAYER_DISABLE_ON_MOVEEND	1
+#define SF_CAMERA_MULTIPLAYER_PLAYER_SETFOV			2
+
+
+//-----------------------------------------------------------------------------
+class CMoveableCamera : public CBaseEntity
+{
+public:
+	DECLARE_CLASS(CMoveableCamera, CBaseEntity);
+
+	CMoveableCamera();
+
+	virtual void Spawn(void);
+
+	virtual void Enable(void);
+	virtual void Disable(void);
+	virtual Vector GetEndPos(EHANDLE hTarget);
+	virtual float MoveTime(float flTime);
+	void SetTarget(EHANDLE hTarget);
+
+	void StartMovement(void);
+	void FollowTarget(void);
+	void Move(void);
+
+	bool  m_bEnabled;
+	bool  m_bDisableOnMoveEnd;
+	bool  m_bMovementStarted;
+
+	// these are interpolation vars used for interpolating the camera over time
+	Vector m_vStartPos;
+	QAngle m_vStartAngles;
+	float m_flInterpStartTime;
+	float m_flInterpTime;
+
+	EHANDLE m_hTargetEnt;
+};
+
+//-----------------------------------------------------------------------------
+CMoveableCamera::CMoveableCamera()
+{
+	m_flInterpTime = 1.f;
+}
+
+//-----------------------------------------------------------------------------
+void CMoveableCamera::Spawn(void)
+{
+	BaseClass::Spawn();
+
+	SetMoveType(MOVETYPE_NOCLIP);
+	SetSolid(SOLID_NONE);								// Remove model & collisions
+	SetRenderColorA(0);								// The engine won't draw this model if this is set to 0 and blending is on
+	m_nRenderMode = kRenderTransTexture;
+
+	m_bEnabled = false;
+	m_bMovementStarted = false;
+
+	m_bDisableOnMoveEnd = HasSpawnFlags(SF_CAMERA_MULTIPLAYER_DISABLE_ON_MOVEEND);
+
+	DispatchUpdateTransmitState();
+}
+
+//------------------------------------------------------------------------------
+void CMoveableCamera::SetTarget(EHANDLE hTarget)
+{
+	m_hTargetEnt = hTarget;
+}
+
+//------------------------------------------------------------------------------
+Vector CMoveableCamera::GetEndPos(EHANDLE hTarget)
+{
+	return m_hTargetEnt->GetAbsOrigin();
+}
+
+//------------------------------------------------------------------------------
+void CMoveableCamera::StartMovement(void)
+{
+	if (m_hTargetEnt == NULL)
+	{
+		Disable();
+		return;
+	}
+
+	// Detach us before moving
+	SetParent(NULL);
+	SetMoveType(MOVETYPE_NOCLIP);
+
+	// initialize the values we'll spline between
+	m_vStartPos = GetAbsOrigin();
+	m_vStartAngles = GetLocalAngles();
+
+	m_bMovementStarted = true;
+	SetThink(&CMoveableCamera::FollowTarget);
+	m_flInterpStartTime = gpGlobals->curtime;
+	FollowTarget();
+}
+
+//-----------------------------------------------------------------------------
+void CMoveableCamera::Enable(void)
+{
+	m_bEnabled = true;
+
+	SetAbsVelocity(vec3_origin);
+
+	if (m_bMovementStarted)
+	{
+		SetThink(&CMoveableCamera::FollowTarget);
+	}
+}
+
+//-----------------------------------------------------------------------------
+void CMoveableCamera::Disable(void)
+{
+	m_bEnabled = false;
+
+	SetThink(NULL);
+
+	SetLocalAngularVelocity(vec3_angle);
+}
+
+//-----------------------------------------------------------------------------
+float CMoveableCamera::MoveTime(float flTime)
+{
+	// default is no change
+	return flTime;
+}
+
+//-----------------------------------------------------------------------------
+void CMoveableCamera::FollowTarget(void)
+{
+	QAngle vecGoal = m_hTargetEnt->GetAbsAngles();
+	QAngle angles = m_vStartAngles;
+
+	float dx = vecGoal.x - angles.x;
+	float dy = vecGoal.y - angles.y;
+	float dz = vecGoal.z - angles.z;
+
+	if (dx < -180)
+		dx += 360;
+	if (dx > 180)
+		dx = dx - 360;
+
+	if (dy < -180)
+		dy += 360;
+	if (dy > 180)
+		dy = dy - 360;
+
+	if (dz < -180)
+		dz += 360;
+	if (dz > 180)
+		dz = dz - 360;
+
+	float tt = (gpGlobals->curtime - m_flInterpStartTime) / m_flInterpTime;
+
+	QAngle nextAngle = Lerp(tt, angles, vecGoal);
+	SetAbsAngles(nextAngle);
+
+	SetNextThink(gpGlobals->curtime);
+
+	Move();
+}
+
+//-----------------------------------------------------------------------------
+void CMoveableCamera::Move(void)
+{
+	Vector vEndPos = GetEndPos(m_hTargetEnt);
+
+	// get the interpolation parameter [0..1]
+	float tt = (gpGlobals->curtime - m_flInterpStartTime) / m_flInterpTime;
+	if (tt >= 1.0f)
+	{
+		// we're there, we're done
+		UTIL_SetOrigin(this, vEndPos);
+		SetAbsAngles(m_hTargetEnt->GetLocalAngles());
+		SetAbsVelocity(vec3_origin);
+
+		if (m_bDisableOnMoveEnd)
+		{
+			Disable();
+		}
+
+		m_bMovementStarted = false;
+	}
+	else
+	{
+		Assert(tt >= 0);
+
+		Vector nextPos = ((vEndPos - m_vStartPos) * MoveTime(tt)) + m_vStartPos;
+
+		// rather than stomping origin, set the velocity so that we get there in the proper time
+		Vector desiredVel = (nextPos - GetAbsOrigin()) * (1.0f / gpGlobals->frametime);
+		SetAbsVelocity(desiredVel);
+	}
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+class CTriggerCameraMultiplayer : public CMoveableCamera
+{
+public:
+	DECLARE_CLASS(CTriggerCameraMultiplayer, CMoveableCamera);
+
+	CTriggerCameraMultiplayer()
+	{
+		m_fov = 90;
+		m_fovSpeed = 1;
+		m_nTeamNum = -1;
+	}
+
+	void Spawn(void);
+	void Enable(void);
+	void Disable(void);
+	void AddPlayer(CBasePlayer* player);
+	void RemovePlayer(CBasePlayer* player);
+	float MoveTime(float flTime);
+
+	// Always transmit to clients so they know where to move the view to
+	virtual int UpdateTransmitState();
+
+	DECLARE_DATADESC();
+
+	// Input handlers
+	void InputEnable(inputdata_t& inputdata);
+	void InputDisable(inputdata_t& inputdata);
+	void InputAddPlayer(inputdata_t& inputdata);
+	void InputRemovePlayer(inputdata_t& inputdata);
+	void InputStartMovement(inputdata_t& inputdata);
+
+private:
+	CUtlVector< EHANDLE > m_players;
+	float m_fov;
+	float m_fovSpeed;
+	float m_fMoveTime;
+	string_t m_targetEntName;
+	int m_nTeamNum;
+};
+
+
+//--------------------------------------------------------------------------------------------------------
+LINK_ENTITY_TO_CLASS(point_viewcontrol_multiplayer, CTriggerCameraMultiplayer);
+
+
+//--------------------------------------------------------------------------------------------------------
+BEGIN_DATADESC(CTriggerCameraMultiplayer)
+
+// Inputs
+DEFINE_INPUTFUNC(FIELD_VOID, "Enable", InputEnable),
+DEFINE_INPUTFUNC(FIELD_VOID, "Disable", InputDisable),
+DEFINE_INPUTFUNC(FIELD_VOID, "AddPlayer", InputAddPlayer),
+DEFINE_INPUTFUNC(FIELD_VOID, "RemovePlayer", InputRemovePlayer),
+DEFINE_INPUTFUNC(FIELD_VOID, "StartMovement", InputStartMovement),
+
+DEFINE_KEYFIELD(m_fov, FIELD_FLOAT, "fov"),
+DEFINE_KEYFIELD(m_fovSpeed, FIELD_FLOAT, "fov_rate"),
+DEFINE_KEYFIELD(m_targetEntName, FIELD_STRING, "target_entity"),
+DEFINE_KEYFIELD(m_flInterpTime, FIELD_FLOAT, "interp_time"),
+DEFINE_KEYFIELD(m_nTeamNum, FIELD_INTEGER, "target_team"),
+END_DATADESC()
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::Spawn(void)
+{
+	BaseClass::Spawn();
+
+	DispatchUpdateTransmitState();
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+int CTriggerCameraMultiplayer::UpdateTransmitState(void)
+{
+	// always transmit if currently used by a monitor
+	if (m_bEnabled)
+	{
+		return SetTransmitState(FL_EDICT_ALWAYS);
+	}
+	else
+	{
+		return SetTransmitState(FL_EDICT_DONTSEND);
+	}
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::InputEnable(inputdata_t& inputdata)
+{
+	CBaseEntity* pTargetEnt = gEntList.FindEntityByName(NULL, m_targetEntName);
+	SetTarget(pTargetEnt);
+
+	Enable();
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::InputDisable(inputdata_t& inputdata)
+{
+	Disable();
+}
+
+
+//------------------------------------------------------------------------------
+// Purpose: Input handler to starting camera movement.
+//------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::InputStartMovement(inputdata_t& inputdata)
+{
+	StartMovement();
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::InputAddPlayer(inputdata_t& inputdata)
+{
+	CBasePlayer* pPlayer = ToBasePlayer(inputdata.pActivator);
+	if (pPlayer)
+	{
+		AddPlayer(pPlayer);
+	}
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::InputRemovePlayer(inputdata_t& inputdata)
+{
+	CBasePlayer* pPlayer = ToBasePlayer(inputdata.pActivator);
+	if (pPlayer)
+	{
+		RemovePlayer(pPlayer);
+		m_players.FindAndFastRemove(pPlayer);
+	}
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::AddPlayer(CBasePlayer* player)
+{
+	if (m_players.HasElement(player))
+		return;
+
+	m_players.AddToTail(player);
+
+	player->EnableControl(false);
+	player->m_Local.m_bDrawViewmodel = false;
+	player->SetViewEntity(this);
+
+	CBaseEntity* pFOVOwner = player->GetFOVOwner();
+
+	if (pFOVOwner && ((pFOVOwner == player) ||
+		FClassnameIs(pFOVOwner, "point_viewcontrol_multiplayer") ||
+		FClassnameIs(pFOVOwner, "point_viewcontrol_survivor")))
+	{
+		player->ClearZoomOwner();
+	}
+	player->SetFOV(this, m_fov, m_fovSpeed);
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::RemovePlayer(CBasePlayer* player)
+{
+	player->EnableControl(true);
+	player->m_Local.m_bDrawViewmodel = true;
+	player->SetViewEntity(NULL);
+
+	player->SetFOV(this, 0, m_fovSpeed);
+	player->ClearZoomOwner();
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::Enable(void)
+{
+	BaseClass::Enable();
+
+#if defined( PORTAL2 ) || defined( CSTRIKE15 )
+	for (int i = 1; i <= gpGlobals->maxClients; ++i)
+	{
+		CBasePlayer* pPlayer = ToBasePlayer(UTIL_PlayerByIndex(i));
+
+		if (pPlayer == NULL)
+			continue;
+
+		if (!pPlayer->IsConnected())
+			continue;
+
+		if (m_nTeamNum == -1 || m_nTeamNum == pPlayer->GetTeamNumber())
+			AddPlayer(pPlayer);
+	}
+#endif // PORTAL2
+
+	DispatchUpdateTransmitState();
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void CTriggerCameraMultiplayer::Disable(void)
+{
+	BaseClass::Disable();
+
+	for (int i = 0; i < m_players.Count(); ++i)
+	{
+		CBasePlayer* player = ToBasePlayer(m_players[i]);
+		if (!player)
+			continue;
+
+		RemovePlayer(player);
+	}
+
+	m_players.RemoveAll();
+
+	DispatchUpdateTransmitState();
+}
+
+//-----------------------------------------------------------------------------
+float CTriggerCameraMultiplayer::MoveTime(float flTime)
+{
+	return SmoothCurve(flTime);
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Starts/stops cd audio tracks

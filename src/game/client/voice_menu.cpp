@@ -106,7 +106,7 @@ ConCommand voice_menu_1( "voice_menu_1", OpenVoiceMenu_1, "Opens voice menu 1" )
 ConCommand voice_menu_2( "voice_menu_2", OpenVoiceMenu_2, "Opens voice menu 2" );
 ConCommand voice_menu_3( "voice_menu_3", OpenVoiceMenu_3, "Opens voice menu 3" );
 
-CON_COMMAND( voice_menuselect, "voice_menuselect" )
+CON_COMMAND( menuselect, "menuselect" )
 {
 	if ( args.ArgC() < 2 )
 		return;
@@ -114,7 +114,7 @@ CON_COMMAND( voice_menuselect, "voice_menuselect" )
 	if( g_ActiveVoiceMenu == 0 )
 	{
 		// if we didn't have a menu open, maybe a plugin did.  send it on to the server.
-		const char *cmd = VarArgs( "voice_menuselect %s", args[1] );
+		const char *cmd = VarArgs( "menuselect %s", args[1] );
 		engine->ServerCmd( cmd );
 		return;
 	}
@@ -136,7 +136,7 @@ CON_COMMAND( voice_menuselect, "voice_menuselect" )
 	default:
 		{
 			// if we didn't have a menu open, maybe a plugin did.  send it on to the server.
-			const char *cmd = VarArgs( "voice_menuselect %d", iSelection );
+			const char *cmd = VarArgs( "menuselect %d", iSelection );
 			engine->ServerCmd( cmd );
 		}
 		break;

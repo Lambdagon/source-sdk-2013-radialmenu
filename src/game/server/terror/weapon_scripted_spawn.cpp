@@ -30,8 +30,8 @@ namespace
 		{ "weapon_autoshotgun_spawn",					"weapon_xm1014",						"weapon_xm1014",		false },
 		{ "weapon_chainsaw_spawn",						"weapon_chainsaw",						"weapon_knife",			false },
 		{ "weapon_defibrillator_spawn",					"weapon_defibrillator",					NULL,					false },
-		{ "weapon_first_aid_kit",						"weapon_first_aid_kit",					NULL,					false },
-		{ "weapon_first_aid_kit_spawn",					"weapon_first_aid_kit",					NULL,					false },
+		{ "weapon_first_aid_kit",						"weapon_c4",					NULL,					false },
+		{ "weapon_first_aid_kit_spawn",					"weapon_c4",					NULL,					false },
 		{ "weapon_gascan_spawn",						"weapon_gascan",						NULL,					false },
 		{ "weapon_grenade_launcher",					"weapon_grenade_launcher",				NULL,					false },
 		{ "weapon_grenade_launcher_spawn",				"weapon_grenade_launcher",				NULL,					false },
@@ -392,17 +392,12 @@ void CWeaponScriptedSpawn::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, U
 	if ( pAlias && pAlias->bAmmoOnly )
 	{
 		pPlayer->StockPlayerAmmo();
-		UTIL_Remove( this );
 		return;
 	}
 
 	const char *pszGiveClass = ResolveGiveWeaponClassForPlayer( pPlayer );
 	if ( GiveWeaponToPlayer( pPlayer, pszGiveClass ) )
 	{
-		if ( Q_stricmp( GetClassname(), "weapon_spawn" ) != 0 )
-		{
-			UTIL_Remove( this );
-		}
 		return;
 	}
 

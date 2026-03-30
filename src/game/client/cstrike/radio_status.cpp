@@ -39,9 +39,9 @@ static void radio1_f( void );
 static void radio2_f( void );
 static void radio3_f( void );
 
-static ConCommand radio1( "radio1", radio1_f, "Opens a radio menu" );
-static ConCommand radio2( "radio2", radio2_f, "Opens a radio menu" );
-static ConCommand radio3( "radio3", radio3_f, "Opens a radio menu" );
+//static ConCommand radio1( "radio1", radio1_f, "Opens a radio menu" );
+//static ConCommand radio2( "radio2", radio2_f, "Opens a radio menu" );
+//static ConCommand radio3( "radio3", radio3_f, "Opens a radio menu" );
 static int g_whichMenu = 0;
 
 //
@@ -105,121 +105,6 @@ static void radio2_f( void )
 static void radio3_f( void )
 {
 	OpenRadioMenu( 3 );
-}
-
-CON_COMMAND_F( menuselect, "menuselect", FCVAR_CLIENTCMD_CAN_EXECUTE )
-{
-	if ( args.ArgC() < 2 )
-		return;
-
-	if( g_whichMenu == 0 )
-	{
-		// if we didn't have a menu open, maybe a plugin did.  send it on to the server.
-		const char *cmd = VarArgs( "menuselect %s", args[1] );
-		engine->ServerCmd( cmd );
-		return;
-	}
-
-	int whichEntry = atoi( args[ 1 ] );
-
-	switch( g_whichMenu )
-	{
-		case 1: //RadioA
-		{
-			switch( whichEntry )
-			{
-			case 1: // coverme
-				engine->ClientCmd( "coverme" );
-				break;
-			case 2: // takepoint
-				engine->ClientCmd( "takepoint" );
-				break;
-			case 3: // holdpos
-				engine->ClientCmd( "holdpos" );
-				break;
-			case 4: // regroup
-				engine->ClientCmd( "regroup" );
-				break;
-			case 5: // followme
-				engine->ClientCmd( "followme" );
-				break;
-			case 6: // takingfire
-				engine->ClientCmd( "takingfire" );
-				break;
-			}
-		}
-		break;
-
-		case 2: //RadioB
-		{
-			switch( whichEntry )
-			{
-			case 1: // go
-				engine->ClientCmd( "go" );
-				break;
-			case 2: // fallback
-				engine->ClientCmd( "fallback" );
-				break;
-			case 3: // sticktog
-				engine->ClientCmd( "sticktog" );
-				break;
-			case 4: // getinpos
-				engine->ClientCmd( "getinpos" );
-				break;
-			case 5: // stormfront
-				engine->ClientCmd( "stormfront" );
-				break;
-			case 6: // report
-				engine->ClientCmd( "report" );
-				break;
-			}
-		}
-		break;
-
-		case 3: //RadioC
-		{
-			switch( whichEntry )
-			{
-			case 1: // roger
-				engine->ClientCmd( "roger" );
-				break;
-			case 2: // enemyspot
-				engine->ClientCmd( "enemyspot" );
-				break;
-			case 3: // needbackup
-				engine->ClientCmd( "needbackup" );
-				break;
-			case 4: // sectorclear
-				engine->ClientCmd( "sectorclear" );
-				break;
-			case 5: // inposition
-				engine->ClientCmd( "inposition" );
-				break;
-			case 6: // reportingin
-				engine->ClientCmd( "reportingin" );
-				break;
-			case 7: // getout
-				engine->ClientCmd( "getout" );
-				break;
-			case 8: // negative
-				engine->ClientCmd( "negative" );
-				break;
-			case 9: // enemydown
-				engine->ClientCmd( "enemydown" );
-				break;
-			}
-		}
-		break;
-
-		default:
-			// if we didn't have a menu open, maybe a plugin did.  send it on to the server.
-			const char *cmd = VarArgs( "menuselect %d", whichEntry );
-			engine->ServerCmd( cmd );
-			break;
-	}
-
-	// reset menu
-	g_whichMenu = 0;
 }
 
 //

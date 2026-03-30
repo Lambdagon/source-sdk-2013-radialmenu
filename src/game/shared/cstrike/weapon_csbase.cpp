@@ -1737,7 +1737,7 @@ static ConVar	cl_bobcycle("cl_bobcycle", "0.98", FCVAR_ARCHIVE, "the frequency a
 //static ConVar	cl_bob( "cl_bob","0.002", FCVAR_ARCHIVE );
 static ConVar	cl_bobup("cl_bobup", "0.5", FCVAR_CHEAT);
 
-ConVar	cl_use_new_headbob("cl_use_new_headbob", "0", FCVAR_CLIENTDLL);
+ConVar	cl_use_new_headbob("cl_use_new_headbob", "1", FCVAR_CLIENTDLL|FCVAR_ARCHIVE);
 static ConVar	cl_bobamt_vert("cl_bobamt_vert", "0.25", FCVAR_ARCHIVE, "The amount the viewmodel moves up and down when running", true, 0.1, true, 2);
 static ConVar	cl_bobamt_lat("cl_bobamt_lat", "0.4", FCVAR_ARCHIVE, "The amount the viewmodel moves side to side when running", true, 0.1, true, 2);
 static ConVar	cl_bob_lower_amt("cl_bob_lower_amt", "21", FCVAR_ARCHIVE, "The amount the viewmodel lowers when running", true, 5, true, 30);

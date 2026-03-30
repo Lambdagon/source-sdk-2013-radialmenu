@@ -19,7 +19,7 @@
 #include "convar.h"
 #include "cs_shareddefs.h"
 #include "gamevars_shared.h"
-
+#include "teamplayroundbased_gamerules.h"
 #ifdef CLIENT_DLL
 	#include "c_cs_player.h"
 	#include "networkstringtable_clientdll.h"
@@ -84,10 +84,10 @@ public:
 };
 
 
-class CCSGameRules : public CTeamplayRules
+class CCSGameRules : public CTeamplayRoundBasedRules
 {
 public:
-	DECLARE_CLASS( CCSGameRules, CTeamplayRules );
+	DECLARE_CLASS( CCSGameRules, CTeamplayRoundBasedRules);
 
 	// Stuff that is shared between client and server.
 	bool IsFreezePeriod();

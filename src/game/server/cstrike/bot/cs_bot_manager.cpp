@@ -1021,15 +1021,6 @@ bool CCSBotManager::BotAddCommand( int team, bool isFromConsole, const char *pro
 		return false;
 	}
 
-	if (CSGameRules()->TeamFull( team ))
-	{
-		if ( isFromConsole )
-		{
-			Msg( "Could not add bot to the game: Team is full\n" );
-		}
-		return false;
-	}
-
 	/*
 	if (CSGameRules()->TeamStacked( team, TEAM_UNASSIGNED ))
 	{

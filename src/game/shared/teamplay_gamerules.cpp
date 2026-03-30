@@ -121,7 +121,7 @@ bool CTeamplayRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 		return true;
 	}
 
-	if (FStrEq(args[0], "voice_menuselect"))
+	if (FStrEq(args[0], "menuselect"))
 	{
 		if (args.ArgC() < 2)
 			return true;

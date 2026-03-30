@@ -162,8 +162,8 @@ static ConVar z_special_far_cull_grace( "z_special_far_cull_grace", "5.0", FCVAR
 // Tank director: spawn tanks near authored map anchors when survivors approach them.
 static ConVar z_special_tank_spawn_enabled( "z_special_tank_spawn_enabled", "1", FCVAR_GAMEDLL, "If 1, tanks can spawn near authored tank spawn anchors when survivors approach them." );
 static ConVar z_special_tank_spawn_cooldown( "z_special_tank_spawn_cooldown", "180", FCVAR_GAMEDLL, "Minimum seconds between successful tank spawns.", true, 0.0f, true, 3600.0f );
-static ConVar z_tank_spawn_proximity_radius( "z_tank_spawn_proximity_radius", "1400", FCVAR_GAMEDLL, "How close survivors must be to a tank spawn anchor before a tank can spawn there.", true, 128.0f, true, 10000.0f );
-static ConVar z_tank_spawn_search_radius( "z_tank_spawn_search_radius", "900", FCVAR_GAMEDLL, "How far from a tank spawn anchor to search for a valid tank spawn point.", true, 128.0f, true, 5000.0f );
+static ConVar z_tank_spawn_proximity_radius( "z_tank_spawn_proximity_radius", "5600", FCVAR_GAMEDLL, "How close survivors must be to a tank spawn anchor before a tank can spawn there.", true, 128.0f, true, 10000.0f );
+static ConVar z_tank_spawn_search_radius( "z_tank_spawn_search_radius", "4500", FCVAR_GAMEDLL, "How far from a tank spawn anchor to search for a valid tank spawn point.", true, 128.0f, true, 5000.0f );
 
 // Tank human takeover: if a tank bot exists and there are human infected, hand the tank to a random human.
 static ConVar z_tank_human_takeover_enabled( "z_tank_human_takeover_enabled", "1", FCVAR_GAMEDLL, "If 1, when a tank bot exists and there are human infected players, a random human is told they'll become the tank and takes over within a short delay." );
@@ -310,15 +310,21 @@ static void BuildSurvivorSpawnPointsIfNeeded()
 	}
 
 	pEnt = NULL;
+	while ((pEnt = gEntList.FindEntityByClassname(pEnt, "info_landmark")) != NULL)
+	{
+		s_vecSurvivorSpawnPoints.AddToTail(pEnt->GetAbsOrigin());
+	}
+
+	pEnt = NULL;
 	while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_survivor_position" ) ) != NULL )
 	{
 		s_vecSurvivorSpawnPoints.AddToTail( pEnt->GetAbsOrigin() );
 	}
 
 	pEnt = NULL;
-	while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_player_start" ) ) != NULL )
+	while ((pEnt = gEntList.FindEntityByClassname(pEnt, "info_player_start")) != NULL)
 	{
-		s_vecSurvivorSpawnPoints.AddToTail( pEnt->GetAbsOrigin() );
+		s_vecSurvivorSpawnPoints.AddToTail(pEnt->GetAbsOrigin());
 	}
 
 	// As a last resort, use current survivor positions as "spawn points" so the
@@ -519,7 +525,7 @@ static bool HasAnySurvivorLeftSpawnOnce( void )
 	return false;
 }
 
-static bool IsEntityInsideSaferoomZone( CBaseEntity *pZone, CBaseEntity *pEntity )
+bool IsEntityInsideSaferoomZone( CBaseEntity *pZone, CBaseEntity *pEntity )
 {
 	if ( !pZone || !pEntity )
 		return false;
@@ -528,6 +534,17 @@ static bool IsEntityInsideSaferoomZone( CBaseEntity *pZone, CBaseEntity *pEntity
 		return true;
 
 	return pZone->CollisionProp()->IsPointInBounds( pEntity->WorldSpaceCenter() );
+}
+
+bool IsEntityInsideSaferoomEndZone( CBaseEntity *pZone, CBaseEntity *pChangelevel, CBaseEntity *pEntity )
+{
+	if ( IsEntityInsideSaferoomZone( pZone, pEntity ) )
+		return true;
+
+	if ( pChangelevel && pChangelevel != pZone && IsEntityInsideSaferoomZone( pChangelevel, pEntity ) )
+		return true;
+
+	return false;
 }
 
 static CBaseEntity *FindSaferoomChangeLevelEntity( void )
@@ -540,7 +557,7 @@ static CBaseEntity *FindSaferoomZoneForChangelevel( CBaseEntity *pChangelevel )
 	if ( !pChangelevel )
 		return NULL;
 
-	CBaseEntity *pBestZone = NULL;
+	CBaseEntity *pBestZone = pChangelevel;
 	float flBestDistSqr = FLT_MAX;
 	CBaseEntity *pZone = NULL;
 
@@ -560,16 +577,39 @@ static CBaseEntity *FindSaferoomZoneForChangelevel( CBaseEntity *pChangelevel )
 	return pBestZone;
 }
 
-static bool IsSaferoomDoorClosed( CBaseEntity *pZone )
+bool IsCheckpointSaferoomDoorModel( const char *pszModelName )
 {
-	if ( !pZone )
+	if ( !pszModelName || !pszModelName[0] )
+		return false;
+
+	return Q_stricmp( pszModelName, "models/props_doors/checkpoint_door_02.mdl" ) == 0 ||
+		   Q_stricmp( pszModelName, "models/props_doors/checkpoint_door_-02.mdl" ) == 0;
+}
+
+static bool IsSaferoomDoorClosed( CBaseEntity *pZone, CBaseEntity *pChangelevel )
+{
+	if ( !pZone && !pChangelevel )
 		return false;
 
 	CBaseEntity *pDoorEntity = NULL;
+	while ( ( pDoorEntity = gEntList.FindEntityByClassname( pDoorEntity, "prop_door_rotating_checkpoint" ) ) != NULL )
+	{
+		CBasePropDoor *pDoor = dynamic_cast< CBasePropDoor * >( pDoorEntity );
+		if ( !pDoor || !IsCheckpointSaferoomDoorModel( STRING( pDoorEntity->GetModelName() ) ) )
+			continue;
+
+		if ( !IsEntityInsideSaferoomEndZone( pZone, pChangelevel, pDoorEntity ) )
+			continue;
+
+		if ( pDoor->IsDoorClosed() )
+			return true;
+	}
+
+	pDoorEntity = NULL;
 	while ( ( pDoorEntity = gEntList.FindEntityByClassname( pDoorEntity, "func_door" ) ) != NULL )
 	{
 		CBaseDoor *pDoor = dynamic_cast< CBaseDoor * >( pDoorEntity );
-		if ( !pDoor || !IsEntityInsideSaferoomZone( pZone, pDoorEntity ) )
+		if ( !pDoor || !IsEntityInsideSaferoomEndZone( pZone, pChangelevel, pDoorEntity ) )
 			continue;
 
 		if ( pDoor->m_toggle_state == TS_AT_BOTTOM )
@@ -580,7 +620,7 @@ static bool IsSaferoomDoorClosed( CBaseEntity *pZone )
 	while ( ( pDoorEntity = gEntList.FindEntityByClassname( pDoorEntity, "prop_door_rotating" ) ) != NULL )
 	{
 		CBasePropDoor *pDoor = dynamic_cast< CBasePropDoor * >( pDoorEntity );
-		if ( !pDoor || !IsEntityInsideSaferoomZone( pZone, pDoorEntity ) )
+		if ( !pDoor || !IsEntityInsideSaferoomEndZone( pZone, pChangelevel, pDoorEntity ) )
 			continue;
 
 		if ( pDoor->IsDoorClosed() )
@@ -590,14 +630,14 @@ static bool IsSaferoomDoorClosed( CBaseEntity *pZone )
 	return false;
 }
 
-static bool AreAllAliveSurvivorsInSaferoomZone( CBaseEntity *pZone, CCSPlayer **ppActivator )
+static bool AreAllAliveSurvivorsInSaferoomEndZone( CBaseEntity *pZone, CBaseEntity *pChangelevel, CCSPlayer **ppActivator )
 {
 	if ( ppActivator )
 	{
 		*ppActivator = NULL;
 	}
 
-	if ( !pZone )
+	if ( !pZone && !pChangelevel )
 		return false;
 
 	int nAliveSurvivors = 0;
@@ -615,7 +655,7 @@ static bool AreAllAliveSurvivorsInSaferoomZone( CBaseEntity *pZone, CCSPlayer **
 			pFirstSurvivor = pPlayer;
 		}
 
-		if ( !IsEntityInsideSaferoomZone( pZone, pPlayer ) )
+		if ( !IsEntityInsideSaferoomEndZone( pZone, pChangelevel, pPlayer ) )
 			return false;
 	}
 
@@ -625,6 +665,33 @@ static bool AreAllAliveSurvivorsInSaferoomZone( CBaseEntity *pZone, CCSPlayer **
 	}
 
 	return nAliveSurvivors > 0;
+}
+
+static bool AreAllSpawnedSurvivorsDeadOrIncapacitated( void )
+{
+	bool bFoundSpawnedSurvivor = false;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !pPlayer || pPlayer->GetTeamNumber() != TEAM_SURVIVOR )
+			continue;
+
+		if ( pPlayer->State_Get() == STATE_PICKINGCLASS )
+			continue;
+
+		bFoundSpawnedSurvivor = true;
+
+		if ( !pPlayer->IsAlive() )
+			continue;
+
+		if ( pPlayer->IsIncapacitated() )
+			continue;
+
+		return false;
+	}
+
+	return bFoundSpawnedSurvivor;
 }
 
 static bool HasHumanInfectedPlayers( void )
@@ -661,6 +728,45 @@ static void SwapSurvivorAndInfectedTeams( void )
 	}
 }
 
+static void AwardCampaignRoundWin( CCSGameRules *pRules, int iWinningTeam, float flDelay, bool bNeededPlayers, bool bAwardCash )
+{
+	if ( !pRules || pRules->m_iRoundWinStatus != WINNER_NONE )
+		return;
+
+	if ( iWinningTeam == TEAM_SURVIVOR )
+	{
+		if ( bAwardCash )
+		{
+			pRules->m_iAccountTerrorist += 3000;
+		}
+
+		if ( !bNeededPlayers )
+		{
+			++pRules->m_iNumTerroristWins;
+			pRules->UpdateTeamScores();
+		}
+
+		pRules->TerminateRound( flDelay, Terrorists_Win );
+		return;
+	}
+
+	if ( iWinningTeam == TEAM_INFECTED )
+	{
+		if ( bAwardCash )
+		{
+			pRules->m_iAccountCT += 3000;
+		}
+
+		if ( !bNeededPlayers )
+		{
+			++pRules->m_iNumCTWins;
+			pRules->UpdateTeamScores();
+		}
+
+		pRules->TerminateRound( flDelay, CTs_Win );
+	}
+}
+
 static void SaferoomTransitionThink( CCSGameRules *pRules, bool bIsRestartingRound )
 {
 	if ( !gpGlobals || !IsCampaignSaferoomMap( pRules ) || bIsRestartingRound || pRules->IsFreezePeriod() )
@@ -677,20 +783,20 @@ static void SaferoomTransitionThink( CCSGameRules *pRules, bool bIsRestartingRou
 
 	CBaseEntity *pChangelevel = FindSaferoomChangeLevelEntity();
 	CBaseEntity *pZone = FindSaferoomZoneForChangelevel( pChangelevel );
-	if ( !pChangelevel || !pZone )
+	if ( !pChangelevel )
 	{
 		ResetSaferoomTransitionState();
 		return;
 	}
 
-	if ( !IsSaferoomDoorClosed( pZone ) )
+	if ( !IsSaferoomDoorClosed( pZone, pChangelevel ) )
 	{
 		ResetSaferoomTransitionState();
 		return;
 	}
 
 	CCSPlayer *pActivator = NULL;
-	if ( !AreAllAliveSurvivorsInSaferoomZone( pZone, &pActivator ) )
+	if ( !AreAllAliveSurvivorsInSaferoomEndZone( pZone, pChangelevel, &pActivator ) )
 	{
 		ResetSaferoomTransitionState();
 		return;
@@ -716,6 +822,8 @@ static void SaferoomTransitionThink( CCSGameRules *pRules, bool bIsRestartingRou
 	{
 		SwapSurvivorAndInfectedTeams();
 	}
+
+	AwardCampaignRoundWin( pRules, TEAM_SURVIVOR, 0.0f, false, false );
 
 	variant_t emptyVariant;
 	pChangelevel->AcceptInput( "ChangeLevel", pActivator, pZone, emptyVariant, 0 );
@@ -2082,7 +2190,7 @@ void CCSGameRules::StartScriptedPanicEvent( CCSPlayer *pActivator, bool bRevealA
 	StartCommonInfectedHorde( true );
 
 	CBroadcastRecipientFilter filter;
-	CBaseEntity::EmitSound( filter, SOUND_FROM_WORLD, "MegaMobIncoming" );
+	BroadcastSound( "MegaMobIncoming" );
 
 	const char *pszMessage = "The horde has been alerted!";
 	CFmtStr panicMessage;
@@ -2741,8 +2849,6 @@ static void SpecialInfectedDirectorThink(CCSGameRules* rules, bool isRestartingR
 				s_flNextTankSpawnAllowed = 0.0f;
 			}
 		}
-		else if ( gpGlobals->curtime >= s_flNextTankSpawnAllowed && !IsAnyAliveTank() )
-		{
 			if ( survivorCount > 0 )
 			{
 				Vector anchor;
@@ -2759,7 +2865,6 @@ static void SpecialInfectedDirectorThink(CCSGameRules* rules, bool isRestartingR
 					}
 				}
 			}
-		}
 	}
 
 	if (s_flNextSpecialInfectedSpawn <= 0.0f)
@@ -3113,37 +3218,57 @@ ConVar cl_autohelp(
 		"env_sun",
 		"env_wind",
 		"env_fog_controller",
+		"env_tonemap_controller",
+		"env_cascade_light",
 		"func_brush",
 		"func_wall",
 		"func_buyzone",
 		"func_illusionary",
 		"func_hostage_rescue",
 		"func_bomb_target",
+		"func_elevator",
+		"info_elevator_floor",
 		"infodecal",
 		"info_projecteddecal",
 		"info_node",
 		"info_target",
 		"info_node_hint",
 		"info_player_counterterrorist",
-		"info_player_start",
 		"info_player_terrorist",
-		"info_survivor_position",
+		"info_enemy_terrorist_spawn",
+		"info_deathmatch_spawn",
+		"info_armsrace_counterterrorist",
+		"info_armsrace_terrorist",
 		"info_map_parameters",
 		"keyframe_rope",
 		"move_rope",
 		"info_ladder",
 		"player",
 		"point_viewcontrol",
+		"point_viewcontrol_multiplayer",
 		"scene_manager",
 		"shadow_control",
 		"sky_camera",
 		"soundent",
 		"trigger_soundscape",
 		"viewmodel",
+		"hand_viewmodel",
 		"predicted_viewmodel",
-		"hand_viewmodel", // Our new viewmodel entity
 		"worldspawn",
 		"point_devshot_camera",
+		"logic_choreographed_scene",
+		"cfe_player_decal",				// persistent player spray decals must be preserved
+		//"logic_auto",					// preserving this will break all of the maps who currently rely on it getting destroyed each time the map entities are recreated
+		"info_bomb_target_hint_A",
+		"info_bomb_target_hint_B",
+		"info_hostage_rescue_zone_hint",
+		// for the training map
+		"generic_actor",
+		"vote_controller",
+		"wearable_item",
+		"point_hiding_spot",
+		"game_coopmission_manager",
+		"chicken",
 		"", // END Marker
 	};
 
@@ -5538,6 +5663,13 @@ ConVar cl_autohelp(
 		if ( BombRoundEndCheck( bNeededPlayers ) )
 			return true;
 
+		/****************************** CAMPAIGN SURVIVOR WIPE CHECK *************************************/
+		if ( IsCampaignSaferoomMap( this ) && AreAllSpawnedSurvivorsDeadOrIncapacitated() )
+		{
+			AwardCampaignRoundWin( this, TEAM_INFECTED, mp_round_restart_delay.GetFloat(), bNeededPlayers, true );
+			return true;
+		}
+
 
 		/***************************** TEAM EXTERMINATION CHECK!! *********************************************************/
 		// CounterTerrorists won by virture of elimination
@@ -7391,16 +7523,30 @@ ConVar cl_autohelp(
 			}
 
 			ent = NULL;
-			while ( ( ent = gEntList.FindEntityByClassname( ent, "info_survivor_position" ) ) != NULL )
+			while ((ent = gEntList.FindEntityByClassname(ent, "info_survivor_position")) != NULL)
 			{
-				if ( IsSpawnPointValid( ent, NULL ) )
+				if (IsSpawnPointValid(ent, NULL))
 				{
 					m_iSpawnPointCount_Terrorist++;
 				}
 				else
 				{
 					Warning("Invalid survivor spawnpoint at (%.1f,%.1f,%.1f)\n",
-						ent->GetAbsOrigin()[0],ent->GetAbsOrigin()[2],ent->GetAbsOrigin()[2] );
+						ent->GetAbsOrigin()[0], ent->GetAbsOrigin()[2], ent->GetAbsOrigin()[2]);
+				}
+			}
+
+			ent = NULL;
+			while ((ent = gEntList.FindEntityByClassname(ent, "info_player_start")) != NULL)
+			{
+				if (IsSpawnPointValid(ent, NULL))
+				{
+					m_iSpawnPointCount_Terrorist++;
+				}
+				else
+				{
+					Warning("Invalid survivor spawnpoint at (%.1f,%.1f,%.1f)\n",
+						ent->GetAbsOrigin()[0], ent->GetAbsOrigin()[2], ent->GetAbsOrigin()[2]);
 				}
 			}
 
