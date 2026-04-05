@@ -2057,7 +2057,7 @@ bool CBaseCombatWeapon::DefaultReload( int iClipSize1, int iClipSize2, int iActi
 	MDLCACHE_CRITICAL_SECTION();
 	float flSequenceEndTime = gpGlobals->curtime + SequenceDuration();
 	pOwner->SetNextAttack( flSequenceEndTime );
-	m_flNextPrimaryAttack = m_flNextSecondaryAttack = flSequenceEndTime;
+	m_flNextPrimaryAttack = flSequenceEndTime;
 
 	m_bInReload = true;
 

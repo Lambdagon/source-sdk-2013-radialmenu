@@ -935,6 +935,8 @@ private:
 	bool m_bIgnoreSurvivorSquad;									///< if true, ignore SurvivorSquadThink forced leader follow this update
 	CHandle< CCSPlayer > m_pounceRescueVictim;						///< survivor bots: pounced teammate we are moving to rescue
 	CHandle< CCSPlayer > m_incapReviveTarget;						///< survivor bots: current incapacitated teammate we are trying to revive
+	CHandle< CCSPlayer > m_firstAidTarget;							///< survivor bots: current teammate we are trying to heal with the first aid kit
+	bool m_bFirstAidSelfHeal;										///< survivor bots: true while we are trying to heal ourselves with the first aid kit
 
 	CountdownTimer m_hurryTimer;									///< if valid, bot is in a hurry
 	CountdownTimer m_alertTimer;									///< if valid, bot is alert

@@ -241,11 +241,6 @@ void FX_FireBullets(
 		}
 	}
 
-	if ( bDoEffects)
-	{
-		FX_WeaponSound( iPlayerIndex, sound_type, vOrigin, pWeaponInfo, flSoundTime );
-	}
-
 
 	// Fire bullets, calculate impacts & effects
 

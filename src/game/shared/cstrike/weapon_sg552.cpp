@@ -146,6 +146,7 @@ void CWeaponSG552::PrimaryAttack()
 		pPlayer->KickBack (0.6, 0.35, 0.2, 0.0125, 3.7, 2, 10);
 	else
 		pPlayer->KickBack (0.625, 0.375, 0.25, 0.0125, 4, 2.25, 9);
+	WeaponSound(SINGLE);
 }
 
 

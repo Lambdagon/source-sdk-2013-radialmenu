@@ -13,6 +13,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern ConVar survivor_set;
+
 namespace
 {
 	struct WeaponSpawnAlias_t
@@ -30,8 +32,8 @@ namespace
 		{ "weapon_autoshotgun_spawn",					"weapon_xm1014",						"weapon_xm1014",		false },
 		{ "weapon_chainsaw_spawn",						"weapon_chainsaw",						"weapon_knife",			false },
 		{ "weapon_defibrillator_spawn",					"weapon_defibrillator",					NULL,					false },
-		{ "weapon_first_aid_kit",						"weapon_c4",					NULL,					false },
-		{ "weapon_first_aid_kit_spawn",					"weapon_c4",					NULL,					false },
+		{ "weapon_first_aid_kit",						"weapon_c4",					"weapon_c4",					false },
+		{ "weapon_first_aid_kit_spawn",					"weapon_c4",					"weapon_c4",					false },
 		{ "weapon_gascan_spawn",						"weapon_gascan",						NULL,					false },
 		{ "weapon_grenade_launcher",					"weapon_grenade_launcher",				NULL,					false },
 		{ "weapon_grenade_launcher_spawn",				"weapon_grenade_launcher",				NULL,					false },
@@ -108,6 +110,25 @@ namespace
 	}
 }
 
+static const char* s_RandomWeaponPool[] =
+{
+	"weapon_ak47",
+	"weapon_m4a1",
+	"weapon_aug",
+	"weapon_sg552",
+	"weapon_awp",
+	"weapon_scout",
+	"weapon_g3sg1",
+	"weapon_sg550",
+	"weapon_m3",
+	"weapon_xm1014",
+	"weapon_mac10",
+	"weapon_mp5navy",
+	"weapon_p90",
+	"weapon_deagle",
+	"weapon_glock"
+};
+
 class CWeaponScriptedSpawn : public CBaseAnimating
 {
 public:
@@ -181,21 +202,16 @@ END_DATADESC()
 
 bool CWeaponScriptedSpawn::KeyValue( const char *szKeyName, const char *szValue )
 {
+	if (!Q_stricmp(szKeyName, "model"))
+	{
+		return false;
+	}
 	if ( !Q_stricmp( szKeyName, "weaponclass" ) ||
 		 !Q_stricmp( szKeyName, "weaponname" ) ||
 		 !Q_stricmp( szKeyName, "weapon_name" ) ||
 		 !Q_stricmp( szKeyName, "item" ) )
 	{
 		m_iszWeaponClassOverride = AllocPooledString( szValue );
-		return true;
-	}
-
-	if ( !Q_stricmp( szKeyName, "weapon_selection" ) )
-	{
-		if ( !IsNumericString( szValue ) )
-		{
-			m_iszWeaponClassOverride = AllocPooledString( szValue );
-		}
 		return true;
 	}
 
@@ -234,6 +250,15 @@ const char *CWeaponScriptedSpawn::ResolveGiveWeaponClassForPlayer( CCSPlayer *pP
 	const char *pszGiveClass = GetGiveWeaponClass();
 	if ( !pszGiveClass || !pszGiveClass[0] || !pPlayer )
 		return pszGiveClass;
+
+	if (!Q_stricmp(const_cast<CWeaponScriptedSpawn*>(this)->GetClassname(), "weapon_smg_spawn") && survivor_set.GetInt() == 1)
+		return "weapon_ump45";
+
+	if (!Q_stricmp(const_cast<CWeaponScriptedSpawn*>(this)->GetClassname(), "weapon_rifle_spawn") && survivor_set.GetInt() == 1)
+		return "weapon_tmp";
+
+	if (!Q_stricmp(const_cast<CWeaponScriptedSpawn*>(this)->GetClassname(), "weapon_pumpshotgun_spawn") && survivor_set.GetInt() == 1)
+		return "weapon_pumpshotgun_classic";
 
 	if ( !Q_stricmp( const_cast< CWeaponScriptedSpawn * >( this )->GetClassname(), "weapon_pistol_spawn" ) && pPlayer->Weapon_GetSlot( WEAPON_SLOT_PISTOL ) != NULL )
 		return "weapon_elite";
@@ -277,8 +302,11 @@ void CWeaponScriptedSpawn::Precache( void )
 
 	if ( !Q_stricmp( GetClassname(), "weapon_pistol_spawn" ) )
 	{
-		UTIL_PrecacheOther( "weapon_elite" );
+		UTIL_PrecacheOther("weapon_elite");
+		UTIL_PrecacheOther("weapon_usp");
 	}
+
+	UTIL_PrecacheOther("weapon_pumpshotgun_classic");
 
 	const char *pszWorldModel = ResolveWorldModel();
 	if ( pszWorldModel && pszWorldModel[0] )
@@ -289,6 +317,12 @@ void CWeaponScriptedSpawn::Precache( void )
 
 void CWeaponScriptedSpawn::Spawn( void )
 {
+	if (!Q_stricmp(const_cast<CWeaponScriptedSpawn*>(this)->GetClassname(), "weapon_spawn"))
+	{
+		int count = ARRAYSIZE(s_RandomWeaponPool);
+		int index = random->RandomInt(0, count - 1);
+		m_iszWeaponClassOverride = AllocPooledString(s_RandomWeaponPool[index]); 
+	}
 	Precache();
 
 	SetMoveType( MOVETYPE_NONE );
@@ -310,9 +344,6 @@ void CWeaponScriptedSpawn::Spawn( void )
 bool CWeaponScriptedSpawn::GiveWeaponToPlayer( CCSPlayer *pPlayer, const char *pszGiveClass )
 {
 	if ( !pPlayer || !pszGiveClass || !pszGiveClass[0] )
-		return false;
-
-	if ( WeaponIdFromString( pszGiveClass ) == WEAPON_NONE )
 		return false;
 
 	const CCSWeaponInfo *pInfo = GetScriptWeaponInfo( pszGiveClass );

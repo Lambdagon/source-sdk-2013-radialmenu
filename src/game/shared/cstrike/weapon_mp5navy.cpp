@@ -126,4 +126,5 @@ void CWeaponMP5Navy::PrimaryAttack( void )
 		pPlayer->KickBack (0.225, 0.15, 0.1, 0.015, 2, 1, 10);
 	else
 		pPlayer->KickBack (0.25, 0.175, 0.125, 0.02, 2.25, 1.25, 10);
+	WeaponSound(SINGLE);
 }

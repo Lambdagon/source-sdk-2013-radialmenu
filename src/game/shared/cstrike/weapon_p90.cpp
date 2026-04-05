@@ -94,4 +94,5 @@ void CWeaponP90::PrimaryAttack()
 		pPlayer->KickBack (0.275, 0.2, 0.125, 0.02, 3, 1, 9);
 	else
 		pPlayer->KickBack (0.3, 0.225, 0.125, 0.02, 3.25, 1.25, 8);
+	WeaponSound(SINGLE);
 }

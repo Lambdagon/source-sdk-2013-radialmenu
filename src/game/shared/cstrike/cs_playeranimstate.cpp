@@ -41,7 +41,9 @@
 #define FIRESEQUENCE_LAYER		(AIMSEQUENCE_LAYER+NUM_AIMSEQUENCE_LAYERS+1)
 #define RELOADSEQUENCE_LAYER	(FIRESEQUENCE_LAYER + 1)
 #define GRENADESEQUENCE_LAYER	(RELOADSEQUENCE_LAYER + 1)
-#define NUM_LAYERS_WANTED		(GRENADESEQUENCE_LAYER + 1)
+#define CUSTOMGESTURE_LAYER		(GRENADESEQUENCE_LAYER + 1)
+#define VCDGESTURE_LAYER		(CUSTOMGESTURE_LAYER + 1)
+#define NUM_LAYERS_WANTED		(VCDGESTURE_LAYER + 1)
 
 namespace
 {
@@ -55,79 +57,80 @@ namespace
 		Activity idleInjured;
 		Activity walkInjured;
 		Activity runInjured;
+		Activity jump;
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorPistolActivityMap =
 	{
 		ACT_IDLE_PISTOL, ACT_WALK_PISTOL, ACT_RUN_PISTOL, ACT_CROUCHIDLE_PISTOL, ACT_RUN_CROUCH_PISTOL,
-		ACT_IDLE_INJURED_PISTOL, ACT_WALK_INJURED_PISTOL, ACT_RUN_INJURED_PISTOL
+		ACT_IDLE_INJURED_PISTOL, ACT_WALK_INJURED_PISTOL, ACT_RUN_INJURED_PISTOL, ACT_JUMP_ITEM
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorElitesActivityMap =
 	{
 		ACT_IDLE_ELITES, ACT_WALK_ELITES, ACT_RUN_ELITES, ACT_CROUCHIDLE_ELITES, ACT_RUN_CROUCH_ELITES,
-		ACT_IDLE_INJURED_ELITES, ACT_WALK_INJURED_ELITES, ACT_RUN_INJURED_ELITES
+		ACT_IDLE_INJURED_ELITES, ACT_WALK_INJURED_ELITES, ACT_RUN_INJURED_ELITES, ACT_JUMP_DUAL_PISTOL
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorRifleActivityMap =
 	{
 		ACT_IDLE_RIFLE, ACT_WALK_RIFLE, ACT_RUN_RIFLE, ACT_CROUCHIDLE_RIFLE, ACT_RUN_CROUCH_RIFLE,
-		ACT_IDLE_INJURED_RIFLE, ACT_WALK_INJURED_RIFLE, ACT_RUN_INJURED_RIFLE
+		ACT_IDLE_INJURED_RIFLE, ACT_WALK_INJURED_RIFLE, ACT_RUN_INJURED_RIFLE, ACT_JUMP_RIFLE
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorSMGActivityMap =
 	{
 		// Survivor SMGs share the authored crouch-idle "secondary" locomotion slot.
 		ACT_IDLE_SMG, ACT_WALK_SMG, ACT_RUN_SMG, ACT_CROUCHIDLE_SECONDARY, ACT_RUN_CROUCH_SMG,
-		ACT_IDLE_INJURED_SMG, ACT_WALK_INJURED_SMG, ACT_RUN_INJURED_SMG
+		ACT_IDLE_INJURED_SMG, ACT_WALK_INJURED_SMG, ACT_RUN_INJURED_SMG, ACT_JUMP_SMG
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorPumpShotgunActivityMap =
 	{
 		ACT_IDLE_PUMPSHOTGUN, ACT_WALK_PUMPSHOTGUN, ACT_RUN_PUMPSHOTGUN, ACT_CROUCHIDLE_PUMPSHOTGUN, ACT_RUN_CROUCH_PUMPSHOTGUN,
-		ACT_IDLE_INJURED_PUMPSHOTGUN, ACT_WALK_INJURED_PUMPSHOTGUN, ACT_RUN_INJURED_PUMPSHOTGUN
+		ACT_IDLE_INJURED_PUMPSHOTGUN, ACT_WALK_INJURED_PUMPSHOTGUN, ACT_RUN_INJURED_PUMPSHOTGUN, ACT_JUMP_SHOTGUN
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorShotgunActivityMap =
 	{
 		ACT_IDLE_SHOTGUN, ACT_WALK_SHOTGUN, ACT_RUN_SHOTGUN, ACT_CROUCHIDLE_SHOTGUN, ACT_RUN_CROUCH_SHOTGUN,
-		ACT_IDLE_INJURED_PUMPSHOTGUN, ACT_WALK_INJURED_PUMPSHOTGUN, ACT_RUN_INJURED_PUMPSHOTGUN
+		ACT_IDLE_INJURED_PUMPSHOTGUN, ACT_WALK_INJURED_PUMPSHOTGUN, ACT_RUN_INJURED_PUMPSHOTGUN, ACT_JUMP_SHOTGUN
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorGrenadeActivityMap =
 	{
 		ACT_IDLE_GREN, ACT_WALK_GREN, ACT_RUN_GREN, ACT_CROUCHIDLE_GREN, ACT_RUN_CROUCH_GREN,
-		ACT_IDLE_INJURED_GREN, ACT_WALK_INJURED_GREN, ACT_RUN_INJURED_GREN
+		ACT_IDLE_INJURED_GREN, ACT_WALK_INJURED_GREN, ACT_RUN_INJURED_GREN, ACT_JUMP_ITEM
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorFirstAidKitActivityMap =
 	{
 		ACT_IDLE_FIRSTAIDKIT, ACT_WALK_FIRSTAIDKIT, ACT_RUN_FIRSTAIDKIT, ACT_CROUCHIDLE_FIRSTAIDKIT, ACT_RUN_CROUCH_FIRSTAIDKIT,
-		ACT_IDLE_INJURED_FIRSTAIDKIT, ACT_WALK_INJURED_FIRSTAIDKIT, ACT_RUN_INJURED_FIRSTAIDKIT
+		ACT_IDLE_INJURED_FIRSTAIDKIT, ACT_WALK_INJURED_FIRSTAIDKIT, ACT_RUN_INJURED_FIRSTAIDKIT, ACT_JUMP_ITEM
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorSniperActivityMap =
 	{
 		ACT_IDLE_SNIPER, ACT_WALK_SNIPER, ACT_RUN_SNIPER, ACT_CROUCHIDLE_SNIPER, ACT_RUN_CROUCH_SNIPER,
-		ACT_IDLE_INJURED_SNIPER, ACT_WALK_INJURED_SNIPER, ACT_RUN_INJURED_SNIPER
+		ACT_IDLE_INJURED_SNIPER, ACT_WALK_INJURED_SNIPER, ACT_RUN_INJURED_SNIPER, ACT_JUMP_RIFLE
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorSniperZoomedActivityMap =
 	{
 		ACT_IDLE_SNIPER_ZOOMED, ACT_WALK_SNIPER, ACT_RUN_SNIPER, ACT_CROUCHIDLE_SNIPER_ZOOMED, ACT_RUN_CROUCH_SNIPER,
-		ACT_IDLE_INJURED_SNIPER_ZOOMED, ACT_WALK_INJURED_SNIPER, ACT_RUN_INJURED_SNIPER
+		ACT_IDLE_INJURED_SNIPER_ZOOMED, ACT_WALK_INJURED_SNIPER, ACT_RUN_INJURED_SNIPER, ACT_JUMP_RIFLE
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorMilitarySniperActivityMap =
 	{
 		ACT_IDLE_SNIPER_MILITARY, ACT_WALK_SNIPER_MILITARY, ACT_RUN_SNIPER_MILITARY, ACT_CROUCHIDLE_SNIPER_MILITARY, ACT_RUN_CROUCH_SNIPER_MILITARY,
-		ACT_IDLE_INJURED_SNIPER_MILITARY, ACT_WALK_INJURED_SNIPER_MILITARY, ACT_RUN_INJURED_SNIPER_MILITARY
+		ACT_IDLE_INJURED_SNIPER_MILITARY, ACT_WALK_INJURED_SNIPER_MILITARY, ACT_RUN_INJURED_SNIPER_MILITARY, ACT_JUMP_RIFLE
 	};
 
 	static const SurvivorActivityMap_t s_SurvivorMilitarySniperZoomedActivityMap =
 	{
 		ACT_IDLE_SNIPER_MILITARYZOOMED, ACT_WALK_SNIPER_MILITARY, ACT_RUN_SNIPER_MILITARY, ACT_CROUCHIDLE_SNIPER_MILITARYZOOMED, ACT_RUN_CROUCH_SNIPER_MILITARY,
-		ACT_IDLE_INJURED_SNIPER_MILITARYZOOMED, ACT_WALK_INJURED_SNIPER_MILITARY, ACT_RUN_INJURED_SNIPER_MILITARY
+		ACT_IDLE_INJURED_SNIPER_MILITARYZOOMED, ACT_WALK_INJURED_SNIPER_MILITARY, ACT_RUN_INJURED_SNIPER_MILITARY, ACT_JUMP_RIFLE
 	};
 
 	static void ClearAnimLayer( CBaseAnimatingOverlay *pOuter, int iLayer )
@@ -244,6 +247,8 @@ public:
 
 	virtual void Update( float eyeYaw, float eyePitch );
 	virtual void DoAnimationEvent( PlayerAnimEvent_t event, int nData );
+	virtual void SetVCDGestureSequence( int nSequence, float flCycle );
+	virtual void ClearVCDGestureSequence();
 	virtual bool IsThrowingGrenade();
 	virtual int CalcAimLayerSequence( float *flCycle, float *flAimSequenceWeight, bool bForceIdle );
 	virtual void ClearAnimationState();
@@ -268,12 +273,15 @@ protected:
 
 	bool IsOuterGrenadePrimed();
 	void ComputeGrenadeSequence( CStudioHdr *pStudioHdr );
+	void ComputeCustomGestureSequence( CStudioHdr *pStudioHdr );
+	void ComputeVCDGestureSequence();
 	int CalcGrenadePrimeSequence();
 	int CalcGrenadeThrowSequence();
 	int GetOuterGrenadeThrowCounter();
 
 	const char* GetWeaponSuffix() const;
 	int SelectGestureSequence( Activity activity ) const;
+	void SetFixedLayerSequence( int iLayer, int iSequence, float flCycle ) const;
 	Activity CalcFireGestureActivity( PlayerAnimEvent_t event ) const;
 	Activity CalcReloadGestureActivity( PlayerAnimEvent_t event ) const;
 	bool HandleJumping();
@@ -290,6 +298,7 @@ protected:
 		float flWeightScale
 	);
 	const SurvivorActivityMap_t *GetSurvivorActivityMap() const;
+	Activity ResolveSurvivorCalmActivity( Activity activity ) const;
 	bool ShouldSuppressLocomotionAimLayers() const;
 	bool ShouldSuppressSurvivorAnimLayers() const;
 private:
@@ -305,6 +314,9 @@ private:
 	bool m_bWasPounceAttacker;
 	bool m_bWasIncapacitated;
 	bool m_bWasBeingRevived;
+	EHANDLE m_hPrevReviveTarget;
+	bool m_bWasUsingFirstAidKitOnSelf;
+	EHANDLE m_hPrevFirstAidKitTarget;
 	bool m_bIncapDyingFinished;
 	int m_nPrevDamageStaggerDir;
 	int m_nPrevChargerAction;
@@ -330,6 +342,12 @@ private:
 	float m_flGrenadeCycle;
 	int m_iGrenadeSequence;
 	int m_iLastThrowGrenadeCounter;	// used to detect when the guy threw the grenade.
+	bool m_bPlayingCustomGesture;
+	float m_flCustomGestureCycle;
+	int m_iCustomGestureSequence;
+	bool m_bPlayingVCDGesture;
+	float m_flVCDGestureCycle;
+	int m_iVCDGestureSequence;
 
 	CCSPlayer *m_pPlayer;
 
@@ -459,6 +477,9 @@ CCSPlayerAnimState::CCSPlayerAnimState()
 	m_bWasPounceAttacker = false;
 	m_bWasIncapacitated = false;
 	m_bWasBeingRevived = false;
+	m_hPrevReviveTarget = NULL;
+	m_bWasUsingFirstAidKitOnSelf = false;
+	m_hPrevFirstAidKitTarget = NULL;
 	m_bIncapDyingFinished = false;
 	m_nPrevDamageStaggerDir = -1;
 	m_nPrevChargerAction = -1;
@@ -480,6 +501,12 @@ CCSPlayerAnimState::CCSPlayerAnimState()
 	m_flGrenadeCycle = 0.0f;
 	m_iGrenadeSequence = -1;
 	m_iLastThrowGrenadeCounter = 0;
+	m_bPlayingCustomGesture = false;
+	m_flCustomGestureCycle = 0.0f;
+	m_iCustomGestureSequence = -1;
+	m_bPlayingVCDGesture = false;
+	m_flVCDGestureCycle = 0.0f;
+	m_iVCDGestureSequence = -1;
 	m_cachedModelIndex = -1;
 
 	m_pPlayer = NULL;
@@ -495,6 +522,16 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 	const bool bIsPounceAttacker = ( m_pPlayer && m_pPlayer->m_pounceVictim.Get() != NULL );
 	const bool bIsIncapacitated = ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && m_pPlayer->m_bIncapacitated );
 	const bool bIsBeingRevived = ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && m_pPlayer->m_bBeingRevived );
+	CBaseEntity *pReviveTarget = NULL;
+	CBaseEntity *pFirstAidKitTarget = NULL;
+	const bool bIsUsingFirstAidKitOnSelf = ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && !m_pPlayer->m_bIncapacitated && m_pPlayer->m_bUsingFirstAidKitOnSelf );
+	if ( m_pPlayer && m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && !m_pPlayer->m_bIncapacitated )
+	{
+		pReviveTarget = m_pPlayer->m_hReviveTarget.Get();
+		pFirstAidKitTarget = m_pPlayer->m_hFirstAidKitTarget.Get();
+	}
+	const bool bIsRevivingIncapacitated = ( pReviveTarget != NULL );
+	const bool bIsUsingFirstAidKitOnTeammate = ( pFirstAidKitTarget != NULL );
 
 	if ( m_pOuter && ( ( bIsPounceVictim && !m_bWasPounceVictim ) || ( bIsPounceAttacker && !m_bWasPounceAttacker ) ) )
 	{
@@ -518,6 +555,24 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 	{
 		// If revive is interrupted, replay the down animation.
 		m_bIncapDyingFinished = false;
+		RestartMainSequence();
+	}
+
+	if ( m_pOuter && bIsRevivingIncapacitated && pReviveTarget != m_hPrevReviveTarget.Get() )
+	{
+		// Ensure the revive-heal animation starts at cycle 0 whenever we begin reviving a teammate.
+		RestartMainSequence();
+	}
+
+	if ( m_pOuter && bIsUsingFirstAidKitOnSelf && ( !m_bWasUsingFirstAidKitOnSelf || m_hPrevFirstAidKitTarget.Get() != NULL ) )
+	{
+		// Ensure self-heal always starts from cycle 0.
+		RestartMainSequence();
+	}
+
+	if ( m_pOuter && bIsUsingFirstAidKitOnTeammate && ( pFirstAidKitTarget != m_hPrevFirstAidKitTarget.Get() || m_bWasUsingFirstAidKitOnSelf ) )
+	{
+		// Ensure teammate-heal always starts from cycle 0.
 		RestartMainSequence();
 	}
 
@@ -577,6 +632,9 @@ void CCSPlayerAnimState::Update( float eyeYaw, float eyePitch )
 	m_bWasPounceAttacker = bIsPounceAttacker;
 	m_bWasIncapacitated = bIsIncapacitated;
 	m_bWasBeingRevived = bIsBeingRevived;
+	m_hPrevReviveTarget = pReviveTarget;
+	m_bWasUsingFirstAidKitOnSelf = bIsUsingFirstAidKitOnSelf;
+	m_hPrevFirstAidKitTarget = pFirstAidKitTarget;
 	m_nPrevDamageStaggerDir = m_pPlayer->m_nDamageStaggerDir;
 
 	if ( bIsCharger )
@@ -838,11 +896,20 @@ void CCSPlayerAnimState::ClearAnimationState()
 	m_flReloadHoldEndTime = 0.0f;
 	m_bThrowingGrenade = m_bPrimingGrenade = false;
 	m_iLastThrowGrenadeCounter = GetOuterGrenadeThrowCounter();
+	m_bPlayingCustomGesture = false;
+	m_flCustomGestureCycle = 0.0f;
+	m_iCustomGestureSequence = -1;
+	m_bPlayingVCDGesture = false;
+	m_flVCDGestureCycle = 0.0f;
+	m_iVCDGestureSequence = -1;
 	m_bTankDeathRestarted = false;
 	m_flTankDeathPrevCycle = 0.0f;
 	m_bTankDeathPrevCycleValid = false;
 	m_bWasIncapacitated = false;
 	m_bWasBeingRevived = false;
+	m_hPrevReviveTarget = NULL;
+	m_bWasUsingFirstAidKitOnSelf = false;
+	m_hPrevFirstAidKitTarget = NULL;
 	m_bIncapDyingFinished = false;
 	m_nPrevDamageStaggerDir = -1;
 	m_nPrevChargerAction = -1;
@@ -1004,9 +1071,40 @@ void CCSPlayerAnimState::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 		}
 		break;
 
+	case PLAYERANIMEVENT_CUSTOM_GESTURE:
+		{
+			const int iSequence = SelectGestureSequence( TranslateActivity( (Activity)nData ) );
+			if ( iSequence != -1 )
+			{
+				m_bPlayingCustomGesture = true;
+				m_flCustomGestureCycle = 0.0f;
+				m_iCustomGestureSequence = iSequence;
+			}
+		}
+		break;
+
 	default:
 		Assert( !"CCSPlayerAnimState::DoAnimationEvent" );
 	}
+}
+
+void CCSPlayerAnimState::SetVCDGestureSequence( int nSequence, float flCycle )
+{
+	if ( nSequence < 0 )
+		return;
+
+	m_bPlayingVCDGesture = true;
+	m_iVCDGestureSequence = nSequence;
+	m_flVCDGestureCycle = clamp( flCycle, 0.0f, 1.0f );
+	SetFixedLayerSequence( VCDGESTURE_LAYER, m_iVCDGestureSequence, m_flVCDGestureCycle );
+}
+
+void CCSPlayerAnimState::ClearVCDGestureSequence()
+{
+	m_bPlayingVCDGesture = false;
+	m_flVCDGestureCycle = 0.0f;
+	m_iVCDGestureSequence = -1;
+	ClearAnimLayer( m_pOuter, VCDGESTURE_LAYER );
 }
 
 
@@ -1098,6 +1196,22 @@ int CCSPlayerAnimState::SelectGestureSequence( Activity activity ) const
 		return -1;
 
 	return const_cast< CCSPlayerAnimState * >( this )->SelectWeightedSequence( activity );
+}
+
+void CCSPlayerAnimState::SetFixedLayerSequence( int iLayer, int iSequence, float flCycle ) const
+{
+	if ( !m_pOuter || iLayer < 0 || iLayer >= m_pOuter->GetNumAnimOverlays() || iSequence < 0 )
+		return;
+
+	CAnimationLayer *pLayer = m_pOuter->GetAnimOverlay( iLayer );
+	pLayer->m_flCycle = clamp( flCycle, 0.0f, 1.0f );
+	pLayer->m_nSequence = iSequence;
+	pLayer->m_flPlaybackRate = 1.0f;
+	pLayer->m_flWeight = ( m_pOuter->GetMoveType() == MOVETYPE_LADDER ) ? 0.0f : 1.0f;
+	pLayer->m_nOrder = iLayer;
+#ifndef CLIENT_DLL
+	pLayer->m_fFlags |= ANIM_LAYER_ACTIVE;
+#endif
 }
 
 Activity CCSPlayerAnimState::CalcReloadGestureActivity( PlayerAnimEvent_t event ) const
@@ -1296,6 +1410,22 @@ void CCSPlayerAnimState::ComputeGrenadeSequence( CStudioHdr *pStudioHdr )
 			m_bPrimingGrenade = false;
 		}
 	}
+}
+
+void CCSPlayerAnimState::ComputeCustomGestureSequence( CStudioHdr *pStudioHdr )
+{
+	VPROF( "CCSPlayerAnimState::ComputeCustomGestureSequence" );
+	UpdateLayerSequenceGeneric( pStudioHdr, CUSTOMGESTURE_LAYER, m_bPlayingCustomGesture, m_flCustomGestureCycle, m_iCustomGestureSequence, false );
+}
+
+void CCSPlayerAnimState::ComputeVCDGestureSequence()
+{
+	VPROF( "CCSPlayerAnimState::ComputeVCDGestureSequence" );
+
+	if ( !m_bPlayingVCDGesture || m_iVCDGestureSequence < 0 )
+		return;
+
+	SetFixedLayerSequence( VCDGESTURE_LAYER, m_iVCDGestureSequence, m_flVCDGestureCycle );
 }
 
 
@@ -1564,6 +1694,59 @@ const SurvivorActivityMap_t *CCSPlayerAnimState::GetSurvivorActivityMap() const
 	}
 }
 
+Activity CCSPlayerAnimState::ResolveSurvivorCalmActivity( Activity activity ) const
+{
+	if ( !m_pPlayer || !m_pOuter || m_pPlayer->GetTeamNumber() != TEAM_SURVIVOR || !m_pPlayer->m_bUseSurvivorCalmAnimations )
+		return activity;
+
+	CWeaponCSBase *pWeapon = m_pHelpers ? m_pHelpers->CSAnim_GetActiveWeapon() : NULL;
+	const CSWeaponType weaponType = pWeapon ? pWeapon->GetCSWpnData().m_WeaponType : WEAPONTYPE_UNKNOWN;
+
+	switch ( activity )
+	{
+	case ACT_IDLE:
+		if ( weaponType == WEAPONTYPE_SHOTGUN && m_pOuter->SelectWeightedSequence( ACT_IDLE_SHOTGUN_RELAXED ) >= 0 )
+			return ACT_IDLE_SHOTGUN_RELAXED;
+
+		if ( ( weaponType == WEAPONTYPE_SUBMACHINEGUN || weaponType == WEAPONTYPE_RIFLE || weaponType == WEAPONTYPE_MACHINEGUN || weaponType == WEAPONTYPE_SNIPER_RIFLE ) &&
+			m_pOuter->SelectWeightedSequence( ACT_IDLE_SMG1_RELAXED ) >= 0 )
+		{
+			return ACT_IDLE_SMG1_RELAXED;
+		}
+
+		if ( m_pOuter->SelectWeightedSequence( ACT_IDLE_RELAXED ) >= 0 )
+			return ACT_IDLE_RELAXED;
+		break;
+
+	case ACT_WALK:
+		if ( ( weaponType == WEAPONTYPE_SUBMACHINEGUN || weaponType == WEAPONTYPE_RIFLE || weaponType == WEAPONTYPE_MACHINEGUN || weaponType == WEAPONTYPE_SHOTGUN || weaponType == WEAPONTYPE_SNIPER_RIFLE ) &&
+			m_pOuter->SelectWeightedSequence( ACT_WALK_RIFLE_RELAXED ) >= 0 )
+		{
+			return ACT_WALK_RIFLE_RELAXED;
+		}
+
+		if ( m_pOuter->SelectWeightedSequence( ACT_WALK_RELAXED ) >= 0 )
+			return ACT_WALK_RELAXED;
+		break;
+
+	case ACT_RUN:
+		if ( ( weaponType == WEAPONTYPE_SUBMACHINEGUN || weaponType == WEAPONTYPE_RIFLE || weaponType == WEAPONTYPE_MACHINEGUN || weaponType == WEAPONTYPE_SHOTGUN || weaponType == WEAPONTYPE_SNIPER_RIFLE ) &&
+			m_pOuter->SelectWeightedSequence( ACT_RUN_RIFLE_RELAXED ) >= 0 )
+		{
+			return ACT_RUN_RIFLE_RELAXED;
+		}
+
+		if ( m_pOuter->SelectWeightedSequence( ACT_RUN_RELAXED ) >= 0 )
+			return ACT_RUN_RELAXED;
+		break;
+
+	default:
+		break;
+	}
+
+	return activity;
+}
+
 
 bool CCSPlayerAnimState::ShouldSuppressLocomotionAimLayers() const
 {
@@ -1615,6 +1798,8 @@ Activity CCSPlayerAnimState::TranslateActivity( Activity actDesired )
 		return pMap->walkInjured;
 	case ACT_RUN_HURT:
 		return pMap->runInjured;
+	case ACT_JUMP:
+		return pMap->jump;
 	default:
 		return actDesired;
 	}
@@ -1704,6 +1889,18 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 
 		if (m_pPlayer->m_pounceVictim.Get()) {
 			return ACT_TERROR_HUNTER_POUNCE_MELEE;
+		}
+
+		if ( m_pPlayer->GetTeamNumber() == TEAM_SURVIVOR && !m_pPlayer->m_bIncapacitated )
+		{
+			if ( m_pPlayer->m_bUsingFirstAidKitOnSelf )
+				return ACT_TERROR_HEAL_SELF;
+
+			if ( m_pPlayer->m_hFirstAidKitTarget.Get() != NULL )
+				return ACT_TERROR_HEAL_FRIEND;
+
+			if ( m_pPlayer->m_hReviveTarget.Get() != NULL )
+				return ACT_TERROR_HEAL_INCAPACITATED;
 		}
 
 		// Survivor incapacitation: play ACT_DIESIMPLE first, then an incap idle based on pistol type.
@@ -1866,7 +2063,7 @@ Activity CCSPlayerAnimState::CalcMainActivity()
 			}
 		}
 
-		return idealActivity;
+		return ResolveSurvivorCalmActivity( idealActivity );
 	}
 }
 
@@ -1894,6 +2091,8 @@ void CCSPlayerAnimState::ComputeSequences( CStudioHdr *pStudioHdr )
 	ComputeFireSequence( pStudioHdr );
 	ComputeReloadSequence( pStudioHdr );
 	ComputeGrenadeSequence( pStudioHdr );
+	ComputeCustomGestureSequence( pStudioHdr );
+	ComputeVCDGestureSequence();
 }
 
 

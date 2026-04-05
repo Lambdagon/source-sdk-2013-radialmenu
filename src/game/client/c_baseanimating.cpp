@@ -3984,22 +3984,27 @@ void C_BaseAnimating::FireEvent( const Vector& origin, const QAngle& angles, int
 			}
 		}
 		break;
-
 	case AE_CL_PLAYSOUND:
 		{
+			C_BasePlayer* pLocal = C_BasePlayer::GetLocalPlayer();
+
+			// 🚫 Don't play if this is the local player
+			if (pLocal && this == pLocal)
+				break;
+
 			CLocalPlayerFilter filter;
 			Vector attachOrigin;
-			QAngle attachAngles; 
+			QAngle attachAngles;
 
-			if ( m_Attachments.Count() > 0)
+			if (m_Attachments.Count() > 0)
 			{
-				GetAttachment( 1, attachOrigin, attachAngles );
-				EmitSound( filter, GetSoundSourceIndex(), options, &attachOrigin );
+				GetAttachment(1, attachOrigin, attachAngles);
+				EmitSound(filter, GetSoundSourceIndex(), options, &attachOrigin);
 			}
 			else
 			{
-				EmitSound( filter, GetSoundSourceIndex(), options, &GetAbsOrigin() );
-			} 
+				EmitSound(filter, GetSoundSourceIndex(), options, &GetAbsOrigin());
+			}
 		}
 		break;
 	case AE_CL_STOPSOUND:

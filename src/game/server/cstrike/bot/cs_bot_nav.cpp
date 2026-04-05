@@ -8,6 +8,7 @@
 // Author: Michael S. Booth (mike@turtlerockstudios.com), 2003
 
 #include "cbase.h"
+#include "cs_gamerules.h"
 #include "cs_bot.h"
 #include "obstacle_pushaway.h"
 #include "fmtstr.h"
@@ -472,6 +473,17 @@ void CCSBot::BreakablesCheck( void )
  */
 void CCSBot::DoorCheck( void )
 {
+	if ( GetTeamNumber() == TEAM_SURVIVOR && !IsSpecialInfected() && CSGameRules() && CSGameRules()->IsPlayerInSaferoom( this ) )
+	{
+		if ( IsOpeningDoor() )
+		{
+			m_openDoorState.OnExit( this );
+			m_isOpeningDoor = false;
+		}
+
+		return;
+	}
+
 	if ( IsAttacking() && !IsUsingKnife() )
 	{
 		// If we're attacking with a gun or nade, don't bother with doors.  If we're trying to

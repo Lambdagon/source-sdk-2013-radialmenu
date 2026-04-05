@@ -233,6 +233,7 @@ void CWeaponElite::PrimaryAttack()
 			SendWeaponAnim( ACT_VM_SECONDARYATTACK_LAYER );
 		else
 			SendWeaponAnim( ACT_VM_DRYFIRE );
+		WeaponSound(SINGLE);
 	}
 	else
 	{
@@ -240,6 +241,7 @@ void CWeaponElite::PrimaryAttack()
 			SendWeaponAnim( ACT_VM_PRIMARYATTACK_LAYER );
 		else
 			SendWeaponAnim( ACT_VM_DRYFIRE_LEFT );
+		WeaponSound(BURST);
 	}
 
 	// update accuracy
@@ -289,7 +291,7 @@ void CWeaponElite::WeaponIdle()
 
     bool CWeaponElite::OnFireEvent( C_BaseViewModel *pViewModel, const Vector& origin, const QAngle& angles, int event, const char *options )
 	{
-		if( event == 5001 )
+		if( event == 5011 || event == 5021)
 		{
 			C_CSPlayer *pPlayer = ToCSPlayer( GetOwner() );
 			if( pPlayer && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() && HideViewModelWhenZoomed() )
@@ -298,7 +300,7 @@ void CWeaponElite::WeaponIdle()
 			CEffectData data;
 			data.m_fFlags = 0;
 			data.m_hEntity = pViewModel->GetRefEHandle();
-			data.m_nAttachmentIndex = FiringLeft() ? 1 : 2; // toggle muzzle flash
+			data.m_nAttachmentIndex = FiringLeft() ? 1 : 3; // toggle muzzle flash
 			data.m_flScale = GetCSWpnData().m_flMuzzleScale;
 		
 			DispatchEffect( "CS_MuzzleFlash", data );

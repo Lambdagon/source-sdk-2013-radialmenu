@@ -326,6 +326,8 @@ bool CCSBot::IsBusy( void ) const
 		IsDefusingBomb() || 
 		( m_pounceRescueVictim.Get() != NULL ) ||
 		( m_incapReviveTarget.Get() != NULL ) ||
+		( m_firstAidTarget.Get() != NULL ) ||
+		m_bFirstAidSelfHeal ||
 		GetTask() == PLANT_BOMB ||
 		GetTask() == RESCUE_HOSTAGES ||
 		IsSniping())

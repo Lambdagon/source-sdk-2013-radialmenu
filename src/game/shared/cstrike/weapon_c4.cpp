@@ -13,6 +13,7 @@
 #include "KeyValues.h"
 #include "fx_cs_shared.h"
 #include "obstacle_pushaway.h"
+#include "mp_shareddefs.h"
 
 #if defined( CLIENT_DLL )
 	#include "c_cs_player.h"
@@ -49,6 +50,119 @@
 int g_sModelIndexC4Glow = -1;
 
 #define WEAPON_C4_ARM_TIME	3.0
+
+#ifndef CLIENT_DLL
+static const float kFirstAidKitUseDuration = 5.0f;
+static const float kFirstAidKitUseRange = 128.0f;
+static const bool kFirstAidKitResetsIncapState = true;
+
+static bool CanUseFirstAidKit( CCSPlayer *player )
+{
+	if ( !player )
+		return false;
+
+	if ( player->GetTeamNumber() != TEAM_SURVIVOR || !player->IsAlive() || player->IsIncapacitated() )
+		return false;
+
+	if ( player->HasPounceAttacker() || player->HasChargerAttacker() || player->GetMoveType() == MOVETYPE_LADDER )
+		return false;
+
+	if ( CSGameRules() && CSGameRules()->IsFreezePeriod() )
+		return false;
+
+	if ( player->m_bIsDefusing || player->State_Get() != STATE_ACTIVE )
+		return false;
+
+	return true;
+}
+
+static bool IsValidFirstAidKitTarget( CCSPlayer *healer, CCSPlayer *target )
+{
+	if ( !healer || !target || target == healer )
+		return false;
+
+	if ( target->GetTeamNumber() != TEAM_SURVIVOR || !target->IsAlive() || target->IsIncapacitated() )
+		return false;
+
+	if ( target->HasPounceAttacker() || target->HasChargerAttacker() )
+		return false;
+
+	const float maxDistSqr = ( kFirstAidKitUseRange * kFirstAidKitUseRange );
+	if ( ( target->WorldSpaceCenter() - healer->WorldSpaceCenter() ).LengthSqr() > maxDistSqr )
+		return false;
+
+	return target->NeedsFirstAidKit( kFirstAidKitResetsIncapState );
+}
+
+static bool CanUseFirstAidKitOnTarget( CCSPlayer *healer, CCSPlayer *target, const Vector &forward, bool requireFacing )
+{
+	if ( !IsValidFirstAidKitTarget( healer, target ) )
+		return false;
+
+	Vector toTarget = target->WorldSpaceCenter() - healer->EyePosition();
+	if ( toTarget.IsZero( 0.001f ) )
+		return true;
+
+	toTarget.NormalizeInPlace();
+	if ( requireFacing && DotProduct( forward, toTarget ) < 0.5f )
+		return false;
+
+	trace_t tr;
+	UTIL_TraceLine( healer->EyePosition(), target->WorldSpaceCenter(), MASK_SHOT, healer, COLLISION_GROUP_NONE, &tr );
+	if ( tr.m_pEnt == target || tr.fraction >= 0.99f )
+		return true;
+
+	UTIL_TraceLine( healer->EyePosition(), target->EyePosition(), MASK_SHOT, healer, COLLISION_GROUP_NONE, &tr );
+	return tr.m_pEnt == target || tr.fraction >= 0.99f;
+}
+
+static CCSPlayer *FindFirstAidKitTarget( CCSPlayer *healer )
+{
+	if ( !healer )
+		return NULL;
+
+	Vector forward;
+	AngleVectors( healer->EyeAngles(), &forward );
+
+	const Vector start = healer->EyePosition();
+	const Vector end = start + ( forward * 96.0f );
+
+	trace_t tr;
+	UTIL_TraceLine( start, end, MASK_SHOT, healer, COLLISION_GROUP_NONE, &tr );
+
+	CCSPlayer *target = ToCSPlayer( tr.m_pEnt );
+	if ( CanUseFirstAidKitOnTarget( healer, target, forward, true ) )
+		return target;
+
+	CCSPlayer *bestTarget = NULL;
+	float bestDot = 0.5f;
+	float bestDistSqr = FLT_MAX;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *player = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !CanUseFirstAidKitOnTarget( healer, player, forward, true ) )
+			continue;
+
+		Vector toPlayer = player->WorldSpaceCenter() - start;
+		const float distSqr = toPlayer.LengthSqr();
+		if ( distSqr <= 0.0f )
+			continue;
+
+		toPlayer.NormalizeInPlace();
+		const float dot = DotProduct( forward, toPlayer );
+
+		if ( dot > bestDot || ( dot >= bestDot - 0.01f && distSqr < bestDistSqr ) )
+		{
+			bestDot = dot;
+			bestDistSqr = distSqr;
+			bestTarget = player;
+		}
+	}
+
+	return bestTarget;
+}
+#endif
 
 
 #ifdef CLIENT_DLL
@@ -808,6 +922,35 @@ void CC4::ItemPostFrame()
 	if ( !pPlayer )
 		return;
 
+	if ( pPlayer->GetTeamNumber() == TEAM_SURVIVOR )
+	{
+#ifndef CLIENT_DLL
+		if ( !CanUseFirstAidKit( pPlayer ) )
+		{
+			pPlayer->CancelFirstAidKitUse();
+			WeaponIdle();
+			return;
+		}
+
+		if ( pPlayer->m_nButtons & IN_ATTACK2 )
+		{
+			SecondaryAttack();
+		}
+		else if ( pPlayer->m_nButtons & IN_ATTACK )
+		{
+			PrimaryAttack();
+		}
+		else
+		{
+			pPlayer->CancelFirstAidKitUse();
+			WeaponIdle();
+		}
+#else
+		WeaponIdle();
+#endif
+		return;
+	}
+
 	// Disable all the firing code.. the C4 grenade is all custom.
 	if ( pPlayer->m_nButtons & IN_ATTACK )
 	{
@@ -876,7 +1019,10 @@ void CC4::ItemPostFrame()
 	{
 		CCSPlayer *pPlayer = GetPlayerOwner();
 		if ( pPlayer )
+		{
 			pPlayer->SetProgressBarTime( 0 );
+			pPlayer->CancelFirstAidKitUse();
+		}
 
 		if ( m_bStartedArming )
 		{
@@ -902,10 +1048,33 @@ void CC4::ItemPostFrame()
 
 void CC4::PrimaryAttack()
 {
-	bool	bArmingTimeSatisfied = false;
 	CCSPlayer *pPlayer = GetPlayerOwner();
 	if ( !pPlayer )
 		return;
+
+	if ( pPlayer->GetTeamNumber() == TEAM_SURVIVOR )
+	{
+#ifndef CLIENT_DLL
+		if ( !CanUseFirstAidKit( pPlayer ) || !pPlayer->NeedsFirstAidKit( kFirstAidKitResetsIncapState ) )
+		{
+			pPlayer->CancelFirstAidKitUse();
+			return;
+		}
+
+		pPlayer->StartFirstAidKitSelfHeal();
+
+		if ( pPlayer->GetFirstAidKitStartTime() > 0.0f && ( gpGlobals->curtime - pPlayer->GetFirstAidKitStartTime() ) >= kFirstAidKitUseDuration )
+		{
+			pPlayer->ApplyFirstAidKitHeal( kFirstAidKitResetsIncapState );
+			pPlayer->CancelFirstAidKitUse();
+		}
+#endif
+		m_flNextPrimaryAttack = gpGlobals->curtime;
+		SetWeaponIdleTime( gpGlobals->curtime + 0.1f );
+		return;
+	}
+
+	bool	bArmingTimeSatisfied = false;
 
 	int onGround = FBitSet( pPlayer->GetFlags(), FL_ONGROUND );
 	CBaseEntity *groundEntity = (onGround) ? pPlayer->GetGroundEntity() : NULL;
@@ -1152,14 +1321,80 @@ void CC4::PrimaryAttack()
 	SetWeaponIdleTime( gpGlobals->curtime + SharedRandomFloat("C4IdleTime", 10, 15 ) );
 }
 
+void CC4::SecondaryAttack()
+{
+	CCSPlayer *pPlayer = GetPlayerOwner();
+	if ( !pPlayer )
+		return;
+
+	if ( pPlayer->GetTeamNumber() == TEAM_SURVIVOR )
+	{
+#ifndef CLIENT_DLL
+		if ( !CanUseFirstAidKit( pPlayer ) )
+		{
+			pPlayer->CancelFirstAidKitUse();
+			return;
+		}
+
+		Vector forward;
+		AngleVectors( pPlayer->EyeAngles(), &forward );
+
+		CCSPlayer *target = pPlayer->GetFirstAidKitTarget();
+		if ( !CanUseFirstAidKitOnTarget( pPlayer, target, forward, false ) )
+		{
+			target = FindFirstAidKitTarget( pPlayer );
+		}
+
+		if ( target )
+		{
+			pPlayer->StartFirstAidKitTargetHeal( target );
+
+			if ( pPlayer->GetFirstAidKitStartTime() > 0.0f && ( gpGlobals->curtime - pPlayer->GetFirstAidKitStartTime() ) >= kFirstAidKitUseDuration )
+			{
+				target->ApplyFirstAidKitHeal( kFirstAidKitResetsIncapState );
+				target->SpeakConceptIfAllowed( MP_CONCEPT_PLAYER_THANKS );
+				pPlayer->CancelFirstAidKitUse();
+				m_flNextSecondaryAttack = gpGlobals->curtime + 0.7f;
+				m_flNextPrimaryAttack = gpGlobals->curtime + 0.7f;
+				SetWeaponIdleTime( gpGlobals->curtime + 0.7f );
+				return;
+			}
+
+			m_flNextSecondaryAttack = gpGlobals->curtime;
+			m_flNextPrimaryAttack = gpGlobals->curtime;
+			SetWeaponIdleTime( gpGlobals->curtime + 0.1f );
+			return;
+		}
+
+		pPlayer->CancelFirstAidKitUse();
+#endif
+
+		if ( m_flNextSecondaryAttack <= gpGlobals->curtime )
+		{
+			BaseClass::SecondaryAttack();
+			pPlayer->m_nButtons &= ~IN_ATTACK2;
+		}
+		return;
+	}
+
+	BaseClass::SecondaryAttack();
+}
+
 void CC4::WeaponIdle()
 {
+	CCSPlayer *pPlayer = GetPlayerOwner();
+	if ( pPlayer && pPlayer->GetTeamNumber() == TEAM_SURVIVOR )
+	{
+#ifndef CLIENT_DLL
+		pPlayer->CancelFirstAidKitUse();
+#endif
+		return;
+	}
+
 	// if the player releases the attack button cancel the arming sequence
 	if ( m_bStartedArming )
 	{
 		AbortBombPlant();
-
-		CCSPlayer *pPlayer = GetPlayerOwner();
 
 		// TODO: make this use SendWeaponAnim and activities when the C4 has the activities hooked up.
 		if ( pPlayer )
@@ -1250,6 +1485,18 @@ void CC4::PlayArmingBeeps( void )
 
 float CC4::GetMaxSpeed() const
 {
+	const CCSPlayer *pPlayer = GetPlayerOwner();
+	if ( pPlayer && pPlayer->GetTeamNumber() == TEAM_SURVIVOR )
+	{
+#ifdef CLIENT_DLL
+		if ( pPlayer->m_bUsingFirstAidKitOnSelf || pPlayer->m_hFirstAidKitTarget.Get() != NULL )
+			return CS_PLAYER_SPEED_STOPPED;
+#else
+		if ( pPlayer->IsUsingFirstAidKit() )
+			return CS_PLAYER_SPEED_STOPPED;
+#endif
+	}
+
 	if ( m_bStartedArming )
 		return CS_PLAYER_SPEED_STOPPED;
 	else
@@ -1263,6 +1510,8 @@ void CC4::OnPickedUp( CBaseCombatCharacter *pNewOwner )
 
 #if !defined( CLIENT_DLL )
 	CCSPlayer *pPlayer = dynamic_cast<CCSPlayer *>( pNewOwner );
+	if ( !pPlayer || pPlayer->GetTeamNumber() == TEAM_SURVIVOR )
+		return;
 
 	IGameEvent * event = gameeventmanager->CreateEvent( "bomb_pickup" );
 	if ( event )
@@ -1297,19 +1546,25 @@ void CC4::OnPickedUp( CBaseCombatCharacter *pNewOwner )
 void CC4::Drop( const Vector &vecVelocity )
 {
 #if !defined( CLIENT_DLL )
-	if ( !CSGameRules()->m_bBombPlanted ) // its not dropped if its planted
+	CCSPlayer *pPlayer = GetPlayerOwner();
+	if ( pPlayer )
+	{
+		pPlayer->CancelFirstAidKitUse();
+	}
+
+	if ( pPlayer && pPlayer->GetTeamNumber() != TEAM_SURVIVOR && !CSGameRules()->m_bBombPlanted ) // its not dropped if its planted
 	{
 		// tell the bots about the dropped bomb
 		TheCSBots()->SetLooseBomb( this );
 
-		CBasePlayer *pPlayer = dynamic_cast<CBasePlayer *>(GetOwnerEntity());
-		Assert( pPlayer );
-		if ( pPlayer )
+		CBasePlayer *pOwner = dynamic_cast<CBasePlayer *>( GetOwnerEntity() );
+		Assert( pOwner );
+		if ( pOwner )
 		{
 			IGameEvent * event = gameeventmanager->CreateEvent("bomb_dropped" );
 			if ( event )
 			{
-				event->SetInt( "userid", pPlayer->GetUserID() );
+				event->SetInt( "userid", pOwner->GetUserID() );
 				event->SetInt( "priority", 6 );
 				gameeventmanager->FireEvent( event );
 			}
@@ -1332,6 +1587,7 @@ void CC4::AbortBombPlant()
 		return;
 
 #if !defined( CLIENT_DLL )
+	pPlayer->CancelFirstAidKitUse();
 	m_flNextPrimaryAttack = gpGlobals->curtime + 1.0;
 
 	pPlayer->SetProgressBarTime( 0 );

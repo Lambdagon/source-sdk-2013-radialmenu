@@ -100,4 +100,6 @@ void CAK47::PrimaryAttack()
 		pPlayer->KickBack ( 0.9, 0.35, 0.15, 0.025, 5.5, 1.5, 9 );
 	else
 		pPlayer->KickBack ( 1, 0.375, 0.175, 0.0375, 5.75, 1.75, 8 );
+
+	WeaponSound(SINGLE);
 }

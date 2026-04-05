@@ -168,6 +168,75 @@ static CCSPlayer *FindClosestIncapReviveTarget( CCSBot *me )
 	return best;
 }
 
+static bool BotCanUseFirstAidKit( CCSBot *me )
+{
+	if ( !me )
+		return false;
+
+	if ( me->GetTeamNumber() != TEAM_SURVIVOR || me->IsSpecialInfected() || !me->IsAlive() || me->IsIncapacitated() )
+		return false;
+
+	if ( me->HasPounceAttacker() || me->HasPounceVictim() || me->HasChargerAttacker() || me->IsUsingLadder() || me->IsBlind() )
+		return false;
+
+	return me->Weapon_OwnsThisType( "weapon_c4" ) != NULL;
+}
+
+static bool BotShouldUseFirstAidKitOn( CCSPlayer *player )
+{
+	if ( !player || player->GetTeamNumber() != TEAM_SURVIVOR || !player->IsAlive() || player->IsIncapacitated() )
+		return false;
+
+	if ( player->HasPounceAttacker() || player->HasChargerAttacker() )
+		return false;
+
+	if ( !player->NeedsFirstAidKit( true ) )
+		return false;
+
+	if ( player->HasIncapBlackAndWhite() || player->GetIncapacitationCount() > 0 )
+		return true;
+
+	const int maxHealth = MAX( player->GetMaxHealth(), 1 );
+	const int healThreshold = MAX( 40, maxHealth / 2 );
+	return player->GetHealth() <= healThreshold;
+}
+
+static CCSPlayer *FindClosestFirstAidTarget( CCSBot *me )
+{
+	if ( !BotCanUseFirstAidKit( me ) )
+		return NULL;
+
+	CCSPlayer *best = NULL;
+	float bestDistSqr = FLT_MAX;
+	const Vector myOrigin = me->GetAbsOrigin();
+
+	const float maxDist = 900.0f;
+	const float maxDistSqr = maxDist * maxDist;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *player = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !player || player == me )
+			continue;
+
+		if ( !BotShouldUseFirstAidKitOn( player ) )
+			continue;
+
+		CCSPlayer *otherHealer = player->GetFirstAidKitHealer();
+		if ( otherHealer && otherHealer != me )
+			continue;
+
+		const float distSqr = ( player->GetAbsOrigin() - myOrigin ).LengthSqr();
+		if ( distSqr > maxDistSqr || distSqr >= bestDistSqr )
+			continue;
+
+		bestDistSqr = distSqr;
+		best = player;
+	}
+
+	return best;
+}
+
 static CBaseEntity *FindClosestVisibleCommonInfected( CCSBot *me, float maxRange )
 {
 	if ( !me )
@@ -441,6 +510,57 @@ void CCSBot::Upkeep( void )
 		}
 	}
 
+	// Survivor bots: if we're trying to use the first aid kit, keep the kit equipped and hold the appropriate input.
+	if ( GetTeamNumber() == TEAM_SURVIVOR && !IsAttacking() && !HasPounceAttacker() && !HasPounceVictim() && !IsIncapacitated() )
+	{
+		CCSPlayer *healTarget = m_firstAidTarget.Get();
+		if ( m_bFirstAidSelfHeal || healTarget )
+		{
+			if ( !BotCanUseFirstAidKit( this ) )
+			{
+				m_bFirstAidSelfHeal = false;
+				m_firstAidTarget = NULL;
+			}
+			else
+			{
+				SelectItem( "weapon_c4" );
+
+				CWeaponCSBase *activeWeapon = GetActiveCSWeapon();
+				if ( activeWeapon && activeWeapon->GetWeaponID() == WEAPON_C4 )
+				{
+					if ( m_bFirstAidSelfHeal )
+					{
+						ResetStuckMonitor();
+						ClearMovement();
+						PrimaryAttack();
+					}
+					else if ( healTarget && BotShouldUseFirstAidKitOn( healTarget ) )
+					{
+						CCSPlayer *otherHealer = healTarget->GetFirstAidKitHealer();
+						if ( !otherHealer || otherHealer == this )
+						{
+							const Vector healPos = healTarget->EyePosition();
+							const Vector to = healPos - EyePosition();
+							const float watchRange = 300.0f;
+							if ( to.IsLengthLessThan( watchRange ) )
+							{
+								SetLookAt( "First Aid", healPos, PRIORITY_UNINTERRUPTABLE, 0.25f );
+
+								const float useRange = 140.0f;
+								if ( to.IsLengthLessThan( useRange ) )
+								{
+									SecondaryAttack();
+									ResetStuckMonitor();
+									ClearMovement();
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// aiming must be smooth - update often
 	if (IsAimingAtEnemy())
 	{
@@ -609,6 +729,8 @@ void CCSBot::Upkeep( void )
 	// Survivor bots: shoot/shove common infected responsively (needs to run here since command flags reset every tick).
 	if ( GetTeamNumber() == TEAM_SURVIVOR &&
 		!IsSpecialInfected() &&
+		!m_bFirstAidSelfHeal &&
+		m_firstAidTarget.Get() == NULL &&
 		!m_isOpeningDoor &&
 		!IsAttacking() &&
 		!IsAimingAtEnemy() &&
@@ -664,6 +786,8 @@ void CCSBot::Upkeep( void )
 	}
 	else if ( GetTeamNumber() == TEAM_SURVIVOR &&
 		!IsSpecialInfected() &&
+		!m_bFirstAidSelfHeal &&
+		m_firstAidTarget.Get() == NULL &&
 		!m_isOpeningDoor &&
 		!IsAttacking() &&
 		!IsAimingAtEnemy() &&
@@ -774,6 +898,8 @@ void CCSBot::Update( void )
 	if ( GetTeamNumber() != TEAM_SURVIVOR )
 	{
 		m_incapReviveTarget = NULL;
+		m_firstAidTarget = NULL;
+		m_bFirstAidSelfHeal = false;
 	}
 
 	// check if we are stuck
@@ -853,6 +979,7 @@ void CCSBot::Update( void )
 
 	bool isRescuingPounce = false;
 	bool isRevivingIncap = false;
+	bool isUsingFirstAidKit = false;
 	CCSPlayer *pounceVictim = NULL;
 	if ( GetTeamNumber() == TEAM_SURVIVOR )
 	{
@@ -880,6 +1007,24 @@ void CCSBot::Update( void )
 			}
 		}
 
+		// Validate (or clear) current first aid target/self-heal intent.
+		{
+			CCSPlayer *target = m_firstAidTarget.Get();
+			if ( target )
+			{
+				CCSPlayer *otherHealer = target->GetFirstAidKitHealer();
+				if ( !BotShouldUseFirstAidKitOn( target ) || ( otherHealer && otherHealer != this ) )
+				{
+					m_firstAidTarget = NULL;
+				}
+			}
+
+			if ( m_bFirstAidSelfHeal && !BotShouldUseFirstAidKitOn( this ) )
+			{
+				m_bFirstAidSelfHeal = false;
+			}
+		}
+
 		CCSPlayer *pounceAttacker = FindClosestPounceRescueAttacker( this, &pounceVictim );
 		if ( pounceAttacker )
 		{
@@ -888,6 +1033,8 @@ void CCSBot::Update( void )
 			m_pounceRescueVictim = pounceVictim;
 			// Don't try to revive while we're actively rescuing a pounced teammate.
 			m_incapReviveTarget = NULL;
+			m_firstAidTarget = NULL;
+			m_bFirstAidSelfHeal = false;
 		}
 		else
 		{
@@ -898,6 +1045,8 @@ void CCSBot::Update( void )
 			if ( threat )
 			{
 				m_incapReviveTarget = NULL;
+				m_firstAidTarget = NULL;
+				m_bFirstAidSelfHeal = false;
 			}
 			else if ( !m_incapReviveTarget.Get() )
 			{
@@ -910,10 +1059,45 @@ void CCSBot::Update( void )
 		}
 
 		isRevivingIncap = ( m_incapReviveTarget.Get() != NULL );
+
+		const bool hasImmediateCombat = ( threat != NULL ) ||
+			( gpGlobals->curtime < m_commonInfectedEngageUntil ) ||
+			( gpGlobals->curtime < m_hostileNPCEngageUntil );
+
+		if ( isRescuingPounce || isRevivingIncap || hasImmediateCombat || !BotCanUseFirstAidKit( this ) )
+		{
+			m_firstAidTarget = NULL;
+			m_bFirstAidSelfHeal = false;
+		}
+		else if ( m_firstAidTarget.Get() != NULL )
+		{
+			isUsingFirstAidKit = true;
+			m_bFirstAidSelfHeal = false;
+		}
+		else if ( m_bFirstAidSelfHeal )
+		{
+			isUsingFirstAidKit = true;
+		}
+		else
+		{
+			CCSPlayer *healTarget = FindClosestFirstAidTarget( this );
+			if ( healTarget )
+			{
+				m_firstAidTarget = healTarget;
+				m_bFirstAidSelfHeal = false;
+				isUsingFirstAidKit = true;
+			}
+			else if ( BotShouldUseFirstAidKitOn( this ) )
+			{
+				m_firstAidTarget = NULL;
+				m_bFirstAidSelfHeal = true;
+				isUsingFirstAidKit = true;
+			}
+		}
 	}
 
 	// Survivor squad system: ignore forced squad follow while rescuing a pounce or reviving an incapacitated survivor.
-	SetIgnoreSurvivorSquad( isRescuingPounce || isRevivingIncap );
+	SetIgnoreSurvivorSquad( isRescuingPounce || isRevivingIncap || isUsingFirstAidKit );
 
 	if (threat)
 	{
@@ -1426,7 +1610,7 @@ void CCSBot::Update( void )
 	}
 
 	// Survivor bots should fight common infected when they see them.
-	if ( GetTeamNumber() == TEAM_SURVIVOR && !IsSpecialInfected() && !m_isOpeningDoor )
+	if ( GetTeamNumber() == TEAM_SURVIVOR && !IsSpecialInfected() && !m_isOpeningDoor && !isUsingFirstAidKit )
 	{
 		bool isEngagingCommonInfected = false;
 
@@ -1926,6 +2110,55 @@ void CCSBot::Update( void )
 		}
 	}
 
+	// Survivor bots: if there is no immediate combat pressure, move into position for first aid kit use.
+	if ( isUsingFirstAidKit && !m_isAttacking && !m_isOpeningDoor && !IsBlind() )
+	{
+		if ( m_bFirstAidSelfHeal )
+		{
+			m_firstAidTarget = NULL;
+			SetGoalEntity( NULL );
+			Wait( 0.1f );
+			ResetStuckMonitor();
+			ClearMovement();
+		}
+		else
+		{
+			CCSPlayer *target = m_firstAidTarget.Get();
+			if ( target && BotShouldUseFirstAidKitOn( target ) )
+			{
+				CCSPlayer *otherHealer = target->GetFirstAidKitHealer();
+				if ( otherHealer && otherHealer != this )
+				{
+					m_firstAidTarget = NULL;
+					isUsingFirstAidKit = false;
+				}
+				else
+				{
+					const Vector healPos = target->EyePosition();
+					const Vector to = healPos - EyePosition();
+					const float useRange = 140.0f;
+					if ( to.IsLengthLessThan( useRange ) )
+					{
+						SetGoalEntity( NULL );
+						Wait( 0.1f );
+						ResetStuckMonitor();
+						ClearMovement();
+					}
+					else
+					{
+						SetGoalEntity( target );
+						MoveTo( GetCentroid( target ), FASTEST_ROUTE );
+					}
+				}
+			}
+			else
+			{
+				m_firstAidTarget = NULL;
+				isUsingFirstAidKit = false;
+			}
+		}
+	}
+
 	// Survivor bots should press +use on nearby scripted weapon spawns when there is no immediate combat or rescue task.
 	if ( GetTeamNumber() == TEAM_SURVIVOR &&
 		 !IsSpecialInfected() &&
@@ -1934,6 +2167,7 @@ void CCSBot::Update( void )
 		 !m_enemy &&
 		 !isRescuingPounce &&
 		 !isRevivingIncap &&
+		 !isUsingFirstAidKit &&
 		 gpGlobals->curtime >= m_commonInfectedEngageUntil &&
 		 gpGlobals->curtime >= m_hostileNPCEngageUntil )
 	{

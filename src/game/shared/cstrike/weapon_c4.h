@@ -143,6 +143,7 @@ public:
 	bool IsPistol() const;
 	void ItemPostFrame();
 	virtual void PrimaryAttack();
+	virtual void SecondaryAttack();
 	virtual void WeaponIdle();
 	virtual void UpdateShieldState( void );
 	virtual float GetMaxSpeed() const;

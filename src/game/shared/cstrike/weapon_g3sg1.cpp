@@ -161,7 +161,7 @@ void CWeaponG3SG1::PrimaryAttack()
 	CCSPlayer *pPlayer = GetPlayerOwner();
 	if ( !pPlayer )
 		return;
-	
+
 	// Mark the time of this shot and determine the accuracy modifier based on the last shot fired...
 	m_flAccuracy = 0.55 + (0.3) * (gpGlobals->curtime - m_flLastFire);	
 
@@ -178,6 +178,7 @@ void CWeaponG3SG1::PrimaryAttack()
 	angle.x -= SharedRandomFloat("G3SG1PunchAngleX", 0.75, 1.75 ) + ( angle.x / 4 );
 	angle.y += SharedRandomFloat("G3SG1PunchAngleY", -0.75, 0.75 );
 	pPlayer->SetPunchAngle( angle );
+	WeaponSound(SINGLE);
 }
 
 

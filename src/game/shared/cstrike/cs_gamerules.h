@@ -168,6 +168,9 @@ public:
 	bool IsItActive( void ) const;
 	void OnSurvivorVomited( CCSPlayer *victim, CCSPlayer *attacker );
 	void StartScriptedPanicEvent( CCSPlayer *pActivator, bool bRevealActivator );
+#ifndef CLIENT_DLL
+	bool IsPlayerInSaferoom( CCSPlayer *player ) const;
+#endif
 
 	// Choose a hidden nav-mesh spawn point for special infected near a survivor.
 	bool FindSpecialInfectedSpawnPos( CCSPlayer *survivor, Vector *outPos, QAngle *outAngles ) const;

@@ -243,6 +243,7 @@ void CWeaponGlock::PrimaryAttack()
 	m_fAccuracyPenalty += GetCSWpnData().m_fInaccuracyImpulseFire[m_weaponMode];
 
 	//ResetPlayerShieldAnim();
+	WeaponSound(SINGLE);
 }
 
 

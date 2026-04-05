@@ -46,6 +46,7 @@ enum PlayerAnimEvent_t
 	PLAYERANIMEVENT_RELOAD_LOOP,	///< w_model partial reload for shotguns
 	PLAYERANIMEVENT_RELOAD_END,		///< w_model partial reload for shotguns
 	PLAYERANIMEVENT_CLEAR_FIRING,	///< clear animations on the firing layer
+	PLAYERANIMEVENT_CUSTOM_GESTURE,	///< play a specific activity as a replicated gesture overlay
 	
 	PLAYERANIMEVENT_COUNT
 };
@@ -72,6 +73,9 @@ public:
 	// This is called by both the client and the server in the same way to trigger events for
 	// players firing, jumping, throwing grenades, etc.
 	virtual void DoAnimationEvent( PlayerAnimEvent_t event, int nData = 0 ) = 0;
+
+	virtual void SetVCDGestureSequence( int nSequence, float flCycle ) = 0;
+	virtual void ClearVCDGestureSequence() = 0;
 	
 	// Returns true if we're playing the grenade prime or throw animation.
 	virtual bool IsThrowingGrenade() = 0;

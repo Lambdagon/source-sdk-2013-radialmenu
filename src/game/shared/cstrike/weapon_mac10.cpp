@@ -127,4 +127,5 @@ void CWeaponMAC10::PrimaryAttack()
 		pPlayer->KickBack (0.75, 0.4, 0.175, 0.03, 2.75, 2.5, 10);
 	else														// standing
 		pPlayer->KickBack (0.775, 0.425, 0.2, 0.03, 3, 2.75, 9);
+	WeaponSound(SINGLE);
 }

@@ -107,6 +107,9 @@ public:
 
 	virtual void UpdateClientSideAnimation();
 	virtual void ProcessMuzzleFlashEvent();
+	virtual bool StartSceneEvent( CSceneEventInfo *info, CChoreoScene *scene, CChoreoEvent *event, CChoreoActor *actor, C_BaseEntity *pTarget );
+	virtual bool ProcessSceneEvent( bool bFlexEvents, CSceneEventInfo *info, CChoreoScene *scene, CChoreoEvent *event );
+	virtual bool ClearSceneEvent( CSceneEventInfo *info, bool fastKill, bool canceled );
 
 	virtual const Vector& GetRenderOrigin( void );
 
@@ -290,6 +293,10 @@ public:
 	CNetworkVar( bool, m_bBeingRevived );
 	CNetworkVar( int, m_nIncapacitationCount );
 	CNetworkVar( bool, m_bIncapBlackAndWhite );
+	CNetworkVar( bool, m_bUseSurvivorCalmAnimations );
+	EHANDLE	m_hReviveTarget;
+	CNetworkVar( bool, m_bUsingFirstAidKitOnSelf );
+	EHANDLE	m_hFirstAidKitTarget;
 
 	EHANDLE	m_pounceVictim;
 	EHANDLE	m_pounceAttacker;

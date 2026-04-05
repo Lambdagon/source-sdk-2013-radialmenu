@@ -109,6 +109,12 @@ ConVar z_hunter_speed( "z_hunter_speed", "300", FCVAR_GAMEDLL, "" );
 static const float kGhostSpawnSafetyRadius = 220.0f;
 static const float kGhostStatusMessageInterval = 0.4f;
 static const float kGhostMaterializeDelay = 0.1f;
+static const float kSurvivorFidgetMinInterval = 5.0f;
+static const float kSurvivorFidgetMaxInterval = 15.0f;
+static const float kSurvivorFlinchCooldown = 0.4f;
+static const float kSurvivorCalmEnemyRadius = 1200.0f;
+static const float kSurvivorCalmDelay = 5.0f;
+static const int kFirstAidKitUseDurationSeconds = 5;
 
 enum GhostSpawnFeedbackState_t
 {
@@ -141,6 +147,11 @@ static bool IsGhostSpawnHiddenFromAllSurvivorsLOS( const Vector &spawnPos )
 	}
 
 	return true;
+}
+
+static float RandomSurvivorFidgetDelay()
+{
+	return random->RandomFloat( kSurvivorFidgetMinInterval, kSurvivorFidgetMaxInterval );
 }
 
 static QAngle GetChargerVictimFacingAngles( const CCSPlayer *pCharger )
@@ -631,6 +642,10 @@ IMPLEMENT_SERVERCLASS_ST( CCSPlayer, DT_CSPlayer )
 	SendPropBool( SENDINFO( m_bBeingRevived ) ),
 	SendPropInt( SENDINFO( m_nIncapacitationCount ), 3, SPROP_UNSIGNED ),
 	SendPropBool( SENDINFO( m_bIncapBlackAndWhite ) ),
+	SendPropBool( SENDINFO( m_bUseSurvivorCalmAnimations ) ),
+	SendPropEHandle( SENDINFO( m_hReviveTarget ) ),
+	SendPropBool( SENDINFO( m_bUsingFirstAidKitOnSelf ) ),
+	SendPropEHandle( SENDINFO( m_hFirstAidKitTarget ) ),
 	SendPropEHandle( SENDINFO( m_pounceVictim ) ),
 	SendPropEHandle( SENDINFO( m_pounceAttacker ) ),
 	SendPropEHandle( SENDINFO( m_chargerVictim ) ),
@@ -840,12 +855,21 @@ CCSPlayer::CCSPlayer()
 	m_bBeingRevived = false;
 	m_nIncapacitationCount = 0;
 	m_bIncapBlackAndWhite = false;
+	m_bUseSurvivorCalmAnimations = false;
 	m_bIncapHealthDecayActive = false;
 	m_bIncapHullAdjusted = false;
 	m_flNextIncapHealthDecayTime = 0.0f;
 	m_flNextIncapHelpYellTime = 0.0f;
+	m_flNextSurvivorFidgetTime = 0.0f;
+	m_flNextSurvivorFlinchTime = 0.0f;
+	m_flLastNearbyEnemyTime = 0.0f;
 	m_hReviveTarget = NULL;
 	m_flReviveStartTime = 0.0f;
+	m_bUsingFirstAidKitOnSelf = false;
+	m_hFirstAidKitTarget = NULL;
+	m_flFirstAidKitStartTime = 0.0f;
+	m_hFirstAidKitHealer = NULL;
+	m_bFrozenByFirstAidKit = false;
 
 	m_bJustKilledTeammate = false;
 	m_bPunishedForTK = false;
@@ -952,6 +976,19 @@ CCSPlayer::~CCSPlayer()
 
 extern ConVar survivor_set;
 
+//
+// ID's player as such.
+//
+Class_T  CCSPlayer::Classify(void)
+{
+	if (GetTeamNumber() == 3 && !IsGhost()) { // infected
+		return CLASS_ZOMBIE;
+	}
+	else if (GetTeamNumber() == 2) {
+		return CLASS_PLAYER;
+	}
+	return CLASS_NONE;
+}
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -1506,7 +1543,11 @@ void CCSPlayer::PlayerRunCommand( CUserCmd *ucmd, IMoveHelper *moveHelper )
 		ucmd->buttons |= IN_DUCK;
 		ucmd->buttons &= ~( IN_JUMP | IN_ATTACK2 );
 	}
-
+	const bool healing = (GetTeamNumber() == TEAM_SURVIVOR && (m_hFirstAidKitTarget.Get() != NULL || m_bUsingFirstAidKitOnSelf));
+	if (healing) {
+		ucmd->forwardmove = ucmd->sidemove = ucmd->upmove = 0.0f;
+		ucmd->buttons &= ~(IN_JUMP);
+	}
 	// Pounced players can't move/shoot. Hunters pinning a victim are also locked in place.
 	if ( HasPounceAttacker() || HasPounceVictim() )
 	{
@@ -1807,18 +1848,27 @@ void CCSPlayer::Spawn()
 	m_bBeingRevived = false;
 	m_nIncapacitationCount = 0;
 	m_bIncapBlackAndWhite = false;
+	m_bUseSurvivorCalmAnimations = false;
 	m_bIncapHealthDecayActive = false;
 	m_bIncapHullAdjusted = false;
 	m_flNextIncapHealthDecayTime = 0.0f;
 	m_flNextIncapHelpYellTime = 0.0f;
 	m_hReviveTarget = NULL;
 	m_flReviveStartTime = 0.0f;
+	m_bUsingFirstAidKitOnSelf = false;
+	m_hFirstAidKitTarget = NULL;
+	m_flFirstAidKitStartTime = 0.0f;
+	m_hFirstAidKitHealer = NULL;
+	m_bFrozenByFirstAidKit = false;
 	m_flNextRecognizeSoundTime = 0.0f;
 	m_bWasSeeingEnemyLastUpdate = false;
 	m_nLastWarnedSpecialType = 0;
 	m_flNextGhostStatusMessageTime = 0.0f;
 	m_flGhostMaterializeTime = 0.0f;
 	m_nGhostSpawnFeedbackState = GHOST_SPAWN_FEEDBACK_NONE;
+	m_flNextSurvivorFidgetTime = 0.0f;
+	m_flNextSurvivorFlinchTime = 0.0f;
+	m_flLastNearbyEnemyTime = 0.0f;
 
 	if ( m_bTankMusicCounted )
 	{
@@ -2101,6 +2151,8 @@ void CCSPlayer::Spawn()
 	}
 	else if (GetTeamNumber() == TEAM_SURVIVOR) {
 		SetMaxSpeed(220);
+		ScheduleNextSurvivorFidget();
+		m_flNextSurvivorFlinchTime = 0.0f;
 
 		int survivorClass = s_iNextSurvivor % 4;
 
@@ -2111,18 +2163,22 @@ void CCSPlayer::Spawn()
 			if (survivorClass == 0) {
 				SetModel("models/survivors/survivor_namvet.mdl"); // Bill
 				GetViewModel(1)->SetModel("models/weapons/arms/v_arms_bill.mdl");
+				KeyValue("targetname", "NamVet");
 			}
 			else if (survivorClass == 1) {
 				SetModel("models/survivors/survivor_biker.mdl"); // Francis
 				GetViewModel(1)->SetModel("models/weapons/arms/v_arms_francis.mdl");
+				KeyValue("targetname", "Biker");
 			}
 			else if (survivorClass == 2) {
 				SetModel("models/survivors/survivor_manager.mdl"); // Louis
 				GetViewModel(1)->SetModel("models/weapons/arms/v_arms_louis.mdl");
+				KeyValue("targetname", "Manager");
 			}
 			else if (survivorClass == 3) {
 				SetModel("models/survivors/survivor_teenangst.mdl"); // Zoey
 				GetViewModel(1)->SetModel("models/weapons/arms/v_arms_zoey.mdl");
+				KeyValue("targetname", "TeenGirl");
 			}
 
 		}
@@ -2131,22 +2187,255 @@ void CCSPlayer::Spawn()
 			if (survivorClass == 0) {
 				SetModel("models/survivors/survivor_gambler.mdl"); // Nick
 				GetViewModel(1)->SetModel("models/weapons/arms/v_arms_gambler_new.mdl");
+				KeyValue("targetname", "Gambler");
 			}
 			else if (survivorClass == 1) {
 				SetModel("models/survivors/survivor_coach.mdl"); // Coach
 				GetViewModel(1)->SetModel("models/weapons/arms/v_arms_coach_new.mdl");
+				KeyValue("targetname", "Coach");
 			}
 			else if (survivorClass == 2) {
 				SetModel("models/survivors/survivor_mechanic.mdl"); // Ellis
 				GetViewModel(1)->SetModel("models/weapons/arms/v_arms_mechanic_new.mdl");
+				KeyValue("targetname", "Mechanic");
 			}
 			else if (survivorClass == 3) {
 				SetModel("models/survivors/survivor_producer.mdl"); // Rochelle
 				GetViewModel(1)->SetModel("models/weapons/arms/v_arms_producer_new.mdl");
+				KeyValue("targetname", "Producer");
 			}
 
 		}
 		s_iNextSurvivor++;
+	}
+}
+
+bool CCSPlayer::CanPlaySurvivorGesture() const
+{
+	if ( GetTeamNumber() != TEAM_SURVIVOR || GetHealth() < 0 || m_bIncapacitated )
+		return false;
+
+	if ( m_bUsingFirstAidKitOnSelf || m_hFirstAidKitTarget.Get() != NULL )
+		return false;
+
+	if ( HasPounceAttacker() || HasChargerAttacker() )
+		return false;
+
+	if ( GetMoveType() == MOVETYPE_LADDER )
+		return false;
+
+	return true;
+}
+
+void CCSPlayer::ScheduleNextSurvivorFidget()
+{
+	m_flNextSurvivorFidgetTime = gpGlobals->curtime + RandomSurvivorFidgetDelay();
+}
+
+void CCSPlayer::TryPlaySurvivorFidgetGesture()
+{
+	if ( GetTeamNumber() != TEAM_SURVIVOR || !IsAlive() )
+		return;
+
+	if ( m_flNextSurvivorFidgetTime <= 0.0f )
+	{
+		ScheduleNextSurvivorFidget();
+		return;
+	}
+
+	if ( gpGlobals->curtime < m_flNextSurvivorFidgetTime )
+		return;
+
+	if ( !CanPlaySurvivorGesture() )
+	{
+		m_flNextSurvivorFidgetTime = gpGlobals->curtime + 0.5f;
+		return;
+	}
+
+	DoAnimationEvent( PLAYERANIMEVENT_CUSTOM_GESTURE, ACT_TERROR_FIDGET );
+	ScheduleNextSurvivorFidget();
+}
+
+void CCSPlayer::TryPlaySurvivorFlinchGesture()
+{
+	if ( !CanPlaySurvivorGesture() || gpGlobals->curtime < m_flNextSurvivorFlinchTime )
+		return;
+
+	m_flNextSurvivorFlinchTime = gpGlobals->curtime + kSurvivorFlinchCooldown;
+	DoAnimationEvent( PLAYERANIMEVENT_CUSTOM_GESTURE, ACT_TERROR_FLINCH );
+}
+
+bool CCSPlayer::HasNearbySurvivorEnemy( float flRadius ) const
+{
+	const float flRadiusSqr = flRadius * flRadius;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *infected = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !infected )
+			continue;
+
+		if ( infected->GetTeamNumber() != TEAM_INFECTED )
+			continue;
+
+		if ( !infected->IsAlive() || infected->IsGhost() )
+			continue;
+
+		if ( infected->GetZombieClass() <= 0 )
+			continue;
+
+		if ( ( infected->GetAbsOrigin() - GetAbsOrigin() ).LengthSqr() <= flRadiusSqr )
+			return true;
+	}
+
+	CBaseEntity *ent = NULL;
+	while ( ( ent = gEntList.FindEntityByClassname( ent, "infected" ) ) != NULL )
+	{
+		CBaseCombatCharacter *combat = dynamic_cast< CBaseCombatCharacter * >( ent );
+		if ( !combat || !combat->IsAlive() )
+			continue;
+
+		if ( ( ent->GetAbsOrigin() - GetAbsOrigin() ).LengthSqr() <= flRadiusSqr )
+			return true;
+	}
+
+	return false;
+}
+
+void CCSPlayer::UpdateSurvivorCalmAnimationState()
+{
+	m_bUseSurvivorCalmAnimations = false;
+
+	if ( GetTeamNumber() != TEAM_SURVIVOR || !IsAlive() || m_bIncapacitated )
+	{
+		m_flLastNearbyEnemyTime = gpGlobals->curtime;
+		return;
+	}
+
+	if ( HasPounceAttacker() || HasChargerAttacker() || GetMoveType() == MOVETYPE_LADDER )
+	{
+		m_flLastNearbyEnemyTime = gpGlobals->curtime;
+		return;
+	}
+
+	if ( HasNearbySurvivorEnemy( kSurvivorCalmEnemyRadius ) )
+	{
+		m_flLastNearbyEnemyTime = gpGlobals->curtime;
+		return;
+	}
+
+	if ( m_flLastNearbyEnemyTime <= 0.0f )
+	{
+		m_flLastNearbyEnemyTime = gpGlobals->curtime;
+		return;
+	}
+
+	m_bUseSurvivorCalmAnimations = ( gpGlobals->curtime - m_flLastNearbyEnemyTime ) >= kSurvivorCalmDelay;
+}
+
+bool CCSPlayer::NeedsFirstAidKit( bool bResetIncapState ) const
+{
+	if ( GetTeamNumber() != TEAM_SURVIVOR || GetHealth() < 0 || m_bIncapacitated )
+		return false;
+
+	if ( GetHealth() < GetMaxHealth() )
+		return true;
+
+	return bResetIncapState && ( m_nIncapacitationCount > 0 || m_bIncapBlackAndWhite );
+}
+
+void CCSPlayer::ApplyFirstAidKitHeal( bool bResetIncapState )
+{
+	SetHealth( GetMaxHealth() );
+
+	if ( bResetIncapState )
+	{
+		m_nIncapacitationCount = 0;
+		m_bIncapBlackAndWhite = false;
+	}
+}
+
+void CCSPlayer::SetFrozenByFirstAidKit( CCSPlayer *healer )
+{
+	if ( !healer )
+	{
+		ClearFrozenByFirstAidKit();
+		return;
+	}
+
+	CCSPlayer *oldHealer = ToCSPlayer( m_hFirstAidKitHealer.Get() );
+	if ( oldHealer && oldHealer != healer )
+	{
+		oldHealer->CancelFirstAidKitUse();
+	}
+
+	m_hFirstAidKitHealer = healer;
+
+	if ( !m_bFrozenByFirstAidKit )
+	{
+		m_bFrozenByFirstAidKit = true;
+	}
+}
+
+void CCSPlayer::ClearFrozenByFirstAidKit()
+{
+	m_hFirstAidKitHealer = NULL;
+
+	if ( !m_bFrozenByFirstAidKit )
+		return;
+
+	m_bFrozenByFirstAidKit = false;
+}
+
+void CCSPlayer::StartFirstAidKitSelfHeal()
+{
+	if ( m_bUsingFirstAidKitOnSelf && m_hFirstAidKitTarget.Get() == NULL )
+		return;
+
+	CancelFirstAidKitUse();
+
+	m_bUsingFirstAidKitOnSelf = true;
+	m_flFirstAidKitStartTime = gpGlobals->curtime;
+	SetProgressBarTime( kFirstAidKitUseDurationSeconds );
+}
+
+void CCSPlayer::StartFirstAidKitTargetHeal( CCSPlayer *target )
+{
+	if ( !target )
+		return;
+
+	CCSPlayer *currentTarget = ToCSPlayer( m_hFirstAidKitTarget.Get() );
+	if ( currentTarget == target && !m_bUsingFirstAidKitOnSelf )
+	{
+		target->SetFrozenByFirstAidKit( this );
+		return;
+	}
+
+	CancelFirstAidKitUse();
+
+	m_bUsingFirstAidKitOnSelf = false;
+	m_hFirstAidKitTarget = target;
+	m_flFirstAidKitStartTime = gpGlobals->curtime;
+	SetProgressBarTime( kFirstAidKitUseDurationSeconds );
+	target->SetFrozenByFirstAidKit( this );
+}
+
+void CCSPlayer::CancelFirstAidKitUse()
+{
+	CCSPlayer *target = ToCSPlayer( m_hFirstAidKitTarget.Get() );
+	const bool bWasUsingFirstAidKit = ( m_bUsingFirstAidKitOnSelf || target != NULL );
+
+	m_bUsingFirstAidKitOnSelf = false;
+	m_hFirstAidKitTarget = NULL;
+	m_flFirstAidKitStartTime = 0.0f;
+	if ( bWasUsingFirstAidKit )
+	{
+		SetProgressBarTime( 0 );
+	}
+
+	if ( target && target->m_hFirstAidKitHealer.Get() == this )
+	{
+		target->ClearFrozenByFirstAidKit();
 	}
 }
 
@@ -2193,7 +2482,12 @@ void CCSPlayer::GiveDefaultItems()
 	}
 	else if ( GetTeamNumber() == TEAM_TERRORIST )
 	{
-		GiveNamedItem( "weapon_glock" );
+		if (survivor_set.GetInt() == 1) {
+			GiveNamedItem("weapon_usp");
+		}
+		else {
+			GiveNamedItem("weapon_glock");
+		}
 		GiveAmmo( 40, BULLET_PLAYER_9MM );
 	}
 }
@@ -2839,6 +3133,15 @@ bool CCSPlayer::ShouldCollide(int collisionGroup, int contentsMask) const
 
 void CCSPlayer::Event_Killed( const CTakeDamageInfo &info )
 {
+	CCSPlayer *firstAidHealer = ToCSPlayer( m_hFirstAidKitHealer.Get() );
+	if ( firstAidHealer )
+	{
+		firstAidHealer->CancelFirstAidKitUse();
+	}
+
+	CancelFirstAidKitUse();
+	ClearFrozenByFirstAidKit();
+
 	ClearPounce();
 	ClearCharger();
 	ClearTankRockThrow();
@@ -4702,6 +5005,21 @@ int CCSPlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 		gamestats->Event_PlayerDamage( this, info );
 
+		if ( GetTeamNumber() == TEAM_SURVIVOR && info.GetDamage() > 0.0f )
+		{
+			CBaseEntity *pAttackerEnt = info.GetAttacker();
+			if ( pAttackerEnt && pAttackerEnt != this )
+			{
+				if ( FClassnameIs( pAttackerEnt, "infected" ) || ( pAttackerEnt->IsPlayer() && pAttackerEnt->GetTeamNumber() == TEAM_INFECTED ) )
+				{
+					m_flLastNearbyEnemyTime = gpGlobals->curtime;
+					m_bUseSurvivorCalmAnimations = false;
+				}
+			}
+
+			TryPlaySurvivorFlinchGesture();
+		}
+
 		// Survivor incapacitation: if a survivor would die, put them into an incapacitated state instead
 		// (up to 2 incapacitations per life).
 		if ( GetTeamNumber() == TEAM_SURVIVOR && IsAlive() && !m_bIncapacitated )
@@ -5377,6 +5695,28 @@ void CCSPlayer::PreThink()
 	if ( g_fGameOver )
 		return;
 
+	if ( m_hFirstAidKitHealer.Get() != NULL )
+	{
+		CCSPlayer *healer = ToCSPlayer( m_hFirstAidKitHealer.Get() );
+		if ( !healer || !healer->IsAlive() || healer->GetFirstAidKitTarget() != this )
+		{
+			ClearFrozenByFirstAidKit();
+		}
+	}
+	else if ( m_bFrozenByFirstAidKit )
+	{
+		ClearFrozenByFirstAidKit();
+	}
+
+	if ( IsUsingFirstAidKit() )
+	{
+		CWeaponCSBase *activeWeapon = GetActiveCSWeapon();
+		if ( !IsAlive() || GetTeamNumber() != TEAM_SURVIVOR || m_bIncapacitated || !activeWeapon || activeWeapon->GetWeaponID() != WEAPON_C4 )
+		{
+			CancelFirstAidKitUse();
+		}
+	}
+
 	if (IsAlive()) {
 
 		if (m_bIsGhost)
@@ -5400,6 +5740,9 @@ void CCSPlayer::PreThink()
 	// Survivor incapacitation upkeep: health decay + periodic help yell.
 	if ( GetTeamNumber() == TEAM_SURVIVOR && IsAlive() )
 	{
+		UpdateSurvivorCalmAnimationState();
+		TryPlaySurvivorFidgetGesture();
+
 		// Determine if anyone is currently reviving us (used to drive animation state).
 		if ( m_bIncapacitated )
 		{
@@ -8201,6 +8544,13 @@ bool HandleRadioAliasCommands( CCSPlayer *pPlayer, const char *pszCommand )
 		bRetVal = true;
 		pPlayer->HandleMenu_Radio3( 1 );
 		pPlayer->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_YES);
+		CRecipientFilter filter;
+		filter.AddAllPlayers();
+		UserMessageBegin(filter, "VoiceSubtitle");
+		WRITE_BYTE(pPlayer->entindex());
+		WRITE_BYTE(0);
+		WRITE_BYTE(4);
+		MessageEnd();
 	}
 	else if ( FStrEq( pszCommand, "enemyspot" ) )
 	{
@@ -8239,6 +8589,13 @@ bool HandleRadioAliasCommands( CCSPlayer *pPlayer, const char *pszCommand )
 		bRetVal = true;
 		pPlayer->HandleMenu_Radio3( 8 );
 		pPlayer->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_NO);
+		CRecipientFilter filter;
+		filter.AddAllPlayers();
+		UserMessageBegin(filter, "VoiceSubtitle");
+		WRITE_BYTE(pPlayer->entindex());
+		WRITE_BYTE(0);
+		WRITE_BYTE(5);
+		MessageEnd();
 	}
 	else if ( FStrEq( pszCommand, "enemydown" ) )
 	{
@@ -8948,31 +9305,35 @@ bool CCSPlayer::SelectSpawnSpot( const char *pEntClassName, CBaseEntity* &pSpot 
 
 	if ( pSpot == NULL ) // skip over the null point
 		pSpot = gEntList.FindEntityByClassname( pSpot, pEntClassName );
+	if (!FStrEq(pEntClassName, "info_landmark")) {
 
-	CBaseEntity *pFirstSpot = pSpot;
-	do
-	{
-		if ( pSpot )
+		CBaseEntity* pFirstSpot = pSpot;
+		do
 		{
-			// check if pSpot is valid
-			if ( g_pGameRules->IsSpawnPointValid( pSpot, this ) )
+			if (pSpot)
 			{
-				if ( pSpot->GetAbsOrigin() == Vector( 0, 0, 0 ) )
+				// check if pSpot is valid
+				if (g_pGameRules->IsSpawnPointValid(pSpot, this))
 				{
-					pSpot = gEntList.FindEntityByClassname( pSpot, pEntClassName );
-					continue;
+					if (pSpot->GetAbsOrigin() == Vector(0, 0, 0))
+					{
+						pSpot = gEntList.FindEntityByClassname(pSpot, pEntClassName);
+						continue;
+					}
+
+					// if so, go to pSpot
+					return true;
 				}
-
-				// if so, go to pSpot
-				return true;
 			}
-		}
-		// increment pSpot
-		pSpot = gEntList.FindEntityByClassname( pSpot, pEntClassName );
-	} while ( pSpot != pFirstSpot ); // loop if we're not back to the start
+			// increment pSpot
+			pSpot = gEntList.FindEntityByClassname(pSpot, pEntClassName);
+		} while (pSpot != pFirstSpot); // loop if we're not back to the start
 
-	DevMsg("CCSPlayer::SelectSpawnSpot: couldn't find valid spawn point.\n");
-
+		DevMsg("CCSPlayer::SelectSpawnSpot: couldn't find valid spawn point.\n");
+	}
+	else {
+		return true;
+	}
 	return false;
 }
 
@@ -9036,6 +9397,11 @@ CBaseEntity* CCSPlayer::EntSelectSpawnPoint()
 				goto ReturnSpot;
 			}
 			else if (SelectSpawnSpot("info_survivor_position", pSpot))
+			{
+				g_pLastTerroristSpawn = pSpot;
+				goto ReturnSpot;
+			}
+			else if (SelectSpawnSpot("info_player_start", pSpot))
 			{
 				g_pLastTerroristSpawn = pSpot;
 				goto ReturnSpot;
@@ -9355,7 +9721,7 @@ void CCSPlayer::InputSpeakResponseConcept(inputdata_t& inputdata)
 	// null terminate just in case
 	outputmodifiers[outWritten <= 511 ? outWritten : 511] = 0;
 
-	//SpeakConceptIfAllowed(GetMPConceptIndexFromString(buf), outputmodifiers[0] ? outputmodifiers : NULL);
+	SpeakConceptIfAllowed(GetMPConceptIndexFromString(buf), outputmodifiers[0] ? outputmodifiers : NULL);
 }
 
 

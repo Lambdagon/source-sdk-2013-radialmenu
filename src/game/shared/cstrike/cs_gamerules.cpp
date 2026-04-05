@@ -162,6 +162,7 @@ static ConVar z_special_far_cull_grace( "z_special_far_cull_grace", "5.0", FCVAR
 // Tank director: spawn tanks near authored map anchors when survivors approach them.
 static ConVar z_special_tank_spawn_enabled( "z_special_tank_spawn_enabled", "1", FCVAR_GAMEDLL, "If 1, tanks can spawn near authored tank spawn anchors when survivors approach them." );
 static ConVar z_special_tank_spawn_cooldown( "z_special_tank_spawn_cooldown", "180", FCVAR_GAMEDLL, "Minimum seconds between successful tank spawns.", true, 0.0f, true, 3600.0f );
+static ConVar z_special_tank_spawn_chance( "z_special_tank_spawn_chance", "0.15", FCVAR_GAMEDLL, "Chance that an eligible natural tank spawn opportunity produces a tank.", true, 0.0f, true, 1.0f );
 static ConVar z_tank_spawn_proximity_radius( "z_tank_spawn_proximity_radius", "5600", FCVAR_GAMEDLL, "How close survivors must be to a tank spawn anchor before a tank can spawn there.", true, 128.0f, true, 10000.0f );
 static ConVar z_tank_spawn_search_radius( "z_tank_spawn_search_radius", "4500", FCVAR_GAMEDLL, "How far from a tank spawn anchor to search for a valid tank spawn point.", true, 128.0f, true, 5000.0f );
 
@@ -181,7 +182,7 @@ static ConVar z_horde_interval_max( "z_horde_interval_max", "240", FCVAR_GAMEDLL
 static ConVar z_horde_duration_min( "z_horde_duration_min", "60", FCVAR_GAMEDLL, "Minimum seconds a common infected horde lasts.", true, 1.0f, true, 3600.0f );
 static ConVar z_horde_duration_max( "z_horde_duration_max", "240", FCVAR_GAMEDLL, "Maximum seconds a common infected horde lasts.", true, 1.0f, true, 3600.0f );
 static ConVar z_horde_spawn_batch( "z_horde_spawn_batch", "40", FCVAR_GAMEDLL, "Maximum number of common infected to spawn per batch while a horde is active.", true, 1.0f, true, 128.0f );
-static ConVar z_horde_spawn_safety_radius( "z_horde_spawn_safety_radius", "1500", FCVAR_GAMEDLL, "Minimum distance (units) from every survivor when spawning common infected for a horde.", true, 0.0f, true, 20000.0f );
+static ConVar z_horde_spawn_safety_radius( "z_horde_spawn_safety_radius", "250", FCVAR_GAMEDLL, "Minimum distance (units) from every survivor when spawning common infected for a horde.", true, 0.0f, true, 20000.0f );
 static ConVar z_spawn_radius( "z_spawn_radius", "3000", FCVAR_GAMEDLL, "How far (units) to search nav areas around a survivor for spawning common infected.", true, 256.0f, true, 20000.0f );
 static ConVar z_spawn_safety_radius( "z_spawn_safety_radius", "350", FCVAR_GAMEDLL, "Minimum distance (units) from a survivor when spawning common infected.", true, 0.0f, true, 10000.0f );
 static ConVar z_common_max( "z_common_limit", "40", FCVAR_GAMEDLL, "Maximum number of common infected NPCs on the map.", true, 0.0f, true, 200.0f );
@@ -310,21 +311,9 @@ static void BuildSurvivorSpawnPointsIfNeeded()
 	}
 
 	pEnt = NULL;
-	while ((pEnt = gEntList.FindEntityByClassname(pEnt, "info_landmark")) != NULL)
-	{
-		s_vecSurvivorSpawnPoints.AddToTail(pEnt->GetAbsOrigin());
-	}
-
-	pEnt = NULL;
 	while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_survivor_position" ) ) != NULL )
 	{
 		s_vecSurvivorSpawnPoints.AddToTail( pEnt->GetAbsOrigin() );
-	}
-
-	pEnt = NULL;
-	while ((pEnt = gEntList.FindEntityByClassname(pEnt, "info_player_start")) != NULL)
-	{
-		s_vecSurvivorSpawnPoints.AddToTail(pEnt->GetAbsOrigin());
 	}
 
 	// As a last resort, use current survivor positions as "spawn points" so the
@@ -665,6 +654,23 @@ static bool AreAllAliveSurvivorsInSaferoomEndZone( CBaseEntity *pZone, CBaseEnti
 	}
 
 	return nAliveSurvivors > 0;
+}
+
+bool CCSGameRules::IsPlayerInSaferoom( CCSPlayer *player ) const
+{
+	if ( !player || player->GetTeamNumber() != TEAM_SURVIVOR || !player->IsAlive() )
+		return false;
+
+	if ( !IsCampaignSaferoomMap( this ) )
+		return false;
+
+	CBaseEntity *pChangelevel = FindSaferoomChangeLevelEntity();
+	CBaseEntity *pZone = FindSaferoomZoneForChangelevel( pChangelevel );
+	if ( IsEntityInsideSaferoomEndZone( pZone, pChangelevel, player ) )
+		return true;
+
+	BuildSurvivorSpawnPointsIfNeeded();
+	return !HasSurvivorLeftSpawnPoints( player, 200.0f );
 }
 
 static bool AreAllSpawnedSurvivorsDeadOrIncapacitated( void )
@@ -1111,11 +1117,50 @@ static CCSPlayer *SelectRandomAliveHumanInfected( void )
 	return humans[ random->RandomInt( 0, humans.Count() - 1 ) ];
 }
 
+static CCSPlayer *SelectRandomHumanInfected( bool bRequireAlive )
+{
+	CUtlVector< CCSPlayer * > humans;
+	humans.EnsureCapacity( 8 );
+
+	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	{
+		CCSPlayer *player = ToCSPlayer( UTIL_PlayerByIndex( i ) );
+		if ( !player )
+			continue;
+
+		if ( bRequireAlive && !player->IsAlive() )
+			continue;
+
+		if ( player->GetTeamNumber() != TEAM_CT )
+			continue;
+
+		if ( player->IsBot() )
+			continue;
+
+		if ( player->GetZombieClass() == 8 )
+			continue;
+
+		humans.AddToTail( player );
+	}
+
+	if ( humans.Count() <= 0 )
+		return NULL;
+
+	return humans[ random->RandomInt( 0, humans.Count() - 1 ) ];
+}
+
 static void ApplyTankLoadout( CCSPlayer *player, int desiredHealth )
 {
 	if ( !player )
 		return;
 
+	player->SetSpecialInfected( true );
+	player->SetSpecialInfectedDeathTimestamp( 0.0f );
+	player->SetGhost( false );
+	player->ClearPounce();
+	player->ClearCharger();
+	player->ClearDamageStagger();
+	player->ClearTankRockThrow();
 	player->SetSurvivorClass( 0 );
 	player->SetZombieClass( 8 );
 	if ( survivor_set.GetInt() == 1 )
@@ -1135,6 +1180,7 @@ static void ApplyTankLoadout( CCSPlayer *player, int desiredHealth )
 	player->RemoveAllWeapons();
 	player->GiveNamedItem( "weapon_tank_claw" );
 }
+
 
 static void ClearTankTakeoverState( void )
 {
@@ -1816,11 +1862,7 @@ static bool FindCommonInfectedSpawnPosNearSurvivor( CCSPlayer *survivor, float m
 
 static float GetCommonInfectedHordeMinSpawnDist( void )
 {
-	const float searchRadius = z_spawn_radius.GetFloat();
-	if ( searchRadius <= 1.0f )
-		return 0.0f;
-
-	return clamp( z_horde_spawn_safety_radius.GetFloat(), 0.0f, searchRadius - 1.0f );
+	return 550;
 }
 
 static bool FindCommonInfectedSpawnPos( const CUtlVector< CCSPlayer * > &survivors, Vector *outPos, QAngle *outAngles, CCSPlayer *anchorSurvivor, float minDistFromAnySurvivor = 0.0f )
@@ -2657,6 +2699,38 @@ static void SurvivorSquadThink( CCSGameRules *rules )
 	return bot;
 }
 
+static bool SpawnNaturalTankAt(const Vector& spawnPos, const QAngle& spawnAng)
+{
+	if (IsAnyAliveTank())
+		return false;
+
+	if (CCSBot* bot = SpawnSpecialInfectedBotAt(spawnPos, spawnAng, 8))
+	{
+		return true;
+	}
+
+	CCSPlayer* human = SelectRandomHumanInfected(false);
+	if (!human)
+		return false;
+
+	if (!human->IsAlive())
+	{
+		human->SetSpecialInfected(true);
+		human->SetZombieClass(8);
+		human->SetSpecialInfectedDeathTimestamp(0.0f);
+		human->RoundRespawn();
+
+		if (!human->IsAlive())
+			return false;
+	}
+
+	Vector vel(vec3_origin);
+	human->Teleport(&spawnPos, &spawnAng, &vel);
+	ApplyTankLoadout(human, 6000);
+	ClientPrint(human, HUD_PRINTTALK, "You are now the TANK!\nAttack the Survivors!");
+	return true;
+}
+
 static void BackgroundInfectedPopulateThink( CCSGameRules *rules, bool isRestartingRound )
 {
 	if ( !rules || !rules->IsLogoMap() || !z_background_populate_enabled.GetBool() )
@@ -2849,22 +2923,29 @@ static void SpecialInfectedDirectorThink(CCSGameRules* rules, bool isRestartingR
 				s_flNextTankSpawnAllowed = 0.0f;
 			}
 		}
-			if ( survivorCount > 0 )
+		else if ( survivorCount > 0 &&
+			!IsAnyAliveTank() &&
+			gpGlobals->curtime >= s_flNextTankSpawnAllowed )
+		{
+			Vector anchor;
+			if ( PickTankSpawnAnchorNearSurvivors( survivors, &anchor ) )
 			{
-				Vector anchor;
-				if ( PickTankSpawnAnchorNearSurvivors( survivors, &anchor ) )
+				Vector spawnPos;
+				QAngle spawnAng;
+				if ( FindTankSpawnPosNearAnchor( anchor, survivors, &spawnPos, &spawnAng ) )
 				{
-					Vector spawnPos;
-					QAngle spawnAng;
-					if ( FindTankSpawnPosNearAnchor( anchor, survivors, &spawnPos, &spawnAng ) )
+					const float flTankSpawnChance = clamp( z_special_tank_spawn_chance.GetFloat(), 0.0f, 1.0f );
+					const bool bShouldSpawnTank = ( flTankSpawnChance >= 1.0f ) || ( random->RandomFloat( 0.0f, 1.0f ) <= flTankSpawnChance );
+					if ( bShouldSpawnTank )
 					{
-						if ( SpawnSpecialInfectedBotAt( spawnPos, spawnAng, 8 ) )
-						{
-							s_flNextTankSpawnAllowed = gpGlobals->curtime + z_special_tank_spawn_cooldown.GetFloat();
-						}
+						SpawnNaturalTankAt( spawnPos, spawnAng );
 					}
+
+					// Consume the authored spawn opportunity even on a failed roll so we don't retry the chance every frame.
+					s_flNextTankSpawnAllowed = gpGlobals->curtime + z_special_tank_spawn_cooldown.GetFloat();
 				}
 			}
+		}
 	}
 
 	if (s_flNextSpecialInfectedSpawn <= 0.0f)
@@ -7524,20 +7605,6 @@ ConVar cl_autohelp(
 
 			ent = NULL;
 			while ((ent = gEntList.FindEntityByClassname(ent, "info_survivor_position")) != NULL)
-			{
-				if (IsSpawnPointValid(ent, NULL))
-				{
-					m_iSpawnPointCount_Terrorist++;
-				}
-				else
-				{
-					Warning("Invalid survivor spawnpoint at (%.1f,%.1f,%.1f)\n",
-						ent->GetAbsOrigin()[0], ent->GetAbsOrigin()[2], ent->GetAbsOrigin()[2]);
-				}
-			}
-
-			ent = NULL;
-			while ((ent = gEntList.FindEntityByClassname(ent, "info_player_start")) != NULL)
 			{
 				if (IsSpawnPointValid(ent, NULL))
 				{

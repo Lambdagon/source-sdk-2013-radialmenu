@@ -98,6 +98,7 @@ void CWeaponTMP::PrimaryAttack( void )
 		pPlayer->KickBack (0.7, 0.35, 0.125, 0.025, 2.5, 2, 10);
 	else
 		pPlayer->KickBack (0.725, 0.375, 0.15, 0.025, 2.75, 2.25, 9);
+	WeaponSound(SINGLE);
 }
 
 void CWeaponTMP::DoFireEffects( void )

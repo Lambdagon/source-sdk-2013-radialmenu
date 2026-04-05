@@ -12,6 +12,7 @@
 #if defined( CLIENT_DLL )
 
 	#define CWeaponXM1014 C_WeaponXM1014
+	#define CWeaponSPAS12 C_WeaponSPAS12
 	#include "c_cs_player.h"
 
 #else
@@ -50,6 +51,16 @@ private:
 
 };
 
+class CWeaponSPAS12 : public CWeaponXM1014
+{
+public:
+	DECLARE_CLASS(CWeaponSPAS12, CWeaponXM1014);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_XM1014; }
+};
+
 IMPLEMENT_NETWORKCLASS_ALIASED( WeaponXM1014, DT_WeaponXM1014 )
 
 BEGIN_NETWORK_TABLE( CWeaponXM1014, DT_WeaponXM1014 )
@@ -68,7 +79,7 @@ END_PREDICTION_DATA()
 
 LINK_ENTITY_TO_CLASS(weapon_xm1014, CWeaponXM1014);
 PRECACHE_WEAPON_REGISTER(weapon_xm1014);
-
+CREATE_SIMPLE_WEAPON_TABLE(WeaponSPAS12, weapon_shotgun_spas);
 
 CWeaponXM1014::CWeaponXM1014()
 {
@@ -183,6 +194,7 @@ void CWeaponXM1014::PrimaryAttack()
 	}
 
 	pPlayer->SetPunchAngle( angle );
+	WeaponSound(SINGLE);
 }
 
 

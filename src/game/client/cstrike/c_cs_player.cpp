@@ -29,6 +29,8 @@
 #include "obstacle_pushaway.h"
 #include "death_pose.h"
 #include "eventlist.h"
+#include "choreoscene.h"
+#include "choreoevent.h"
 
 #include "effect_dispatch_data.h"	//for water ripple / splash effect
 #include "c_te_effect_dispatch.h"	//ditto
@@ -843,6 +845,10 @@ IMPLEMENT_CLIENTCLASS_DT( C_CSPlayer, DT_CSPlayer, CCSPlayer )
 	RecvPropBool( RECVINFO( m_bBeingRevived ) ),
 	RecvPropInt( RECVINFO( m_nIncapacitationCount ) ),
 	RecvPropBool( RECVINFO( m_bIncapBlackAndWhite ) ),
+	RecvPropBool( RECVINFO( m_bUseSurvivorCalmAnimations ) ),
+	RecvPropEHandle( RECVINFO( m_hReviveTarget ) ),
+	RecvPropBool( RECVINFO( m_bUsingFirstAidKitOnSelf ) ),
+	RecvPropEHandle( RECVINFO( m_hFirstAidKitTarget ) ),
 	RecvPropEHandle( RECVINFO( m_pounceVictim ) ),
 	RecvPropEHandle( RECVINFO( m_pounceAttacker ) ),
 	RecvPropEHandle( RECVINFO( m_chargerVictim ) ),
@@ -881,6 +887,10 @@ C_CSPlayer::C_CSPlayer() :
 	m_zombieClass = 0;
 	m_survivorClass = 0;
 	m_bIsIT = false;
+	m_bUseSurvivorCalmAnimations = false;
+	m_hReviveTarget = NULL;
+	m_bUsingFirstAidKitOnSelf = false;
+	m_hFirstAidKitTarget = NULL;
 
 	m_Activity = ACT_IDLE;
 
@@ -1578,7 +1588,9 @@ void C_CSPlayer::UpdatePounceThirdPersonCamera()
 	const bool wantsPounceCam = ( m_pounceVictim.Get() != NULL ) || ( m_pounceAttacker.Get() != NULL );
 	const bool wantsChargerCam = ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 6 && m_nChargerAction != CHARGER_ACTION_NONE );
 	const bool wantsTankThrowCam = ( GetTeamNumber() == TEAM_INFECTED && GetZombieClass() == 8 && m_nTankAction == TANK_ACTION_ROCK_THROW );
-	const bool wantsAbilityCam = wantsPounceCam || wantsChargerCam || wantsTankThrowCam;
+	const bool wantsReviveCam = (GetTeamNumber() == TEAM_SURVIVOR && !m_bIncapacitated && m_hReviveTarget.Get() != NULL);
+	const bool wantsHealCam = (GetTeamNumber() == TEAM_SURVIVOR && (m_hFirstAidKitTarget.Get() != NULL || m_bUsingFirstAidKitOnSelf));
+	const bool wantsAbilityCam = wantsPounceCam || wantsChargerCam || wantsTankThrowCam || wantsReviveCam || wantsHealCam;
 
 	if ( wantsAbilityCam && !m_bPounceCamHasSavedState )
 	{
@@ -2836,6 +2848,53 @@ void C_CSPlayer::DoAnimationEvent( PlayerAnimEvent_t event, int nData )
 		m_PlayerAnimState->DoAnimationEvent( event, nData );
 	}
 }
+
+bool C_CSPlayer::StartSceneEvent( CSceneEventInfo *info, CChoreoScene *scene, CChoreoEvent *event, CChoreoActor *actor, CBaseEntity *pTarget )
+{
+	if ( GetTeamNumber() == TEAM_SURVIVOR && event->GetType() == CChoreoEvent::GESTURE )
+	{
+		info->m_nSequence = LookupSequence( event->GetParameters() );
+		return info->m_nSequence >= 0;
+	}
+
+	return BaseClass::StartSceneEvent( info, scene, event, actor, pTarget );
+}
+
+bool C_CSPlayer::ProcessSceneEvent( bool bFlexEvents, CSceneEventInfo *info, CChoreoScene *scene, CChoreoEvent *event )
+{
+	if ( GetTeamNumber() == TEAM_SURVIVOR && event->GetType() == CChoreoEvent::GESTURE )
+	{
+		if ( bFlexEvents )
+			return true;
+
+		if ( !m_PlayerAnimState || !info || !scene || !event || info->m_nSequence < 0 )
+			return false;
+
+		const float flDuration = MAX( event->GetDuration(), 0.001f );
+		const float flEventCycle = ( scene->GetTime() - event->GetStartTime() ) / flDuration;
+		const float flCycle = clamp( event->GetOriginalPercentageFromPlaybackPercentage( flEventCycle ), 0.0f, 1.0f );
+
+		m_PlayerAnimState->SetVCDGestureSequence( info->m_nSequence, flCycle );
+		return true;
+	}
+
+	return BaseClass::ProcessSceneEvent( bFlexEvents, info, scene, event );
+}
+
+bool C_CSPlayer::ClearSceneEvent( CSceneEventInfo *info, bool fastKill, bool canceled )
+{
+	if ( GetTeamNumber() == TEAM_SURVIVOR && info && info->m_pEvent && info->m_pEvent->GetType() == CChoreoEvent::GESTURE )
+	{
+		if ( m_PlayerAnimState )
+		{
+			m_PlayerAnimState->ClearVCDGestureSequence();
+		}
+		return true;
+	}
+
+	return BaseClass::ClearSceneEvent( info, fastKill, canceled );
+}
+
 #define PLAYER_HALFWIDTH	 10
 
 void C_CSPlayer::FireEvent( const Vector& origin, const QAngle& angles, int event, const char *options )

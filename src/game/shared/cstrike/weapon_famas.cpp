@@ -222,5 +222,6 @@ void CWeaponFamas::PrimaryAttack()
 	
 	else
 		pPlayer->KickBack ( 0.625, 0.375, 0.25, 0.0125, 3.5, 2.25, 8 );
+	WeaponSound(SINGLE);
 }
 

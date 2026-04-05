@@ -253,6 +253,7 @@ void CWeaponM4A1::PrimaryAttack()
 		pPlayer->KickBack (0.6, 0.3, 0.2, 0.0125, 3.25, 2, 7);
 	else
 		pPlayer->KickBack (0.65, 0.35, 0.25, 0.015, 3.5, 2.25, 7);
+	WeaponSound(SINGLE);
 }
 
 

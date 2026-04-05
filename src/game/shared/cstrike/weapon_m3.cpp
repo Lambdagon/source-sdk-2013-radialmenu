@@ -12,6 +12,8 @@
 #if defined( CLIENT_DLL )
 
 	#define CWeaponM3 C_WeaponM3
+	#define CWeaponChromeShotgun C_WeaponChromeShotgun
+	#define CWeaponClassicPumpShotgun C_WeaponClassicPumpShotgun
 	#include "c_cs_player.h"
 
 #else
@@ -49,6 +51,26 @@ private:
 
 };
 
+class CWeaponChromeShotgun : public CWeaponM3
+{
+public:
+	DECLARE_CLASS(CWeaponChromeShotgun, CWeaponM3);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_M3; }
+};
+
+class CWeaponClassicPumpShotgun : public CWeaponM3
+{
+public:
+	DECLARE_CLASS(CWeaponClassicPumpShotgun, CWeaponM3);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_M3; }
+};
+
 IMPLEMENT_NETWORKCLASS_ALIASED( WeaponM3, DT_WeaponM3 )
 
 BEGIN_NETWORK_TABLE( CWeaponM3, DT_WeaponM3 )
@@ -67,6 +89,8 @@ END_PREDICTION_DATA()
 
 LINK_ENTITY_TO_CLASS( weapon_m3, CWeaponM3 );
 PRECACHE_WEAPON_REGISTER( weapon_m3 );
+CREATE_SIMPLE_WEAPON_TABLE(WeaponChromeShotgun, weapon_shotgun_chrome);
+CREATE_SIMPLE_WEAPON_TABLE(WeaponClassicPumpShotgun, weapon_pumpshotgun_classic);
 
 
 
@@ -175,6 +199,7 @@ void CWeaponM3::PrimaryAttack()
 	}
 
 	pPlayer->SetPunchAngle( angle );
+	WeaponSound(SINGLE);
 }
 
 
@@ -198,10 +223,10 @@ bool CWeaponM3::Reload()
 
 		SendWeaponAnim( ACT_VM_RELOAD_LAYER );
 		m_reloadState = 1;
-		pPlayer->m_flNextAttack = gpGlobals->curtime + 0.5;
-		m_flNextPrimaryAttack = gpGlobals->curtime + 0.5;
-		m_flNextSecondaryAttack = gpGlobals->curtime + 0.5;
-		SetWeaponIdleTime( gpGlobals->curtime + 0.5 );
+		pPlayer->m_flNextAttack = SequenceDuration();
+		m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
+		m_flNextSecondaryAttack = -1;
+		SetWeaponIdleTime(SequenceDuration());
 
 #ifdef GAME_DLL
 		pPlayer->DoAnimationEvent( PLAYERANIMEVENT_RELOAD_START );
@@ -217,7 +242,7 @@ bool CWeaponM3::Reload()
 		m_reloadState = 2;
 
 		SendWeaponAnim( ACT_VM_RELOAD_LOOP_LAYER );
-		SetWeaponIdleTime( gpGlobals->curtime + 0.5 );
+		SetWeaponIdleTime( gpGlobals->curtime + SequenceDuration() );
 #ifdef GAME_DLL
 		if ( m_iClip1 == 7 )
 		{
@@ -282,7 +307,7 @@ void CWeaponM3::WeaponIdle()
 				
 				// play cocking sound
 				m_reloadState = 0;
-				SetWeaponIdleTime( gpGlobals->curtime + 1.5 );
+				SetWeaponIdleTime( gpGlobals->curtime + SequenceDuration());
 			}
 		}
 		else

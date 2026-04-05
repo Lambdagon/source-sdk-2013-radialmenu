@@ -135,7 +135,7 @@ void CDEagle::PrimaryAttack()
 	CCSPlayer *pPlayer = GetPlayerOwner();
 	if ( !pPlayer )
 		return;
-		
+	WeaponSound( SINGLE );
 	// Mark the time of this shot and determine the accuracy modifier based on the last shot fired...
 	m_flAccuracy -= (0.35)*(0.4 - ( gpGlobals->curtime - m_flLastFire ) );
 

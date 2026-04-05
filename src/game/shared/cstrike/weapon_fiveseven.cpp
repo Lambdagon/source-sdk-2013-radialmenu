@@ -171,6 +171,7 @@ void CWeaponFiveSeven::PrimaryAttack()
 	QAngle angle = pPlayer->GetPunchAngle();
 	angle.x -= 2;
 	pPlayer->SetPunchAngle( angle );
+	WeaponSound(SINGLE);
 }
 
 

@@ -65,6 +65,7 @@ struct randomsound_t
 
 struct subsoundscapeparams_t
 {
+	Vector  vForcedTextOriginAmbient;
 	int		recurseLevel;		// test for infinite loops in the script / circular refs
 	float	masterVolume;
 	int		startingPosition;
@@ -73,6 +74,7 @@ struct subsoundscapeparams_t
 	bool	allowDSP;
 	bool	wroteSoundMixer;
 	bool	wroteDSPVolume;
+	bool	bForceTextOriginAmbient;
 };
 
 class C_SoundscapeSystem : public CBaseGameSystemPerFrame
@@ -612,6 +614,8 @@ void C_SoundscapeSystem::StartNewSoundscape( KeyValues *pSoundscape )
 		params.recurseLevel = 0;
 		params.positionOverride = -1;
 		params.ambientPositionOverride = -1;
+		params.bForceTextOriginAmbient = false;
+		params.vForcedTextOriginAmbient.Init();
 		StartSubSoundscape( pSoundscape, params );
 
 		if ( !params.wroteDSPVolume )
@@ -744,6 +748,7 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 	int pitch = PITCH_NORM;
 	int positionIndex = -1;
 	bool suppress = false;
+	bool randomPosition = false;
 	bool useTextOrigin = false;
 	Vector textOrigin;
 	KeyValues *pKey = pAmbient->GetFirstSubKey();
@@ -761,14 +766,22 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 		{
 			pSoundName = pKey->GetString();
 		}
-		else if (!Q_strcasecmp(pKey->GetName(), "origin"))
-		{
-			textOrigin = getVectorFromString(pKey->GetString());
-			useTextOrigin = true;
-		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "position" ) )
 		{
-			positionIndex = params.startingPosition + pKey->GetInt();
+			if (!Q_strcasecmp(pKey->GetString(), "random"))
+			{
+				randomPosition = true;
+			}
+			else
+			{
+				positionIndex = params.startingPosition + pKey->GetInt();
+			}
+		}
+		else if (!Q_strcasecmp(pKey->GetName(), "origin"))
+		{
+			const char* originString = pKey->GetString();
+			textOrigin = getVectorFromString(originString);
+			useTextOrigin = true;
 		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "attenuation" ) )
 		{
@@ -796,13 +809,19 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 		pKey = pKey->GetNextKey();
 	}
 
-	if ( positionIndex < 0 )
+	if (positionIndex < 0)
 	{
 		positionIndex = params.ambientPositionOverride;
 	}
-	else if ( params.positionOverride >= 0 )
+	else if (params.positionOverride >= 0)
 	{
 		positionIndex = params.positionOverride;
+		randomPosition = false; // override trumps random position
+	}
+	if ( params.bForceTextOriginAmbient && positionIndex < 0 )
+	{
+		useTextOrigin = true;
+		textOrigin = params.vForcedTextOriginAmbient;
 	}
 
 	// Sound is mared as "suppress_on_restore" so don't restart it
@@ -813,7 +832,11 @@ void C_SoundscapeSystem::ProcessPlayLooping( KeyValues *pAmbient, const subsound
 
 	if ( volume != 0 && pSoundName != NULL )
 	{
-		if (useTextOrigin)
+		if (randomPosition)
+		{
+			AddLoopingSound(pSoundName, false, volume, soundlevel, pitch, GenerateRandomSoundPosition());
+		}
+		else if (useTextOrigin)
 		{
 			AddLoopingSound(pSoundName, false, volume, soundlevel, pitch, textOrigin);
 		}
@@ -1021,6 +1044,12 @@ void C_SoundscapeSystem::ProcessPlayRandom( KeyValues *pPlayRandom, const subsou
 		positionIndex = params.positionOverride;
 		randomPosition = false; // override trumps random position
 	}
+	if (params.bForceTextOriginAmbient && positionIndex < 0)
+	{
+		useTextOrigin = true;
+		textOrigin = params.vForcedTextOriginAmbient;
+		randomPosition = false;
+	}
 
 	// Sound is mared as "suppress_on_restore" so don't restart it
 	if ( IsBeingRestored() && suppress )
@@ -1101,6 +1130,11 @@ void C_SoundscapeSystem::ProcessPlaySoundscape( KeyValues *pPlaySoundscape, subs
 			{
 				subParams.ambientPositionOverride = paramsIn.startingPosition + pKey->GetInt();
 			}
+		}
+		else if ( !Q_strcasecmp( pKey->GetName(), "ambientoriginoverride" ) )
+		{
+			subParams.vForcedTextOriginAmbient = getVectorFromString(pKey->GetString());
+			subParams.bForceTextOriginAmbient = true;
 		}
 		else if ( !Q_strcasecmp( pKey->GetName(), "name" ) )
 		{

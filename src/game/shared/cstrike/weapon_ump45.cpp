@@ -128,5 +128,6 @@ void CWeaponUMP45::PrimaryAttack()
 		pPlayer->KickBack (0.25, 0.175, 0.125, 0.02, 2.25, 1.25, 10);
 	else
 		pPlayer->KickBack (0.275, 0.2, 0.15, 0.0225, 2.5, 1.5, 10);
+	WeaponSound(SINGLE);
 }
 

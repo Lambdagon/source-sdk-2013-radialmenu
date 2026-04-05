@@ -178,6 +178,7 @@ void CWeaponSG550::PrimaryAttack()
 	angle.x -= SharedRandomFloat("SG550PunchAngleX", 0.75, 1.25 ) + ( angle.x / 4 );
 	angle.y += SharedRandomFloat("SG550PunchAngleY", -0.75, 0.75 );
 	pPlayer->SetPunchAngle( angle );
+	WeaponSound(SINGLE);
 }
 
 bool CWeaponSG550::Reload()

@@ -13,6 +13,7 @@
 #include "cs_gamerules.h"
 #include "predicted_viewmodel.h"
 #include "fx_cs_shared.h"
+#include "eventlist.h"
 
 #define ALLOW_WEAPON_SPREAD_DISPLAY	0
 
@@ -1421,10 +1422,10 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 
 	bool CWeaponCSBase::OnFireEvent( C_BaseViewModel *pViewModel, const Vector& origin, const QAngle& angles, int event, const char *options )
 	{
-		if( event == 5001 )
+		if (event == 5001)
 		{
-			C_CSPlayer *pPlayer = ToCSPlayer( GetOwner() );
-			if( pPlayer && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() && HideViewModelWhenZoomed() )
+			C_CSPlayer* pPlayer = ToCSPlayer(GetOwner());
+			if (pPlayer && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() && HideViewModelWhenZoomed())
 				return true;
 
 			CEffectData data;
@@ -1433,23 +1434,122 @@ void CWeaponCSBase::DefaultTouch(CBaseEntity *pOther)
 			data.m_nAttachmentIndex = 1;
 			data.m_flScale = GetCSWpnData().m_flMuzzleScale;
 
-			switch( GetMuzzleFlashStyle() )
+			switch (GetMuzzleFlashStyle())
 			{
 			case CS_MUZZLEFLASH_NONE:
 				break;
 
 			case CS_MUZZLEFLASH_X:
-				{
-					DispatchEffect( "CS_MuzzleFlash_X", data );
-				}
-				break;
+			{
+				DispatchEffect("CS_MuzzleFlash_X", data);
+			}
+			break;
 
 			case CS_MUZZLEFLASH_NORM:
 			default:
-				{
-					DispatchEffect( "CS_MuzzleFlash", data );
-				}
+			{
+				DispatchEffect("CS_MuzzleFlash", data);
+			}
+			break;
+			}
+
+			return true;
+		}
+		if (event == 5011 || event == AE_MUZZLEFLASH)
+		{
+			C_CSPlayer* pPlayer = ToCSPlayer(GetOwner());
+			if (pPlayer && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() && HideViewModelWhenZoomed())
+				return true;
+
+			CEffectData data;
+			data.m_fFlags = 0;
+			data.m_hEntity = pViewModel->GetRefEHandle();
+			data.m_nAttachmentIndex = 1;
+			data.m_flScale = GetCSWpnData().m_flMuzzleScale;
+
+			switch (GetMuzzleFlashStyle())
+			{
+			case CS_MUZZLEFLASH_NONE:
 				break;
+
+			case CS_MUZZLEFLASH_X:
+			{
+				DispatchEffect("CS_MuzzleFlash_X", data);
+			}
+			break;
+
+			case CS_MUZZLEFLASH_NORM:
+			default:
+			{
+				DispatchEffect("CS_MuzzleFlash", data);
+			}
+			break;
+			}
+
+			return true;
+		}
+		if (event == 5011)
+		{
+			C_CSPlayer* pPlayer = ToCSPlayer(GetOwner());
+			if (pPlayer && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() && HideViewModelWhenZoomed())
+				return true;
+
+			CEffectData data;
+			data.m_fFlags = 0;
+			data.m_hEntity = pViewModel->GetRefEHandle();
+			data.m_nAttachmentIndex = 1;
+			data.m_flScale = GetCSWpnData().m_flMuzzleScale;
+
+			switch (GetMuzzleFlashStyle())
+			{
+			case CS_MUZZLEFLASH_NONE:
+				break;
+
+			case CS_MUZZLEFLASH_X:
+			{
+				DispatchEffect("CS_MuzzleFlash_X", data);
+			}
+			break;
+
+			case CS_MUZZLEFLASH_NORM:
+			default:
+			{
+				DispatchEffect("CS_MuzzleFlash", data);
+			}
+			break;
+			}
+
+			return true;
+		}
+		if (event == 5021)
+		{
+			C_CSPlayer* pPlayer = ToCSPlayer(GetOwner());
+			if (pPlayer && pPlayer->GetFOV() < pPlayer->GetDefaultFOV() && HideViewModelWhenZoomed())
+				return true;
+
+			CEffectData data;
+			data.m_fFlags = 0;
+			data.m_hEntity = pViewModel->GetRefEHandle();
+			data.m_nAttachmentIndex = 2;
+			data.m_flScale = GetCSWpnData().m_flMuzzleScale;
+
+			switch (GetMuzzleFlashStyle())
+			{
+			case CS_MUZZLEFLASH_NONE:
+				break;
+
+			case CS_MUZZLEFLASH_X:
+			{
+				DispatchEffect("CS_MuzzleFlash_X", data);
+			}
+			break;
+
+			case CS_MUZZLEFLASH_NORM:
+			default:
+			{
+				DispatchEffect("CS_MuzzleFlash", data);
+			}
+			break;
 			}
 
 			return true;
@@ -1697,9 +1797,17 @@ bool CWeaponCSBase::DefaultPistolReload()
 
 	if (pPlayer->GetAmmoCount( GetPrimaryAmmoType() ) <= 0)
 		return true;
-
-	if ( !DefaultReload( GetCSWpnData().iDefaultClip1, 0, ACT_VM_RELOAD_LAYER ) )
-		return false;
+	if (Clip1() == 0) {
+		if (!DefaultReload(GetCSWpnData().iDefaultClip1, 0, ACT_VM_RELOAD_EMPTY_LAYER) && SendWeaponAnim(ACT_VM_RELOAD_EMPTY_LAYER))
+			return false;
+		else {
+			if (!DefaultReload(GetCSWpnData().iDefaultClip1, 0, ACT_VM_RELOAD_LAYER))
+				return false;
+		}
+	} else {
+		if (!DefaultReload(GetCSWpnData().iDefaultClip1, 0, ACT_VM_RELOAD_LAYER))
+			return false;
+	}
 
 	pPlayer->m_iShotsFired = 0;
 

@@ -267,6 +267,22 @@ public:
 	virtual const char* GetFootstepSound(const char* stepType, bool /*unused*/, float side, bool /*unused*/) const;
 
 	void NotifySpitterAcidBurned();
+	bool CanPlaySurvivorGesture() const;
+	void ScheduleNextSurvivorFidget();
+	void TryPlaySurvivorFidgetGesture();
+	void TryPlaySurvivorFlinchGesture();
+	bool HasNearbySurvivorEnemy( float flRadius ) const;
+	void UpdateSurvivorCalmAnimationState();
+	bool NeedsFirstAidKit( bool bResetIncapState ) const;
+	void ApplyFirstAidKitHeal( bool bResetIncapState );
+	void StartFirstAidKitSelfHeal();
+	void StartFirstAidKitTargetHeal( CCSPlayer *target );
+	void CancelFirstAidKitUse();
+	bool IsUsingFirstAidKitOnSelf() const { return m_bUsingFirstAidKitOnSelf; }
+	CCSPlayer *GetFirstAidKitTarget() const { return m_hFirstAidKitTarget.Get(); }
+	CCSPlayer *GetFirstAidKitHealer() const { return (CCSPlayer *)m_hFirstAidKitHealer.Get(); }
+	float GetFirstAidKitStartTime() const { return m_flFirstAidKitStartTime; }
+	bool IsUsingFirstAidKit() const { return IsUsingFirstAidKitOnSelf() || GetFirstAidKitTarget() != NULL; }
 
 	//=============================================================================
 	// HPE_BEGIN:
@@ -354,6 +370,7 @@ public:
 
 	virtual void SetAnimation( PLAYER_ANIM playerAnim );
 	ICSPlayerAnimState *GetPlayerAnimState() { return m_PlayerAnimState; }
+	Class_T			Classify(void);
 
 	virtual bool StartReplayMode( float fDelay, float fDuration, int iEntity );
 	virtual void StopReplayMode();
@@ -803,6 +820,10 @@ public:
 	CNetworkVar( bool, m_bBeingRevived );
 	CNetworkVar( int, m_nIncapacitationCount );
 	CNetworkVar( bool, m_bIncapBlackAndWhite );
+	CNetworkVar( bool, m_bUseSurvivorCalmAnimations );
+	CNetworkHandle( CCSPlayer, m_hReviveTarget );
+	CNetworkVar( bool, m_bUsingFirstAidKitOnSelf );
+	CNetworkHandle( CCSPlayer, m_hFirstAidKitTarget );
 
 	CNetworkHandle( CCSPlayer, m_pounceVictim );
 	CNetworkHandle( CCSPlayer, m_pounceAttacker );
@@ -882,6 +903,8 @@ protected:
 
 	void PushawayThink();
 	void SpitterBurnMusicThink();
+	void SetFrozenByFirstAidKit( CCSPlayer *healer );
+	void ClearFrozenByFirstAidKit();
 
 private:
 
@@ -923,8 +946,13 @@ private:
 	bool m_bIncapHullAdjusted;
 	float m_flNextIncapHealthDecayTime;
 	float m_flNextIncapHelpYellTime;
-	CHandle< CCSPlayer > m_hReviveTarget;
+	float m_flNextSurvivorFidgetTime;
+	float m_flNextSurvivorFlinchTime;
+	float m_flLastNearbyEnemyTime;
 	float m_flReviveStartTime;
+	float m_flFirstAidKitStartTime;
+	EHANDLE m_hFirstAidKitHealer;
+	bool m_bFrozenByFirstAidKit;
 
     //=============================================================================
     // HPE_BEGIN:

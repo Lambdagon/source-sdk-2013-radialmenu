@@ -229,6 +229,13 @@ void BotDefendHereMeme::Interpret( CCSBot *sender, CCSBot *receiver ) const
 
 	// acknowledge
 	receiver->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_YES);
+	CRecipientFilter filter;
+	filter.AddAllPlayers();
+	UserMessageBegin(filter, "VoiceSubtitle");
+	WRITE_BYTE(receiver->entindex());
+	WRITE_BYTE(0);
+	WRITE_BYTE(4);
+	MessageEnd();
 }
 
 //---------------------------------------------------------------------------------------------------------------
@@ -263,6 +270,13 @@ void BotAllHostagesGoneMeme::Interpret( CCSBot *sender, CCSBot *receiver ) const
 
 	// acknowledge
 	receiver->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_YES);
+	CRecipientFilter filter;
+	filter.AddAllPlayers();
+	UserMessageBegin(filter, "VoiceSubtitle");
+	WRITE_BYTE(receiver->entindex());
+	WRITE_BYTE(0);
+	WRITE_BYTE(4);
+	MessageEnd();
 }
 
 
@@ -2136,6 +2150,13 @@ void BotChatterInterface::Affirmative( void )
 	BotStatement *say = new BotStatement( this, REPORT_ACKNOWLEDGE, 3.0f );
 
 	m_me->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_YES);
+	CRecipientFilter filter;
+	filter.AddAllPlayers();
+	UserMessageBegin(filter, "VoiceSubtitle");
+	WRITE_BYTE(m_me->entindex());
+	WRITE_BYTE(0);
+	WRITE_BYTE(4);
+	MessageEnd();
 
 	AddStatement( say );
 }
@@ -2146,6 +2167,13 @@ void BotChatterInterface::Negative( void )
 	BotStatement *say = new BotStatement( this, REPORT_ACKNOWLEDGE, 3.0f );
 
 	m_me->SpeakConceptIfAllowed(MP_CONCEPT_PLAYER_NO);
+	CRecipientFilter filter;
+	filter.AddAllPlayers();
+	UserMessageBegin(filter, "VoiceSubtitle");
+	WRITE_BYTE(m_me->entindex());
+	WRITE_BYTE(0);
+	WRITE_BYTE(5);
+	MessageEnd();
 
 	AddStatement( say );
 }

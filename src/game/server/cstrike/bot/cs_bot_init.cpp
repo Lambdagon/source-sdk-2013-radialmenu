@@ -255,6 +255,8 @@ void CCSBot::ResetValues( void )
 	m_bIgnoreSurvivorSquad = false;
 	m_pounceRescueVictim = NULL;
 	m_incapReviveTarget = NULL;
+	m_firstAidTarget = NULL;
+	m_bFirstAidSelfHeal = false;
 
 	m_enemyQueueIndex = 0;
 	m_enemyQueueCount = 0;
