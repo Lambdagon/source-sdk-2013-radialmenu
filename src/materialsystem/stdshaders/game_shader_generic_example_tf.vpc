@@ -6,9 +6,9 @@
 
 $Macro SRCDIR		"..\.."
 $Macro OUTBINNAME "game_shader_generic_example"
-$Macro GAMENAME "mod_tf"
-$Include "$SRCDIR\materialsystem\stdshaders\game_shader_generic_example_base.vpc"
+$Macro GAMENAME "terror"
+$Include "$SRCDIR\materialsystem\stdshaders\game_shader_generic_lux.vpc"
 
-$Project "Game Shaders (TF)"
+$Project "Game Shaders (LUX - CSTRIKE)"
 {
 }

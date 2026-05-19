@@ -29,6 +29,7 @@ $Project "game_shader_generic_example"
 {
 	"materialsystem\stdshaders\game_shader_generic_example_hl2mp.vpc" [$HL2MP]
 	"materialsystem\stdshaders\game_shader_generic_example_tf.vpc" [$TF]
+	"materialsystem\stdshaders\game_shader_generic_example_cstrike.vpc" [$CSTRIKE]
 }
 
 // Use this project if you want to override all std shaders with your own.

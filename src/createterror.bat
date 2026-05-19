@@ -1,2 +1,2 @@
-devtools\bin\vpc.exe /cstrike /define:SOURCESDK +game /mksln terror.sln
+devtools\bin\vpc.exe /cstrike /define:SOURCESDK +game +shaders /mksln terror.sln
 pause
