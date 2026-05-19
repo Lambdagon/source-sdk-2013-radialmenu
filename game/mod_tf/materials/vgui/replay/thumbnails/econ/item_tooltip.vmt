@@ -1,7 +1,0 @@
-"Modulate"
-{
-	"$basetexture" "vgui/replay/thumbnails/econ/item_tooltip"
-	"$vertexcolor" 1
-	"$vertexalpha" 1
-	"$additive"	1
-}

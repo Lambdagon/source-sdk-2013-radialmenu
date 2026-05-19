@@ -1,7 +1,0 @@
-"LightmappedGeneric"
-{
-	"$basetexture"		"nature/underworld_dirt001"
-	"%tooltexture"		"nature/underworld_dirt001"
-	"%keywords"		"tf"
-	"$surfaceprop"		"dirt"
-}

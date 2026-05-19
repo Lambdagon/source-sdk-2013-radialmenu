@@ -1,8 +1,0 @@
-"LightmappedGeneric"
-{
-	"$basetexture"		"Nature/dirtground003"
-	"%tooltexture"		"Nature/blendgroundtograss003_tooltexture"
-	"%detailtype"		"tf_grass"
-	"%keywords"		"tf"
-	"$surfaceprop"		"dirt"
-}

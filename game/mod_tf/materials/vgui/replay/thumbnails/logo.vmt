@@ -1,6 +1,0 @@
-"UnlitGeneric"
-{
-	"$basetexture" "vgui\replay\thumbnails\logo"
-	"$translucent" 1
-	"$vertexalpha" 1
-}

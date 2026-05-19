@@ -1,8 +1,0 @@
-"patch"
-{
-	"include"		"materials/GLASS/GLASSWINDOW002A.vmt"
-	"replace"
-	{
-		"$envmap"		"maps/mvm_magmarock_v3/c0_2256_432"
-	}
-}

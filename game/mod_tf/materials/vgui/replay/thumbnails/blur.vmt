@@ -1,8 +1,0 @@
-"Water"
-{
-	"$refractamount" "0.0"
-	"$refracttint" "{255 255 255}"
-	"$bluramount" "2"
-	"$normalmap" "vgui/replay/thumbnails/blur"
-	"$forcerefract" "1"
-}

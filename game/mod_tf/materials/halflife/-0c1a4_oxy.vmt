@@ -1,8 +1,0 @@
-"LightmappedGeneric"
-{
-	// Original shader: BaseTimesLightmap
-	"$detail" "detail/detail_noise1"
-	"$detailscale" 2.5
-	"$basetexture" "halflife/-0c1a4_oxy"
-	"$surfaceprop" "metal"
-}

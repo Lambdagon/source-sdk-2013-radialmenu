@@ -1,7 +1,0 @@
-"WorldVertexTransition"
-{
-	"$detail" "detail/detail_noise1"
-	"$detailscale" 2.5
-	"$basetexture" "halflife/out_snd1"
-	"$basetexture2" "halflife/-0out_rk3"
-}

@@ -1,7 +1,0 @@
-"VertexLitGeneric"
-{
-	"$basetexture" "models/earkham/props_asian/asian_screen02b"
-	"$model" 1
-	"$surfaceprop" "paper"
-	"$translucent" 1
-}

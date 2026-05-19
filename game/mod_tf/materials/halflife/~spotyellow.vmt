@@ -1,9 +1,0 @@
-"UnlitGeneric"
-{
-	// Original shader: BaseTimesLightmapSelfIllum
-	"$detail" "detail/detail_noise1"
-	"$detailscale" 2.5
-	"$basetexture" "halflife/~spotyellow"
-//	"$selfillum" 1
-	"$surfaceprop" "glass"
-}

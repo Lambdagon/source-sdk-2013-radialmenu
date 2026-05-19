@@ -1,8 +1,0 @@
-"patch"
-{
-	"include"		"materials/maps/mvm_hakurei_shrine_v3/water/water_2fort_-928_-1863_240.vmt"
-	"insert"
-	{
-		"$waterdepth"		"10"
-	}
-}

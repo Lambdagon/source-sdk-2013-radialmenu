@@ -1,8 +1,0 @@
-"patch"
-{
-	"include"		"materials/CP_MANOR/WOOD_FLOOR01.vmt"
-	"replace"
-	{
-		"$envmap"		"maps/mvm_magmarock_v3/c-1408_-992_672"
-	}
-}

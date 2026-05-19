@@ -1,8 +1,0 @@
-"patch"
-{
-	"include"		"materials/CP_MANOR/IBEAM001B_BRASS.vmt"
-	"replace"
-	{
-		"$envmap"		"maps/mvm_magmarock_v3/c32_-2688_617"
-	}
-}

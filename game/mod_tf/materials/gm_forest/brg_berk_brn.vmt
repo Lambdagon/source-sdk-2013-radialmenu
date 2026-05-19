@@ -1,8 +1,0 @@
-"vertexlitgeneric"
-{
-	"$basetexture" "gm_forest/brg_berk_brn"
-	"$alphatest" 1
-	"$nocull" 1
-	"$model" 1
-	"$nodecal" 1
-}

@@ -1,8 +1,0 @@
-"patch"
-{
-	"include"		"materials/maps/mvm_magmarock_v3/magmarock_texturesbrush/waterorange_1482_4388_-248.vmt"
-	"insert"
-	{
-		"$waterdepth"		"319"
-	}
-}

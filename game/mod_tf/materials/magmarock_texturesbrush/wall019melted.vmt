@@ -1,7 +1,0 @@
-"LightmappedGeneric"
-{
-	"$basetexture" "magmarock_texturesbrush/wall019melted"
-	"$surfaceprop" "Metal"
-	"$nocull" 1
-	"$nolod" 1
-}

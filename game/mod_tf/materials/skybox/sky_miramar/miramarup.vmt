@@ -1,6 +1,0 @@
-"unlitgeneric"
-{
-	"$basetexture" "skybox\sky_miramar\miramarup"
-	"$nofog" 1
-	$ignorez 1
-}

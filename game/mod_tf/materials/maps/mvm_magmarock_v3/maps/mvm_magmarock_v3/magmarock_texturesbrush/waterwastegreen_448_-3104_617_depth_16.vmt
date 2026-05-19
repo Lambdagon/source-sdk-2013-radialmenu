@@ -1,8 +1,0 @@
-"patch"
-{
-	"include"		"materials/maps/mvm_magmarock_v3/magmarock_texturesbrush/waterwastegreen_448_-3104_617.vmt"
-	"insert"
-	{
-		"$waterdepth"		"16"
-	}
-}
