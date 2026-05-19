@@ -129,6 +129,22 @@ extern ConVar tf_mm_servermode;
 #include "replay/ireplaysystem.h"
 #endif
 
+#define SWARM_INTERFACE_SERVER 1
+
+#ifdef SWARM_INTERFACE_SERVER
+//#pragma message(FILE_LINE_STRING " !!FIXME!! replace all this with Sys_LoadGameModule")
+static class DllOverride
+{
+public:
+	DllOverride() {
+		Sys_LoadInterface("filesystem_stdio.dll", FILESYSTEM_INTERFACE_VERSION, nullptr, (void**)&g_pFullFileSystem);
+		const char* pGameDir = CommandLine()->ParmValue("-game", "terror");
+		pGameDir = UTIL_VarArgs("%s/bin/x64", pGameDir);
+		g_pFullFileSystem->AddSearchPath(pGameDir, "EXECUTABLE_PATH", PATH_ADD_TO_HEAD);
+	}
+} g_DllOverride;
+#endif
+
 extern IToolFrameworkServer *g_pToolFrameworkServer;
 extern IParticleSystemQuery *g_pParticleSystemQuery;
 

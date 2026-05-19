@@ -150,6 +150,20 @@
 
 #endif
 
+#define SWARM_GUI 1
+
+#ifdef SWARM_GUI
+//#pragma message(FILE_LINE_STRING " !!FIXME!! replace all this with Sys_LoadGameModule")
+static class DllOverride {
+public:
+	DllOverride() {
+		Sys_LoadInterface("filesystem_stdio.dll", FILESYSTEM_INTERFACE_VERSION, nullptr, (void**)&g_pFullFileSystem);
+		const char* pGameDir = CommandLine()->ParmValue("-game", "terror");
+		pGameDir = VarArgs("%s/bin/x64", pGameDir);
+		g_pFullFileSystem->AddSearchPath(pGameDir, "EXECUTABLE_PATH", PATH_ADD_TO_HEAD);
+	}
+} g_DllOverride;
+#endif
 
 extern vgui::IInputInternal *g_InputInternal;
 
