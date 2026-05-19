@@ -1053,8 +1053,10 @@ IResponseSystem* CCSPlayer::GetResponseSystem()
 
 		return CSGameRules()->m_ResponseRules[GetSurvivorClass()].m_ResponseSystems[m_iCurrentConcept];
 	}
-	else {
-		return CSGameRules()->m_ResponseRules[GetSurvivorClass()].m_ResponseSystems[m_iCurrentConcept];
+	else 
+	{
+		//return CSGameRules()->m_ResponseRules[GetSurvivorClass()].m_ResponseSystems[m_iCurrentConcept];
+		return NULL;
 	}
 }
 
@@ -8797,8 +8799,9 @@ bool CCSPlayer::ClientCommand( const CCommand &args )
 			//=============================================================================
 
 			CSWeaponType type = pWeapon->GetCSWpnData().m_WeaponType;
-
-			if( type != WEAPONTYPE_KNIFE && type != WEAPONTYPE_GRENADE )
+			
+			// Don't allow dropping knives in L4D - VVis :3 
+			if( type != WEAPONTYPE_KNIFE && type != WEAPONTYPE_GRENADE && type != WEAPONTYPE_PISTOL)
 			{
 				if (CSGameRules()->GetCanDonateWeapon() && !pWeapon->GetDonated())
 				{
@@ -12724,3 +12727,36 @@ void UTIL_AwardMoneyToTeam( int iAmount, int iTeam, CBaseEntity *pIgnore )
 		pPlayer->AddAccount( iAmount );
 	}
 }
+
+
+void Vocalize(const CCommand& args)
+{
+	CCSPlayer* pPlayer = ToCSPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	if (!pPlayer->CanSpeakVoiceCommand())
+		return;
+
+
+	if (args.ArgC() < 2)
+	{
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "No concept specified. Format is vocalize <concept>\n");
+		return;
+	}
+
+	const char* pszConcept = args[1];
+	if (FStrEq(args[1], "TLK_PLAYER_TAUNT"))
+		return;
+
+	int iConcept = GetMPConceptIndexFromString(pszConcept);
+	if (iConcept != MP_CONCEPT_NONE)
+	{
+		pPlayer->SpeakConceptIfAllowed(iConcept);
+	}
+	else
+	{
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Attempted to speak unknown multiplayer concept: %s\n", pszConcept);
+	}
+}
+static ConCommand vocalize("vocalize", Vocalize, "Speak a response rule concept.\nFormat is vocalize <concept>", 0);
