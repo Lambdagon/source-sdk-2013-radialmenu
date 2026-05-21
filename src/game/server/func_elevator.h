@@ -48,7 +48,7 @@ public:
 	virtual int			DrawDebugTextOverlays( void );
 
 	// FIXMEL4DTOMAINMERGE
-	//	virtual void		PhysicsSimulate( void );
+	virtual void		PhysicsSimulate( void );
 
 	virtual void		MoveDone( void );
 	virtual void		Blocked( CBaseEntity *pOther );
