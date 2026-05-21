@@ -1618,9 +1618,9 @@ BEGIN_DATADESC( CEnvWind )
 	DEFINE_KEYFIELD( m_EnvWindShared.m_flGustDuration, FIELD_FLOAT, "gustduration" ),
 //	DEFINE_KEYFIELD( m_EnvWindShared.m_iszGustSound, FIELD_STRING, "gustsound" ),
 #ifdef MAPBASE
-	DEFINE_KEYFIELD( m_EnvWindShared.m_windRadius, FIELD_FLOAT, "windradius" ),
-	DEFINE_KEYFIELD( m_EnvWindShared.m_windRadiusInner, FIELD_FLOAT, "windradiusinner" ),
-	DEFINE_KEYFIELD( m_EnvWindShared.m_flTreeSwayScale, FIELD_FLOAT, "treeswayscale" ),
+	//DEFINE_KEYFIELD( m_EnvWindShared.m_windRadius, FIELD_FLOAT, "windradius" ),
+	//DEFINE_KEYFIELD( m_EnvWindShared.m_windRadiusInner, FIELD_FLOAT, "windradiusinner" ),
+	//DEFINE_KEYFIELD( m_EnvWindShared.m_flTreeSwayScale, FIELD_FLOAT, "treeswayscale" ),
 #endif
 
 // Just here to quiet down classcheck
@@ -1639,8 +1639,8 @@ BEGIN_DATADESC( CEnvWind )
 	DEFINE_INPUT( m_EnvWindShared.m_iGustDirChange, FIELD_INTEGER, "SetGustDirChange" ),
 	DEFINE_INPUT( m_EnvWindShared.m_flGustDuration, FIELD_FLOAT, "SetGustDuration" ),
 	DEFINE_INPUT( m_EnvWindShared.m_windRadius, FIELD_FLOAT, "SetWindRadius" ),
-	DEFINE_INPUT( m_EnvWindShared.m_windRadiusInner, FIELD_FLOAT, "SetWindRadiusInner" ),
-	DEFINE_INPUT( m_EnvWindShared.m_flTreeSwayScale, FIELD_FLOAT, "SetTreeSwayScale" ),
+	//DEFINE_INPUT( m_EnvWindShared.m_windRadiusInner, FIELD_FLOAT, "SetWindRadiusInner" ),
+	//DEFINE_INPUT( m_EnvWindShared.m_flTreeSwayScale, FIELD_FLOAT, "SetTreeSwayScale" ),
 #endif
 
 	DEFINE_OUTPUT( m_EnvWindShared.m_OnGustStart, "OnGustStart" ),
@@ -1673,9 +1673,9 @@ BEGIN_SEND_TABLE_NOBASE(CEnvWindShared, DT_EnvWindShared)
 //	SendPropInt		(SENDINFO(m_iszGustSound),	10, SPROP_UNSIGNED ),
 #ifdef MAPBASE
 	SendPropFloat	(SENDINFO(m_windRadius), 0, SPROP_NOSCALE),
-	SendPropFloat	(SENDINFO(m_windRadiusInner), 0, SPROP_NOSCALE),
+	//SendPropFloat	(SENDINFO(m_windRadiusInner), 0, SPROP_NOSCALE),
 	SendPropVector	(SENDINFO(m_location), -1, SPROP_COORD),
-	SendPropFloat	(SENDINFO(m_flTreeSwayScale), 0, SPROP_NOSCALE),
+	//SendPropFloat	(SENDINFO(m_flTreeSwayScale), 0, SPROP_NOSCALE),
 #endif
 END_SEND_TABLE()
 

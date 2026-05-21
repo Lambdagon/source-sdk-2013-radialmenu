@@ -23,6 +23,8 @@
 #include "client_textmessage.h"
 #include "VGuiMatSurface/IMatSystemSurface.h"
 
+#include "ienginevgui.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -104,7 +106,7 @@ public:
 	int	XPosition( float x, int width, int lineWidth );
 	int YPosition( float y, int height );
 
-	void MessageAdd( const char *pName );
+	void MessageAdd(const char *pName, client_textmessage_t *pNetMessage = NULL);
 	void MessageDrawScan( client_textmessage_t *pMessage, float time );
 	void MessageScanStart( void );
 	void MessageScanNextChar( void );
@@ -145,6 +147,8 @@ private:
 	vgui::HFont					m_hFont;
 	vgui::HFont					m_hDefaultFont;
 	CUtlVector< message_t >		m_Messages;
+
+	vgui::HScheme m_hScheme;
 };
 
 //-----------------------------------------------------------------------------
@@ -184,9 +188,12 @@ CHudMessage::CHudMessage( const char *pElementName ) :
 	CHudElement( pElementName ), BaseClass( NULL, "HudMessage" )
 {
 	vgui::Panel *pParent = g_pClientMode->GetViewport();
+
+	m_hScheme = vgui::scheme()->LoadSchemeFromFileEx(enginevgui->GetPanel(PANEL_CLIENTDLL), "resource/ClientScheme_fc.res", "HudScheme");
 	SetParent( pParent );
 	textmessage = this;
-	m_hFont = g_hFontTrebuchet24;
+	//m_hFont = g_hFontTrebuchet24;
+	m_hFont = vgui::scheme()->GetIScheme(m_hScheme)->GetFont("HudHintText", true);
 	m_hDefaultFont = m_hFont;
 	// Clear memory out
 	ResetCharacters();
@@ -195,10 +202,13 @@ CHudMessage::CHudMessage( const char *pElementName ) :
 CHudMessage::~CHudMessage()
 {
 	textmessage = NULL;
+	m_hScheme = NULL;
 }
 
 void CHudMessage::ApplySchemeSettings( IScheme *scheme )
 {
+	m_hScheme = vgui::scheme()->LoadSchemeFromFileEx(enginevgui->GetPanel(PANEL_CLIENTDLL), "resource/ClientScheme_fc.res", "HudScheme");
+
 	BaseClass::ApplySchemeSettings( scheme );
 
 	SetPaintBackgroundEnabled( false );
@@ -395,7 +405,12 @@ void CHudMessage::MessageScanNextChar( void )
 
 void CHudMessage::SetFont( HScheme scheme, const char *pFontName )
 {
-	vgui::IScheme *pScheme = vgui::scheme()->GetIScheme( scheme );
+	//vgui::HScheme locscheme = vgui::scheme()->LoadSchemeFromFileEx(enginevgui->GetPanel(PANEL_CLIENTDLL), "resource/ClientScheme_HL2.res", "HudScheme");
+
+	SetScheme(m_hScheme);
+	SetProportional(true);
+
+	vgui::IScheme *pScheme = vgui::scheme()->GetIScheme(m_hScheme);
 
 	if ( pScheme )
 	{
@@ -447,6 +462,8 @@ void CHudMessage::MessageScanStart( void )
 		break;
 	}
 
+	// Font was just set in MessageDrawScan()
+#ifndef MAPBASE
 	m_parms.font = g_hFontTrebuchet24;
 
 	if ( m_parms.vguiFontName != NULL && 
@@ -455,6 +472,7 @@ void CHudMessage::MessageScanStart( void )
 
 		SetFont( vgui::scheme()->GetDefaultScheme(), m_parms.vguiFontName );
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -497,7 +515,30 @@ void CHudMessage::MessageDrawScan( client_textmessage_t *pMessage, float time )
 	m_parms.totalWidth = 0;
 	m_parms.vguiFontName = pMessage->pVGuiSchemeFontName;
 
+#ifdef MAPBASE
+	if ( m_parms.vguiFontName != NULL &&
+		m_parms.vguiFontName[ 0 ] )
+	{
+		SetFont( vgui::scheme()->GetDefaultScheme(), m_parms.vguiFontName );
+
+	#ifdef MAPBASE_VSCRIPT
+		if ( m_parms.font == vgui::INVALID_FONT )
+		{
+			extern vgui::HFont GetScriptFont( const char *, bool );
+
+			vgui::HFont font = GetScriptFont( m_parms.vguiFontName, IsProportional() );
+			textmessage->SetFont( font );
+			m_parms.font = font;
+		}
+	#endif
+	}
+	else
+	{
+		m_parms.font = g_hFontTrebuchet24;
+	}
+#else
 	m_parms.font = g_hFontTrebuchet24;
+#endif
 
 	while ( *pText )
 	{
@@ -632,18 +673,26 @@ void CHudMessage::Paint()
 		}
 		else
 		{
-			brightness = FadeBlend( m_pGameTitle->fadein, m_pGameTitle->fadeout, m_pGameTitle->holdtime, localTime );
+			if (!m_iconTitleHalf)
+				m_iconTitleHalf = gHUD.GetIcon("title_half");
+			if (!m_iconTitleLife)
+				m_iconTitleLife = gHUD.GetIcon("title_life");
 
-			int halfWidth = m_iconTitleHalf->Width();
-			int fullWidth = halfWidth + m_iconTitleLife->Width();
-			int fullHeight = m_iconTitleHalf->Height();
+			if (m_iconTitleHalf && m_iconTitleLife)
+			{
+				brightness = FadeBlend( m_pGameTitle->fadein, m_pGameTitle->fadeout, m_pGameTitle->holdtime, localTime );
 
-			int x = XPosition( m_pGameTitle->x, fullWidth, fullWidth );
-			int y = YPosition( m_pGameTitle->y, fullHeight );
+				int halfWidth = m_iconTitleHalf->Width();
+				int fullWidth = halfWidth + m_iconTitleLife->Width();
+				int fullHeight = m_iconTitleHalf->Height();
 
-			m_iconTitleHalf->DrawSelf( x, y, Color( m_pGameTitle->r1, m_pGameTitle->g1, m_pGameTitle->b1, brightness * 255 ) );
-			m_iconTitleLife->DrawSelf( x + halfWidth, y, Color( m_pGameTitle->r1, m_pGameTitle->g1, m_pGameTitle->b1, brightness * 255 ) );
-			drawn = 1;
+				int x = XPosition( m_pGameTitle->x, fullWidth, fullWidth );
+				int y = YPosition( m_pGameTitle->y, fullHeight );
+
+				m_iconTitleHalf->DrawSelf( x, y, Color( m_pGameTitle->r1, m_pGameTitle->g1, m_pGameTitle->b1, brightness * 255 ) );
+				m_iconTitleLife->DrawSelf( x + halfWidth, y, Color( m_pGameTitle->r1, m_pGameTitle->g1, m_pGameTitle->b1, brightness * 255 ) );
+				drawn = 1;
+			}
 		}
 	}
 
@@ -718,7 +767,7 @@ void CHudMessage::Paint()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHudMessage::MessageAdd( const char *pName )
+void CHudMessage::MessageAdd(const char *pName, client_textmessage_t *pNetMessage)
 {
 	int i;
 
@@ -735,14 +784,65 @@ void CHudMessage::MessageAdd( const char *pName )
 		pMessage = TextMessageGet( pName );
 	}
 
-	if ( !pMessage )
-		return;
+	if ((!pMessage) || (!pMessage->pMessage) || (!pMessage->pMessage[0]))
+	{
+		pMessage = pNetMessage;
+	}
+
+	if (!pMessage)
+	{
+		// Attempt to fixup direct messages of localized tokens
+		if (pName)
+		{
+			char szRemapDirectMessage[256] = "";
+			if (pName[0] != '#')
+				Q_snprintf(szRemapDirectMessage, sizeof(szRemapDirectMessage), "#%s", pName);
+			else
+				Q_snprintf(szRemapDirectMessage, sizeof(szRemapDirectMessage), "%s", pName);
+			if (g_pVGuiLocalize->Find(szRemapDirectMessage))
+			{
+				client_textmessage_t newMessage;
+				newMessage.r1 = 100;
+				newMessage.g1 = 100;
+				newMessage.b1 = 100;
+				newMessage.a1 = 255;
+				newMessage.r2 = 240;
+				newMessage.g2 = 110;
+				newMessage.b2 = 0;
+				newMessage.a2 = 200;
+				newMessage.x = -1.0f;
+				newMessage.y = 0.7f;
+				newMessage.fadein = 1.5f;
+				newMessage.fadeout = 0.5f;
+				newMessage.holdtime = 1.2f;
+				// Check through channels for a free one
+				for (int channel = 0; channel < MAX_NETMESSAGE; channel++)
+				{
+					client_textmessage_t *pNetMessage = TextMessageGet( s_NetworkMessageNames[ channel ] );
+					if (!pNetMessage)
+					{
+						newMessage.pName = s_NetworkMessageNames[ channel ];
+						break;
+					}
+				}
+				newMessage.pMessage = szRemapDirectMessage;
+				newMessage.pClearMessage = NULL;
+				pMessage = &newMessage;
+			}
+		}
+
+		if (!pMessage)
+		{
+			Msg("MessageAdd failed for name: %s\n", pName);
+			return;
+		}
+	}
 
 	if ( pMessage->pClearMessage )
 	{
 		for ( i = 0; i < maxHUDMessages; i++ )
 		{
-			if ( m_pMessages[ i ] && !Q_stricmp( m_pMessages[ i ]->pName, pMessage->pClearMessage ) )
+			if ( m_pMessages[ i ] && m_pMessages[ i ]->pName && !Q_stricmp( m_pMessages[ i ]->pName, pMessage->pClearMessage ) )
 			{
 				m_startTime[ i ] = 0.0f;
 				m_pMessages[ i ] = NULL;
@@ -832,6 +932,10 @@ void CHudMessage::MsgFunc_HudMsg(bf_read &msg)
 
 	int channel = msg.ReadByte() % MAX_NETMESSAGE;	// Pick the buffer
 	
+	if (channel >= MAX_NETMESSAGE)
+		channel = MAX_NETMESSAGE - 1;
+	else if (channel < 0)
+		channel = 0;
 	client_textmessage_t *pNetMessage = TextMessageGet( s_NetworkMessageNames[ channel ] );
 	
 	if ( !pNetMessage || !pNetMessage->pMessage )
@@ -862,7 +966,7 @@ void CHudMessage::MsgFunc_HudMsg(bf_read &msg)
 	// see tmessage.cpp why 512
 	msg.ReadString( (char*)pNetMessage->pMessage, 512 );
 
-	MessageAdd( pNetMessage->pName );
+	MessageAdd( pNetMessage->pName, pNetMessage );
 }
 
 //-----------------------------------------------------------------------------
@@ -987,7 +1091,7 @@ void CHudMessage::AddChar( int r, int g, int b, int a, wchar_t ch )
 //-----------------------------------------------------------------------------
 void CHudMessage::GetTextExtents( int *wide, int *tall, const char *string )
 {
-	*wide = g_pMatSystemSurface->DrawTextLen( m_hFont, "%s", (char *)string );
+	*wide = g_pMatSystemSurface->DrawTextLen( m_hFont, (char *)string );
 	*tall = vgui::surface()->GetFontTall( m_hFont );
 }
 

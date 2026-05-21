@@ -5060,6 +5060,37 @@ int CCSPlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 					{
 						Weapon_Switch( pistol );
 					}
+					
+					char msg[256];
+					Q_snprintf(msg, sizeof(msg), "%s needs revive!", GetPlayerName());
+					
+
+					const char* hintName = "survivor_revive_hint";
+					const char* pszIconOnscreen = "icon_medkit";
+
+					if (IGameEvent* pEvt = gameeventmanager->CreateEvent("instructor_server_hint_create", false))
+					{
+						byte r = 0, g = 255, b = 255;
+						char colorStr[32];
+						Q_snprintf(colorStr, sizeof(colorStr), "%.3d,%.3d,%.3d", r, g, b);
+
+						pEvt->SetString("hint_name", hintName);
+						pEvt->SetString("hint_replace_key", "survivor_revive_hint");
+						pEvt->SetInt("hint_target", this ? entindex() : 0);
+						pEvt->SetInt("hint_timeout", 10.f);
+						pEvt->SetString("hint_icon_onscreen", pszIconOnscreen);
+						pEvt->SetString("hint_icon_offscreen", pszIconOnscreen);
+						pEvt->SetString("hint_caption", msg);
+						pEvt->SetString("hint_activator_caption", msg);
+						pEvt->SetString("hint_color", colorStr);
+						pEvt->SetFloat("hint_icon_offset", 0.0f);
+						pEvt->SetBool("hint_allow_nodraw_target", true);
+						pEvt->SetBool("hint_nooffscreen", false);
+						pEvt->SetBool("hint_forcecaption", true);
+						pEvt->SetBool("hint_local_player_only", false);
+						pEvt->SetInt("hint_target_pos", 0);
+						gameeventmanager->FireEvent(pEvt);
+					}
 
 					return 0;
 				}

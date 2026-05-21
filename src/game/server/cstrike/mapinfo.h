@@ -1,6 +1,6 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose: 
+// Purpose:
 //
 //=============================================================================//
 
@@ -10,33 +10,51 @@
 #pragma once
 #endif
 
-
 #include "baseentity.h"
-
 
 class CMapInfo : public CPointEntity
 {
-public :
+public:
 
-	DECLARE_DATADESC();
 	DECLARE_CLASS( CMapInfo, CPointEntity );
-	
+	DECLARE_DATADESC();
+
 	CMapInfo();
 	virtual ~CMapInfo();
 
-	bool KeyValue( const char *szKeyName, const char *szValue );
-	void Spawn();
+	virtual bool KeyValue( const char *szKeyName, const char *szValue );
+	virtual void Spawn();
 
 	void InputFireWinCondition( inputdata_t &inputdata );
+	void InputUpdateCvars( inputdata_t &inputdata );
+
+	float GetGasCanDensity();
+	int GetFinaleItemClusterCount();
+	float GetItemClusterRange();
+	float GetMolotovDensity();
+	float GetOxygenTankDensity();
+	float GetPainPillDensity();
+	float GetPipeBombDensity();
+	float GetPistolDensity();
+	float GetPropaneTankDensity();
 
 public:
+
 	int m_iBuyingStatus;
 	float m_flBombRadius;
+
+	float m_gasCanDensity;
+	float m_molotovDensity;
+	float m_oxygenTankDensity;
+	float m_painPillDensity;
+	float m_pipeBombDensity;
+	float m_pistolDensity;
+	float m_propaneTankDensity;
+	float m_itemClusterRange;
+
+	int m_finaleItemClusterCount;
 };
 
-
-// The info_map_parameters entity in this map (only one is allowed for).
 extern CMapInfo *g_pMapInfo;
-
 
 #endif // MAPINFO_H

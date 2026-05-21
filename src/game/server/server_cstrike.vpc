@@ -43,7 +43,7 @@ $Project "Server (CStrike)"
 		$File	"$SRCDIR\game\shared\teamplayroundbased_gamerules.cpp"
 		$File	"monstermaker.cpp"
 		$File	"monstermaker.h"
-
+		$File	"env_instructor_hint.cpp"
 		$Folder	"HL2 DLL (exclusive)"
 		{
 			$File	"$SRCDIR\game\shared\episodic\achievements_ep1.cpp"
