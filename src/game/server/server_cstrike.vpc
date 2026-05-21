@@ -28,6 +28,8 @@ $Project "Server (CStrike)"
 {
 	$Folder	"Source Files"
 	{
+		$File	"cvisibilitymonitor.cpp"
+		$File	"cvisibilitymonitor.h"
 		$File	"$SRCDIR\game\shared\handviewmodel_shared.cpp"
 		$File	"AI_ConCommands.cpp"
 		$File	"hl2\Func_Monitor.cpp"
