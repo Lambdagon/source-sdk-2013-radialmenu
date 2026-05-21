@@ -6373,9 +6373,6 @@ void CCSPlayer::MoveToNextIntroCamera()
 	if(!m_pIntroCamera)
 		m_pIntroCamera = gEntList.FindEntityByClassname(m_pIntroCamera, "info_player_terrorist");
 
-	if(!m_pIntroCamera)
-		m_pIntroCamera = gEntList.FindEntityByClassname(m_pIntroCamera, "info_survivor_position");
-
 	SetViewOffset( vec3_origin );	// no view offset
 	UTIL_SetSize( this, vec3_origin, vec3_origin ); // no bbox
 
@@ -9417,8 +9414,6 @@ CBaseEntity* CCSPlayer::EntSelectSpawnPoint()
 	if ( !gpGlobals->startspot || !strlen(STRING(gpGlobals->startspot)))
 	{
 		pSpot = gEntList.FindEntityByClassname(NULL, "info_player_terrorist");
-		if ( !pSpot )
-			pSpot = gEntList.FindEntityByClassname(NULL, "info_survivor_position");
 		if ( pSpot )
 			goto ReturnSpot;
 	}
