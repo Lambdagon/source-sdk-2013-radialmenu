@@ -296,8 +296,8 @@ CON_COMMAND ( teststats, "Test command" )
 {
 	CFastTimer totalTimer;
 	double uploadTime = 0.0f;
-	g_rowCommitTime = 0.0f;
-	g_rowWriteTime = 0.0f;
+	//g_rowCommitTime = 0.0f;
+	//g_rowWriteTime = 0.0f;
 
 
 	for( int i = 0; i < 1000; i++ )
@@ -323,7 +323,7 @@ CON_COMMAND ( teststats, "Test command" )
 		uploadTime += totalTimer.GetDuration().GetMillisecondsF();
 	}
 
-	Msg( "teststats took %.3f msec   commit: %.3fms   write: %.3fms.\n", uploadTime, g_rowCommitTime, g_rowWriteTime );
+	//Msg( "teststats took %.3f msec   commit: %.3fms   write: %.3fms.\n", uploadTime, g_rowCommitTime, g_rowWriteTime );
 }
 #endif
 
