@@ -529,7 +529,7 @@ void MainMenu::ApplySchemeSettings(IScheme* pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
 
-	const char* pSettings = "Resource/UI/BaseModUI/MainMenu.res";
+	const char* pSettings = "Resource/UI/l4d360ui/MainMenu.res";
 
 	LoadControlSettings(pSettings);
 

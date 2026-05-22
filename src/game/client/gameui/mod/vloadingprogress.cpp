@@ -85,7 +85,7 @@ LoadingProgress::LoadingProgress(Panel *parent, const char *panelName, LoadingWi
 
 	MEM_ALLOC_CREDIT();
 	m_pDefaultPosterDataKV = new KeyValues( "DefaultPosterData" );
-	if ( !m_pDefaultPosterDataKV->LoadFromFile( g_pFullFileSystem, "resource/UI/BaseModUI/LoadingPosterDefault.res", "MOD" ) )
+	if ( !m_pDefaultPosterDataKV->LoadFromFile( g_pFullFileSystem, "resource/UI/l4d360ui/LoadingPosterDefault.res", "MOD" ) )
 	{
 		DevWarning( "Failed to load default poster information!\n" );
 		m_pDefaultPosterDataKV->deleteThis();
@@ -126,7 +126,7 @@ void LoadingProgress::ApplySchemeSettings( IScheme *pScheme )
 	// find or create pattern
 	// purposely not freeing these, not worth the i/o hitch for something so small
 	// TODO: check for a gamemode. we can swap on the fly (i hope)
-	const char *pImageName = "vgui/loadingbar_orangebox";
+	const char *pImageName = "vgui/loadingbar";
 	m_textureID_LoadingBar = vgui::surface()->DrawGetTextureId( pImageName );
 	if ( m_textureID_LoadingBar == -1 )
 	{
@@ -136,7 +136,7 @@ void LoadingProgress::ApplySchemeSettings( IScheme *pScheme )
 
 	// find or create pattern
 	// purposely not freeing these, not worth the i/o hitch for something so small
-	pImageName = "vgui/loadingbar_bg_orangebox";
+	pImageName = "vgui/loadingbar_bg";
 	m_textureID_LoadingBarBG = vgui::surface()->DrawGetTextureId( pImageName );
 	if ( m_textureID_LoadingBarBG == -1 )
 	{
@@ -248,8 +248,8 @@ void LoadingProgress::PaintBackground()
 		m_pBGImage->GetBounds( x, y, wide, tall );
 		surface()->DrawSetColor( Color( 255, 255, 255, 255 ) );
 		s_nBGTextureID = vgui::surface()->CreateNewTextureID(true); // procedural
-		//vgui::surface()->DrawSetTextureFile(s_nBGTextureID, "vgui/loadingscreen_background", true, 0);
-		vgui::surface()->DrawSetTextureFile(s_nBGTextureID, "vgui/appchooser/background_hl2", true, 0);
+		vgui::surface()->DrawSetTextureFile(s_nBGTextureID, "vgui/loadingscreen_background", true, 0);
+		//vgui::surface()->DrawSetTextureFile(s_nBGTextureID, "vgui/appchooser/background_hl2", true, 0);
 		//surface()->DrawSetTexture( m_pBGImage->GetImage()->GetID() );
 		surface()->DrawTexturedRect( x, y, x+wide, y+tall );
 	}
@@ -475,7 +475,7 @@ void LoadingProgress::SetPosterData( KeyValues *pMissionInfo, KeyValues *pChapte
 
 	RearrangeNames( pMissionInfo->GetString( "poster/character_order", NULL ), pPlayerNames );
 
-	//Q_snprintf( m_szGameMode, sizeof( m_szGameMode ), "#L4D360UI_Loading_GameMode_%s", pszGameMode );
+	Q_snprintf( m_szGameMode, sizeof( m_szGameMode ), "#L4D360UI_Loading_GameMode_%s", pszGameMode );
 	//todo: get this localized to the specific game mode in srcbox
 	//Q_snprintf(m_szGameMode, sizeof(m_szGameMode), "#Srcbox_Loading_Gamemode_sandbox");
 }
@@ -585,12 +585,12 @@ void LoadingProgress::SetupPoster( void )
 
 		if ( pPoster->GetImage() )
 		{
-			bNamesVisible = false;
+			bNamesVisible = true;
 		}
 	}
 
-	SetControlVisible( "LocalizedCampaignName", false );
-	SetControlVisible( "LocalizedCampaignTagline", false );
+	SetControlVisible( "LocalizedCampaignName", true );
+	SetControlVisible( "LocalizedCampaignTagline", true );
 
 	wchar_t szPlayerNames[MAX_PATH];
 	Q_memset( szPlayerNames, 0, sizeof( szPlayerNames ) );
@@ -644,7 +644,7 @@ void LoadingProgress::SetupPoster( void )
 	SetControlVisible( "StarringLabel", ( nNumNames > 1 ) );
 	SetControlVisible( "GameModeLabel", true );
 
-	//SetControlString( "playernames", szPlayerNames );
+	SetControlString( "playernames", szPlayerNames );
 
 	SetControlEnabled( "LoadingTipPanel", false );
 }

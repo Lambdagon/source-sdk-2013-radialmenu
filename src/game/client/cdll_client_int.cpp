@@ -934,6 +934,25 @@ int CHLClient::Init( CreateInterfaceFn appSystemFactory, CreateInterfaceFn physi
 	InitCRTMemDebug();
 	MathLib_Init( 2.2f, 2.2f, 0.0f, 2.0f );
 
+#ifdef SWARM_INTERFACE
+	if (CommandLine()->FindParm("-oldgameui")) {
+		// nothings here. we don't want to load a gameui like this. required for tools and such
+	//}
+	//else if (CommandLine()->FindParm("-gamepadui")) {
+		// don't load client for this either. load the newer gamepadui
+	}
+	else {
+		static class DllOverride {
+		public:
+			DllOverride() {
+				Sys_LoadInterface("filesystem_stdio.dll", FILESYSTEM_INTERFACE_VERSION, nullptr, (void**)&g_pFullFileSystem);
+				const char* pGameDir = CommandLine()->ParmValue("-game", "terror");
+				pGameDir = VarArgs("%s/bin/x64", pGameDir);
+				g_pFullFileSystem->AddSearchPath(pGameDir, "EXECUTABLE_PATH", PATH_ADD_TO_HEAD);
+			}
+		} g_DllOverride;
+	}
+#endif
 
 #ifdef SIXENSE
 	g_pSixenseInput = new SixenseInput;

@@ -321,7 +321,7 @@ void InGameMainMenu::ApplySchemeSettings(vgui::IScheme* pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
 
-	LoadControlSettings("Resource/UI/BaseModUI/InGameMainMenu.res");
+	LoadControlSettings("Resource/UI/l4d360ui/InGameMainMenu.res");
 
 	if (CommandLine()->FindParm("-gamepadui")) {
 		SetPaintBackgroundEnabled(false);

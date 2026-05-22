@@ -15,7 +15,7 @@ $Configuration
 	$Compiler
 	{
 		$AdditionalIncludeDirectories	"$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;.\hl2;.\episodic;$BASE;$SRCDIR\game\shared\cstrike\control,$SRCDIR\game\shared\cstrike,.\cstrike,.\cstrike\bot,.\cstrike\bot\states,$SRCDIR\game\shared\cstrike\bot,.\cstrike\hostage,.\cstrike\control"
-		$PreprocessorDefinitions		"$BASE;HL2_DLL;BOTS;CSTRIKE_DLL;NEXT_BOT;HL2_EPISODIC"
+		$PreprocessorDefinitions		"$BASE;HL2_DLL;BOTS;CSTRIKE_DLL;NEXT_BOT;HL2_EPISODIC;SWARM_INTERFACE"
 	}
 
 	$Linker
