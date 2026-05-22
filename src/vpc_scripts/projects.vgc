@@ -45,6 +45,11 @@ $Project "glview"
 	"utils\glview\glview.vpc" [$WINDOWS]
 }
 
+$Project "gameui_stub"
+{
+	"gameui_stub\gameui_stub_cstrike.vpc" [$CSTRIKE]
+}
+
 $Project "height2normal"
 {
 	"utils\height2normal\height2normal.vpc" [$WINDOWS]
