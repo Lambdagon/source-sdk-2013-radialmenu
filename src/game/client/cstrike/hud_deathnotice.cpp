@@ -176,6 +176,9 @@ bool CHudDeathNotice::ShouldDraw( void )
 	if ( !pPlayer )
 		return false;
 
+	// Don't show death notices at all, We are terror up in this bitch - VVis :3 
+	return false;
+
 	// don't show death notices when flashed
 	if ( pPlayer->IsAlive() && pPlayer->m_flFlashBangTime >= gpGlobals->curtime )
 	{

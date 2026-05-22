@@ -945,6 +945,9 @@ CCSPlayer::CCSPlayer()
 	m_vLastHitLocationObjectSpace = Vector(0,0,0);
 
 	m_wasNotKilledNaturally = false;
+
+	m_survivorClass = 0;
+	m_zombieClass = 0;
 	 
 	//=============================================================================
 	// HPE_END
@@ -1036,28 +1039,28 @@ void CCSPlayer::ModifyOrAppendCriteria(AI_CriteriaSet& criteriaSet)
 //-----------------------------------------------------------------------------
 IResponseSystem* CCSPlayer::GetResponseSystem()
 {
-	if (survivor_set.GetInt() == 1) {
+    auto *pRulesMgr = CSGameRules();
+    if ( !pRulesMgr )
+        return nullptr;
 
-		if (GetSurvivorClass() == 0) {
-			return CSGameRules()->m_ResponseRules[4].m_ResponseSystems[m_iCurrentConcept];
-		}
-		if (GetSurvivorClass() == 1) {
-			return CSGameRules()->m_ResponseRules[5].m_ResponseSystems[m_iCurrentConcept];
-		}
-		if (GetSurvivorClass() == 2) {
-			return CSGameRules()->m_ResponseRules[6].m_ResponseSystems[m_iCurrentConcept];
-		}
-		if (GetSurvivorClass() == 3) {
-			return CSGameRules()->m_ResponseRules[7].m_ResponseSystems[m_iCurrentConcept];
-		}
+    int set = survivor_set.GetInt();
+    int cls = GetSurvivorClass();
+    int idx = -1;
 
-		return CSGameRules()->m_ResponseRules[GetSurvivorClass()].m_ResponseSystems[m_iCurrentConcept];
-	}
-	else 
-	{
-		//return CSGameRules()->m_ResponseRules[GetSurvivorClass()].m_ResponseSystems[m_iCurrentConcept];
-		return NULL;
-	}
+    if ( set == 1 ) idx = (cls >=0 && cls <=3) ? (4 + cls) : cls;
+    else if ( set == 2 ) idx = (cls >=0 && cls <=3) ? cls : cls;
+    else idx = cls;
+
+    if ( idx < 0 || idx >= pRulesMgr->m_ResponseRules.Count() )
+        return nullptr;
+
+    auto &rule = pRulesMgr->m_ResponseRules[idx];
+    if ( m_iCurrentConcept < 0 || m_iCurrentConcept >= rule.m_ResponseSystems.Count() )
+        return nullptr;
+
+	//ConColorMsg(Color(255, 0, 0, 255), "CSPlayer::GetResponseSystem: Returning response system for set %d class %d concept %d\n", set, cls, m_iCurrentConcept);
+
+    return rule.m_ResponseSystems[m_iCurrentConcept];
 }
 
 int CCSPlayer::ShouldTransmit( const CCheckTransmitInfo *pInfo )
@@ -2023,7 +2026,7 @@ void CCSPlayer::Spawn()
 			m_iHealth = 250;
 			SetMaxHealth(250);
 			SetMaxSpeed(210);
-			if ( !bSpawnAsGhost ) Vocalize("SmokerZombie.Alert", 1.0, 0.0);
+			if ( !bSpawnAsGhost ) VocalizeRawSound("SmokerZombie.Alert", 1.0, 0.0);
 		}
 		else if (GetZombieClass() == 2) {
 			// 25% chance for a female boomer (boomette).
@@ -2043,7 +2046,7 @@ void CCSPlayer::Spawn()
 			m_iHealth = 50;
 			SetMaxHealth(50);
 			SetMaxSpeed(175);
-			if ( !bSpawnAsGhost ) Vocalize("BoomerZombie.Alert", 1.0, 0.0);
+			if ( !bSpawnAsGhost ) VocalizeRawSound("BoomerZombie.Alert", 1.0, 0.0);
 		}
 		else if (GetZombieClass() == 3) {
 			if (survivor_set.GetInt() == 1) {
@@ -2055,27 +2058,27 @@ void CCSPlayer::Spawn()
 			m_iHealth = z_hunter_health.GetInt();
 			SetMaxHealth( z_hunter_health.GetInt() );
 			SetMaxSpeed( z_hunter_speed.GetFloat() );
-			if ( !bSpawnAsGhost ) Vocalize("HunterZombie.Alert",1.0,0.0);
+			if ( !bSpawnAsGhost ) VocalizeRawSound("HunterZombie.Alert",1.0,0.0);
 		}
 		else if (GetZombieClass() == 4) {
 			SetModel("models/infected/spitter.mdl");
 			m_iHealth = 100;
 			SetMaxHealth(100);
 			SetMaxSpeed(210);
-			if ( !bSpawnAsGhost ) Vocalize("SpitterZombie.Alert", 1.0, 0.0);
+			if ( !bSpawnAsGhost ) VocalizeRawSound("SpitterZombie.Alert", 1.0, 0.0);
 		}
 		else if (GetZombieClass() == 5) {
 			SetModel("models/infected/jockey.mdl");
 			m_iHealth = 325;
 			SetMaxHealth(325);
 			SetMaxSpeed(250);
-			if ( !bSpawnAsGhost ) Vocalize("JockeyZombie.Alert", 1.0, 0.0);
+			if ( !bSpawnAsGhost ) VocalizeRawSound("JockeyZombie.Alert", 1.0, 0.0);
 		}
 		else if (GetZombieClass() == 6) {
 			SetModel("models/infected/charger.mdl");
 			m_iHealth = 600;
 			SetMaxHealth(600);
-			if ( !bSpawnAsGhost ) Vocalize("ChargerZombie.Alert", 1.0, 0.0);
+			if ( !bSpawnAsGhost ) VocalizeRawSound("ChargerZombie.Alert", 1.0, 0.0);
 		}
 		else if (GetZombieClass() == 8) {
 
@@ -4227,7 +4230,7 @@ void CCSPlayer::PostThink()
 			float now = gpGlobals->curtime;
 			if (m_nextVocalizeFallTime > now) return;
 
-			Vocalize("BoomerZombie.Fall", 0.2f, 0.0f);
+			VocalizeRawSound("BoomerZombie.Fall", 0.2f, 0.0f);
 
 			m_nextVocalizeFallTime = now + 0.2f;
 		}
@@ -6262,7 +6265,7 @@ void CCSPlayer::StartTankRockThrow()
 {
 	if ( GetGroundEntity() == NULL )
 	{
-		Vocalize( "HulkZombie.Throw.Fail", 0.2f, 0.0f );
+		VocalizeRawSound( "HulkZombie.Throw.Fail", 0.2f, 0.0f );
 		return;
 	}
 
@@ -7535,23 +7538,23 @@ void CCSPlayer::UpdateZombieSounds()
 				switch (classType)
 				{
 				case 2:
-					Vocalize("BoomerZombie.Attack");
+					VocalizeRawSound("BoomerZombie.Attack");
 					break;
 
 				case 3:
-					Vocalize("PlayerZombie.Attack");
+					VocalizeRawSound("PlayerZombie.Attack");
 					break;
 
 				case 4:
-					Vocalize("SpitterZombie.Attack");
+					VocalizeRawSound("SpitterZombie.Attack");
 					break;
 
 				case 6:
-					Vocalize("ChargerZombie.Melee");
+					VocalizeRawSound("ChargerZombie.Melee");
 					break;
 
 				case 1:
-					Vocalize("SmokerZombie.Attack");
+					VocalizeRawSound("SmokerZombie.Attack");
 					break;
 				}
 			}
@@ -7569,9 +7572,9 @@ void CCSPlayer::UpdateZombieSounds()
 	default: // Common infected
 	{
 		if (rageLevel < 2)
-			Vocalize("PlayerZombie.Rage");
+			VocalizeRawSound("PlayerZombie.Rage");
 		else
-			Vocalize("PlayerZombie.Breathe");
+			VocalizeRawSound("PlayerZombie.Breathe");
 
 		delay = RandomFloat(4.0f, 6.0f);
 		break;
@@ -7581,12 +7584,12 @@ void CCSPlayer::UpdateZombieSounds()
 	case 3:
 	{
 		if (m_pounceVictim) {
-			Vocalize("HunterZombie.Pounce.shred");
+			VocalizeRawSound("HunterZombie.Pounce.shred");
 		}
 		else {
 			delay = RandomFloat(3.0f, 5.0f);
 			if (GetFlags() & FL_DUCKING && GetFlags() & FL_ONGROUND) {
-				Vocalize("HunterZombie.Voice");
+				VocalizeRawSound("HunterZombie.Voice");
 			}
 		}
 		break;
@@ -7595,7 +7598,7 @@ void CCSPlayer::UpdateZombieSounds()
 	{
 		// Recognition is handled separately on first sight; use a generic idle voice here.
 		delay = RandomFloat( 3.0f, 5.0f );
-		Vocalize( "JockeyZombie.Recognize" );
+		VocalizeRawSound( "JockeyZombie.Recognize" );
 		break;
 	}
 
@@ -7611,7 +7614,7 @@ void CCSPlayer::UpdateZombieSounds()
 		}*/
 
 		delay = RandomFloat(4.0f, 6.0f);
-		Vocalize("SmokerZombie.Breathe");
+		VocalizeRawSound("SmokerZombie.Breathe");
 		break;
 	}
 
@@ -7621,12 +7624,12 @@ void CCSPlayer::UpdateZombieSounds()
 		if (rageLevel > 1)
 		{
 			delay = RandomFloat(2.0f, 3.0f);
-			Vocalize("BoomerZombie.Groan");
+			VocalizeRawSound("BoomerZombie.Groan");
 		}
 		else
 		{
 			delay = RandomFloat(1.0f, 2.0f);
-			Vocalize("BoomerZombie.Voice");
+			VocalizeRawSound("BoomerZombie.Voice");
 		}
 		break;
 	}
@@ -7641,7 +7644,7 @@ void CCSPlayer::UpdateZombieSounds()
 
 		float endTime = (activityState == 0) ? delay : 0.0f;
 
-		Vocalize("SpitterZombie.Voice", delay, endTime);
+		VocalizeRawSound("SpitterZombie.Voice", delay, endTime);
 		break;
 	}
 
@@ -7655,7 +7658,7 @@ void CCSPlayer::UpdateZombieSounds()
 
 		float endTime = (activityState == 0) ? delay : 0.0f;
 
-		Vocalize("ChargerZombie.Voice", delay, endTime);
+		VocalizeRawSound("ChargerZombie.Voice", delay, endTime);
 		break;
 	}
 
@@ -7674,7 +7677,7 @@ void CCSPlayer::UpdateZombieSounds()
 
 			float remaining = m_zombieSoundTimer.GetRemainingTime();
 
-			Vocalize("HulkZombie.PainFire", remaining, remaining);
+			VocalizeRawSound("HulkZombie.PainFire", remaining, remaining);
 		}
 		else {
 
@@ -7684,17 +7687,17 @@ void CCSPlayer::UpdateZombieSounds()
 			if (rageLevel > 1)
 			{
 				delay = RandomFloat(3.0f, 5.0f);
-				Vocalize("HulkZombie.Yell");
+				VocalizeRawSound("HulkZombie.Yell");
 			}
 			else if (rand > 24)
 			{
 				delay = RandomFloat(1.0f, 2.0f);
-				Vocalize("HulkZombie.Breathe");
+				VocalizeRawSound("HulkZombie.Breathe");
 			}
 			else
 			{
 				delay = RandomFloat(1.0f, 2.0f);
-				Vocalize("HulkZombie.Growl");
+				VocalizeRawSound("HulkZombie.Growl");
 			}
 
 			break;
@@ -7825,46 +7828,47 @@ void CCSPlayer::EmitInfectedPainSound(const CTakeDamageInfo& dmgInfo)
 	switch (m_zombieClass)
 	{
 	case 1: // Smoker
-		Vocalize(shortPain ? "SmokerZombie.PainShort"
+		VocalizeRawSound(shortPain ? "SmokerZombie.PainShort"
 			: "SmokerZombie.Pain", 0.7f, 0.0f);
 		break;
 
 	case 2: // Boomer
-		Vocalize(shortPain ? "BoomerZombie.PainShort"
+		VocalizeRawSound(shortPain ? "BoomerZombie.PainShort"
 			: "BoomerZombie.Pain", 0.7f, 0.0f);
 		break;
 
 	case 3: // Hunter
-		Vocalize(shortPain ? "HunterZombie.PainShort"
+		VocalizeRawSound(shortPain ? "HunterZombie.PainShort"
 			: "HunterZombie.Pain", 0.7f, 0.0f);
 		break;
 
 	case 4: // Spitter
-		Vocalize(shortPain ? "SpitterZombie.PainShort"
+		VocalizeRawSound(shortPain ? "SpitterZombie.PainShort"
 			: "SpitterZombie.Pain", 0.7f, 0.0f);
 		break;
 
 	case 5: // Jockey
-		Vocalize(shortPain ? "JockeyZombie.PainShort"
+		VocalizeRawSound(shortPain ? "JockeyZombie.PainShort"
 			: "JockeyZombie.Pain", 0.7f, 0.0f);
 		break;
 
 	case 6: // Charger
-		Vocalize("ChargerZombie.Pain", 0.7f, 0.0f);
+		VocalizeRawSound("ChargerZombie.Pain", 0.7f, 0.0f);
 		break;
 
 	case 8: // Tank
 	{
 		// Tank does not play pain sound while performing certain actions
-		Vocalize("HulkZombie.Pain", 0.7f, 0.0f);
+		VocalizeRawSound("HulkZombie.Pain", 0.7f, 0.0f);
 		break;
 	}
 	}
 }
 
-void CCSPlayer::Vocalize(const char* soundName, float delay, float radius)
+
+void CCSPlayer::VocalizeRawSound(const char* soundName, float delay, float radius)
 {
-	if ( IsGhost() )
+	if (IsGhost())
 		return;
 
 	float cooldown;
@@ -7913,6 +7917,52 @@ void CCSPlayer::Vocalize(const char* soundName, float delay, float radius)
 			NetworkStateChanged(&m_vocalizeCooldown);
 			m_vocalizeCooldown = delay;
 		}
+	}
+}
+CON_COMMAND_F(vocalize, "Play a vocalize response", FCVAR_GAMEDLL)
+{
+	if (args.ArgC() < 2)
+		return;
+
+	CCSPlayer* pPlayer = ToCSPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	float flCooldown = (args.ArgC() >= 3) ? atof(args[2]) : 0.0f;
+
+	pPlayer->Vocalize(args[1], flCooldown, 0.0f);
+}
+void CCSPlayer::Vocalize(const char* pszConcept, float flCooldown, float radius)
+{
+	if (IsGhost())
+		return;
+
+	int iConcept = GetMPConceptIndexFromString(pszConcept);
+
+	if (iConcept == MP_CONCEPT_NONE)
+	{
+		Warning("Unknown vocalize concept: %s\n", pszConcept);
+		return;
+	}
+
+	if (!SpeakConceptIfAllowed(iConcept))
+		return;
+
+	if (flCooldown <= 0.0f)
+		flCooldown = 2.0f;
+
+	float flNow = gpGlobals->curtime;
+
+	if ((flNow + flCooldown) != m_nextVocalizeTime)
+	{
+		NetworkStateChanged(&m_nextVocalizeTime);
+		m_nextVocalizeTime = flNow + flCooldown;
+	}
+
+	if (flCooldown != m_vocalizeCooldown)
+	{
+		NetworkStateChanged(&m_vocalizeCooldown);
+		m_vocalizeCooldown = flCooldown;
 	}
 }
 
@@ -12753,36 +12803,3 @@ void UTIL_AwardMoneyToTeam( int iAmount, int iTeam, CBaseEntity *pIgnore )
 		pPlayer->AddAccount( iAmount );
 	}
 }
-
-
-void Vocalize(const CCommand& args)
-{
-	CCSPlayer* pPlayer = ToCSPlayer(UTIL_GetCommandClient());
-	if (!pPlayer)
-		return;
-
-	if (!pPlayer->CanSpeakVoiceCommand())
-		return;
-
-
-	if (args.ArgC() < 2)
-	{
-		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "No concept specified. Format is vocalize <concept>\n");
-		return;
-	}
-
-	const char* pszConcept = args[1];
-	if (FStrEq(args[1], "TLK_PLAYER_TAUNT"))
-		return;
-
-	int iConcept = GetMPConceptIndexFromString(pszConcept);
-	if (iConcept != MP_CONCEPT_NONE)
-	{
-		pPlayer->SpeakConceptIfAllowed(iConcept);
-	}
-	else
-	{
-		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Attempted to speak unknown multiplayer concept: %s\n", pszConcept);
-	}
-}
-static ConCommand vocalize("vocalize", Vocalize, "Speak a response rule concept.\nFormat is vocalize <concept>", 0);

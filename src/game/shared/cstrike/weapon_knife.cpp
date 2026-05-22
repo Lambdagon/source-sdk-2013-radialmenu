@@ -854,7 +854,7 @@ void CBoomerClaw::PrimaryAttack()
 	if ( !CanStartVomit() )
 		return;
 
-	owner->Vocalize("Vomit.Use", 3.0f, 0.0f);
+	owner->VocalizeRawSound("Vomit.Use", 3.0f, 0.0f);
 	m_flVomitEndTime = gpGlobals->curtime + duration;
 	m_flNextVomitAllowedTime = gpGlobals->curtime + interval;
 	m_flNextVomitBlobTime = gpGlobals->curtime;
@@ -911,7 +911,7 @@ void CSpitterClaw::PrimaryAttack()
 	if ( !CanStartSpit() )
 		return;
 
-	owner->Vocalize( "SpitterZombie.Spit", 3.0f, 0.0f );
+	owner->VocalizeRawSound( "SpitterZombie.Spit", 3.0f, 0.0f );
 	owner->m_flStamina = 0.0f;
 
 	SpitterRandomSurvivorWarnIncoming( owner );
@@ -1066,12 +1066,12 @@ void CHunterClaw::PrimaryAttack()
 						m_bIsPouncing = true;
 
 						if (gpGlobals->curtime > owner->m_nextVocalizeTime)
-							owner->Vocalize("HunterZombie.Pounce", 1.5f, 1.5f);
+							owner->VocalizeRawSound("HunterZombie.Pounce", 1.5f, 1.5f);
 					}
 					else
 					{
 						if (gpGlobals->curtime > owner->m_nextVocalizeTime)
-							owner->Vocalize("HunterZombie.Lunge", 1.5f, 1.5f);
+							owner->VocalizeRawSound("HunterZombie.Lunge", 1.5f, 1.5f);
 					}
 					m_flNextPrimaryAttack = gpGlobals->curtime + 0.2f;
 				}
@@ -1105,12 +1105,12 @@ void CHunterClaw::PrimaryAttack()
 		m_bIsPouncing = true;
 
 		if (gpGlobals->curtime > owner->m_nextVocalizeTime)
-			owner->Vocalize("HunterZombie.Pounce", 1.5f, 1.5f);
+			owner->VocalizeRawSound("HunterZombie.Pounce", 1.5f, 1.5f);
 	}
 	else
 	{
 		if (gpGlobals->curtime > owner->m_nextVocalizeTime)
-			owner->Vocalize("HunterZombie.Lunge", 1.5f, 1.5f);
+			owner->VocalizeRawSound("HunterZombie.Lunge", 1.5f, 1.5f);
 	}
 
 	// Cooldowns are applied on landing (touching ground) so hunters can't chain-lunge as they land.
@@ -1167,7 +1167,7 @@ void CHunterClaw::ItemPostFrame()
 					return;
 				}
 
-				owner->Vocalize( "HunterZombie.LungeLand" );
+				owner->VocalizeRawSound( "HunterZombie.LungeLand" );
 
 				m_bIsLunging = false;
 				m_bIsPouncing = false;
@@ -1228,7 +1228,7 @@ void CHunterClaw::ItemPostFrame()
 								CTakeDamageInfo info( owner, owner, damage, DMG_SLASH | DMG_NEVERGIB );
 								target->TakeDamage( info );
 
-								owner->Vocalize( "HunterZombie.Pounce.Hit", 3.0f, 0.0f );
+								owner->VocalizeRawSound( "HunterZombie.Pounce.Hit", 3.0f, 0.0f );
 								m_bDidPounceHit = true;
 
 								owner->StartPounce( target );
@@ -1279,7 +1279,7 @@ void CHunterClaw::ItemPostFrame()
 							CTakeDamageInfo info( owner, owner, damage, DMG_SLASH | DMG_NEVERGIB );
 							victim->TakeDamage( info );
 
-							owner->Vocalize( "HunterZombie.Pounce.Hit", 3.0f, 0.0f );
+							owner->VocalizeRawSound( "HunterZombie.Pounce.Hit", 3.0f, 0.0f );
 							m_bDidPounceHit = true;
 
 #ifndef CLIENT_DLL

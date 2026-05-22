@@ -197,6 +197,17 @@ const char *g_pszMPConcepts[] =
 	"TLK_ROUND_START_COMP",					// MP_CONCEPT_ROUND_START_COMP
 	"TLK_GAME_OVER_COMP",					// MP_CONCEPT_GAME_OVER_COMP
 	"TLK_MATCH_OVER_COMP",					// MP_CONCEPT_MATCH_OVER_COMP
+
+	"PlayerMoveOn",							// MP_CONCEPT_PLAYER_MOVE_ON
+	"PlayerHurryUp",						// MP_CONCEPT_PLAYER_HURRY_UP
+	"PlayerWaitHere",						// MP_CONCEPT_PLAYER_WAIT_HERE
+	"PlayerToTheRescue",					// MP_CONCEPT_PLAYER_TO_THE_RESCUE
+	"PlayerWarnCareful",					// MP_CONCEPT_PLAYER_WARN_CAREFUL
+	"PlayerImWithYou",						// MP_CONCEPT_PLAYER_IM_WITH_YOU
+	"PlayerAskReady",						// MP_CONCEPT_PLAYER_ASK_READY
+	"PlayerSorry",							// MP_CONCEPT_PLAYER_SORRY
+	"PlayerLeadOn",							// MP_CONCEPT_PLAYER_LEAD_ON
+	"smartlook",							// MP_CONCEPT_PLAYER_SMART_LOOK
 };
 COMPILE_TIME_ASSERT( ARRAYSIZE( g_pszMPConcepts ) == MP_TF_CONCEPT_COUNT );
 
