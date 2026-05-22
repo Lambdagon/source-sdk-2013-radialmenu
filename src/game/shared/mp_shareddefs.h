@@ -207,6 +207,17 @@ enum
 	MP_CONCEPT_GAME_OVER_COMP,				// "TLK_GAME_OVER_COMP"
 	MP_CONCEPT_MATCH_OVER_COMP,				// "TLK_MATCH_OVER_COMP"
 
+	MP_CONCEPT_PLAYER_MOVE_ON,				// "PlayerMoveOn"
+	MP_CONCEPT_PLAYER_HURRY_UP,				// "PlayerHurryUp"
+	MP_CONCEPT_PLAYER_WAIT_HERE,			// "PlayerWaitHere"
+	MP_CONCEPT_PLAYER_TO_THE_RESCUE,		// "PlayerToTheRescue"
+	MP_CONCEPT_PLAYER_WARN_CAREFUL,			// "PlayerWarnCareful"
+	MP_CONCEPT_PLAYER_IM_WITH_YOU,			// "PlayerImWithYou"
+	MP_CONCEPT_PLAYER_ASK_READY,			// "PlayerAskReady"
+	MP_CONCEPT_PLAYER_SORRY,				// "PlayerSorry"
+	MP_CONCEPT_PLAYER_LEAD_ON,				// "PlayerLeadOn"
+	MP_CONCEPT_PLAYER_SMART_LOOK,				// "smartlook"
+
 	MP_TF_CONCEPT_COUNT
 
 	// Other MP_CONCEPT_* start he using MP_TF_CONCEPT_COUNT + 1 as start.

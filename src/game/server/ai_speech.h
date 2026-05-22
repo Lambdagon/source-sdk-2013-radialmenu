@@ -13,6 +13,7 @@
 #include "soundflags.h"
 #include "AI_ResponseSystem.h"
 #include "utldict.h"
+#include "baseflex.h"
 
 #if defined( _WIN32 )
 #pragma once
@@ -395,7 +396,5 @@ inline void CAI_ExpresserHost<BASE_NPC>::DispatchResponse( const char *conceptNa
 	{
 		Speak( (AIConcept_t)conceptName );
 	}
-
-//-----------------------------------------------------------------------------
 
 #endif // AI_SPEECH_H

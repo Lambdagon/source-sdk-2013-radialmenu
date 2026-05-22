@@ -34,6 +34,7 @@ CHudBaseAccount( "HudAccount" )
 
 bool CHudAccount::ShouldDraw()
 {
+	return false; 
 	C_CSPlayer *pPlayer = C_CSPlayer::GetLocalCSPlayer();
 	if ( pPlayer )
 	{

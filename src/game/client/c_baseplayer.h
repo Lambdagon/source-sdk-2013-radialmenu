@@ -298,7 +298,8 @@ public:
 	bool				IsPlayerDead();
 	bool				IsPoisoned( void ) { return m_Local.m_bPoisoned; }
 
-	C_BaseEntity				*GetUseEntity();
+	virtual C_BaseEntity* GetUseEntity(void) const;
+	virtual C_BaseEntity* GetPotentialUseEntity(void) const;
 
 	// Vehicles...
 	IClientVehicle			*GetVehicle();
@@ -661,12 +662,6 @@ inline C_BasePlayer *ToBasePlayer( C_BaseEntity *pEntity )
 
 	return static_cast<C_BasePlayer *>( pEntity );
 }
-
-inline C_BaseEntity *C_BasePlayer::GetUseEntity() 
-{ 
-	return m_hUseEntity;
-}
-
 
 inline IClientVehicle *C_BasePlayer::GetVehicle() 
 { 

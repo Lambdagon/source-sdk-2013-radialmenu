@@ -1818,8 +1818,6 @@ void CCSBotManager::CheckForBlockedZones( void )
 	CBaseEntity *pSpot = SelectSpawnSpot( "info_player_counterterrorist" );
 	if ( !pSpot )
 		pSpot = SelectSpawnSpot( "info_player_terrorist" );
-	if ( !pSpot )
-		pSpot = SelectSpawnSpot( "info_survivor_position" );
 
 	if ( !pSpot )
 		return;
@@ -2163,13 +2161,6 @@ CBaseEntity *CCSBotManager::GetRandomSpawn( int team ) const
 			 spot = gEntList.FindEntityByClassname( spot, "info_player_terrorist" ) )
 		{
 			spawnSet.AddToTail( spot );			
-		}
-
-		for( spot = gEntList.FindEntityByClassname( NULL, "info_survivor_position" );
-			 spot;
-			 spot = gEntList.FindEntityByClassname( spot, "info_survivor_position" ) )
-		{
-			spawnSet.AddToTail( spot );
 		}
 	}
 

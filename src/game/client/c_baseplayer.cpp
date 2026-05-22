@@ -2452,7 +2452,15 @@ bool C_BasePlayer::IsUseableEntity( CBaseEntity *pEntity, unsigned int requiredC
 {
 	return false;
 }
+C_BaseEntity* C_BasePlayer::GetUseEntity(void) const
+{
+	return m_hUseEntity;
+}
 
+C_BaseEntity* C_BasePlayer::GetPotentialUseEntity(void) const
+{
+	return GetUseEntity();
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 

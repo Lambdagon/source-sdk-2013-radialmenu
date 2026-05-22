@@ -3759,6 +3759,7 @@ private:
 
 //--------------------------------------------------------------------------------------------------------
 LINK_ENTITY_TO_CLASS(point_viewcontrol_multiplayer, CTriggerCameraMultiplayer);
+LINK_ENTITY_TO_CLASS(point_viewcontrol_survivor, CTriggerCameraMultiplayer);
 
 
 //--------------------------------------------------------------------------------------------------------

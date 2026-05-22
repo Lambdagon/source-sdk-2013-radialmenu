@@ -263,7 +263,8 @@ public:
 	virtual void		UpdateZombieSounds();
 	virtual void		UpdateSurvivorWarnSpecial();
 	virtual void		EmitInfectedPainSound(const CTakeDamageInfo& dmgInfo);
-	virtual void		Vocalize(const char* soundName, float delay = 0.0f, float radius = 0.0f);
+	virtual void		VocalizeRawSound(const char* soundName, float delay = 0.0f, float radius = 0.0f);
+	virtual void		Vocalize(const char* pszConcept, float flCooldown, float radius);
 	virtual const char* GetFootstepSound(const char* stepType, bool /*unused*/, float side, bool /*unused*/) const;
 
 	void NotifySpitterAcidBurned();
@@ -371,6 +372,8 @@ public:
 	virtual void SetAnimation( PLAYER_ANIM playerAnim );
 	ICSPlayerAnimState *GetPlayerAnimState() { return m_PlayerAnimState; }
 	Class_T			Classify(void);
+
+	const char* GetSurvivorName() const;
 
 	virtual bool StartReplayMode( float fDelay, float fDuration, int iEntity );
 	virtual void StopReplayMode();

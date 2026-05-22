@@ -462,7 +462,8 @@ void CBaseFlex::AddSceneEvent( CChoreoScene *scene, CChoreoEvent *event, CBaseEn
 	info.m_pEvent		= event;
 	info.m_pScene		= scene;
 	info.m_hTarget		= pTarget;
-	info.m_bStarted	= false;
+	info.m_bStarted		= false;
+
 
 	if (StartSceneEvent( &info, scene, event, actor, pTarget ))
 	{

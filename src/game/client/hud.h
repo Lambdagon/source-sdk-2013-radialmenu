@@ -14,7 +14,7 @@
 #include "utldict.h"
 #include "convar.h"
 #include <vgui/VGUI.h>
-#include <Color.h>
+#include <color.h>
 #include <bitbuf.h>
 
 namespace vgui
@@ -146,6 +146,8 @@ public:
 
 	void						RefreshHudTextures();
 
+	void						LoadIcons(int iType = 0);
+
 	// User messages
 	void						MsgFunc_ResetHUD(bf_read &msg);
 	void 						MsgFunc_SendAudio(bf_read &msg);
@@ -173,6 +175,7 @@ public:
 public:
 
 	int							m_iKeyBits;
+	bool						m_bSkipClear;
 #ifndef _XBOX
 	float						m_flMouseSensitivity;
 	float						m_flMouseSensitivityFactor;
@@ -202,6 +205,36 @@ private:
 };
 
 extern CHud gHUD;
+
+//-----------------------------------------------------------------------------
+// Purpose: CHudIcons
+//-----------------------------------------------------------------------------
+class CHudIcons
+{
+public:
+	CHudIcons();
+	~CHudIcons();
+
+	void						Init();
+	void						Shutdown();
+
+	CHudTexture					*GetIcon( const char *szIcon );
+
+	// loads a new icon into the list, without duplicates
+	CHudTexture					*AddUnsearchableHudIconToList( CHudTexture& texture );
+	CHudTexture					*AddSearchableHudIconToList( CHudTexture& texture );
+
+	void						RefreshHudTextures();
+
+private:
+
+	void						SetupNewHudTexture( CHudTexture *t );
+	bool						m_bHudTexturesLoaded;
+	// Global list of known icons
+	CUtlDict< CHudTexture *, int >		m_Icons;
+};
+
+CHudIcons &HudIcons();
 
 //-----------------------------------------------------------------------------
 // Global fonts used in the client DLL

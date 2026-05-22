@@ -62,7 +62,7 @@ BEGIN_DATADESC( CFuncElevator )
 	// Functions
 	DEFINE_FUNCTION( StopMoveSoundThink ),
 	// FIXMEL4DTOMAINMERGE
-	//DEFINE_FUNCTION( AccelerationThink ),
+	DEFINE_FUNCTION( AccelerationThink ),
 
 END_DATADESC()
 
@@ -243,8 +243,128 @@ bool CFuncElevator::CreateVPhysics( void )
 	VPhysicsInitShadow(false, false);
 	return true;
 }
+float CFuncElevator::GetCurrentHeight()
+{
+    if (!m_isMoving)
+    {
+        if (IsEFlagSet(EFL_DIRTY_ABSTRANSFORM))
+            CalcAbsolutePosition();
 
+        return GetAbsOrigin().z;
+    }
 
+    float flTimeDelta = gpGlobals->curtime - m_movementStartTime;
+
+    float flDirection = (m_destinationFloorPosition > m_movementStartZ) ? 1.0f : -1.0f;
+
+    float flNewZ = m_movementStartZ + (m_currentSpeed * flTimeDelta * flDirection);
+
+    if (flDirection > 0.0f)
+    {
+        if (flNewZ >= m_destinationFloorPosition)
+            flNewZ = m_destinationFloorPosition;
+    }
+    else
+    {
+        if (flNewZ <= m_destinationFloorPosition)
+            flNewZ = m_destinationFloorPosition;
+    }
+
+    return flNewZ;
+}
+void CFuncElevator::AccelerationThink()
+{
+    if (!m_isMoving)
+    {
+        m_currentSpeed = 0.0f;
+        return;
+    }
+
+    float flFrameTime = gpGlobals->frametime;
+    float flDirection = (m_destinationFloorPosition > GetAbsOrigin().z) ? 1.0f : -1.0f;
+
+    m_currentSpeed += (m_acceleration * flFrameTime);
+
+    if (m_currentSpeed > m_maxSpeed)
+    {
+        m_currentSpeed = m_maxSpeed;
+    }
+
+    NetworkStateChanged();
+}
+void CFuncElevator::PhysicsSimulate()
+{
+    if (m_nSimulationTick == gpGlobals->tickcount)
+        return;
+
+    m_nSimulationTick = gpGlobals->tickcount;
+
+    PhysicsRunThink(THINK_FIRE_ALL_FUNCTIONS);
+
+    AccelerationThink();
+
+    if (m_isMoving)
+    {
+        Vector vecOldOrigin = GetAbsOrigin();
+        Vector vecNewOrigin = vecOldOrigin;
+
+        float flCurrentHeight = GetCurrentHeight();
+
+        vecNewOrigin.z = flCurrentHeight;
+
+        Vector vecDelta = vecNewOrigin - vecOldOrigin;
+
+        SetAbsOrigin(vecNewOrigin);
+
+        CBaseEntity *pList[128];
+
+        Vector vecMins, vecMaxs;
+        CollisionProp()->WorldSpaceAABB(&vecMins, &vecMaxs);
+
+        vecMaxs.z += 8.0f;
+
+        int count = UTIL_EntitiesInBox(
+            pList,
+            128,
+            vecMins,
+            vecMaxs,
+            FL_CLIENT | FL_NPC);
+
+        for (int i = 0; i < count; ++i)
+        {
+            CBaseEntity *pEnt = pList[i];
+
+            if (!pEnt || pEnt == this)
+                continue;
+
+            if (pEnt->GetGroundEntity() == this)
+            {
+                pEnt->SetAbsOrigin(pEnt->GetAbsOrigin() + vecDelta);
+            }
+        }
+
+        bool bReached = false;
+
+        if (m_movementStartZ < m_destinationFloorPosition)
+        {
+            if (flCurrentHeight >= m_destinationFloorPosition)
+                bReached = true;
+        }
+        else
+        {
+            if (flCurrentHeight <= m_destinationFloorPosition)
+                bReached = true;
+        }
+
+        if (bReached)
+        {
+            vecNewOrigin.z = m_destinationFloorPosition;
+            SetAbsOrigin(vecNewOrigin);
+
+            MoveDone();
+        }
+    }
+}
 //--------------------------------------------------------------------------------------------------------
 void CFuncElevator::Precache( void )
 {
@@ -705,8 +825,8 @@ int CFuncElevator::DrawDebugTextOverlays( void )
 {
 	int text_offset = BaseClass::DrawDebugTextOverlays();
 
-	if ( m_debugOverlays & OVERLAY_TEXT_BIT ) 
-	{
+	/*if ( m_debugOverlays & OVERLAY_TEXT_BIT ) 
+	{*/
 		char tempstr[512];
 
 		if ( GetCurrentSpeed() != 0.0f )
@@ -777,7 +897,7 @@ int CFuncElevator::DrawDebugTextOverlays( void )
 			EntityText( text_offset, tempstr, 0 );
 			++text_offset;
 		}
-	}
+	//}
 	return text_offset;
 }
 

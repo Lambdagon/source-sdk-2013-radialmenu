@@ -9,12 +9,27 @@ $Macro GAMENAME 	"terror"
 
 $Include "$SRCDIR\game\client\client_base.vpc"
 
+//-----------------------------------------
+// Alien Swarms GameUI for Half-Life 2: Deathmatch
+//-----------------------------------------
+$Include "$SRCDIR\game\client\client_gameui_cstrike.vpc"
+
 $Configuration
 {
 	$Compiler
 	{
 		$AdditionalIncludeDirectories		".\hl2;.\hl2\elements;$SRCDIR\game\shared\hl2;$SRCDIR\game\shared\episodic;$BASE;$SRCDIR\game\shared\cstrike\control,.\cstrike,.\cstrike\control,.\cstrike\VGUI,$SRCDIR\game\shared\cstrike"
 		$PreprocessorDefinitions			"$BASE;HL2_DLL;CSTRIKE_DLL;NEXT_BOT;GLOWS_ENABLE;VOTING_ENABLED;HL2_EPISODIC;HL2_CLIENT_DLL"
+	}
+	$Linker
+	{
+		$AdditionalDependencies				"$BASE shell32.lib user32.lib advapi32.lib gdi32.lib comdlg32.lib ole32.lib raytrace.lib legacy_stdio_definitions.lib" [$WIN32||$WIN64]
+		$TargetMachine						"MachineX86 (/MACHINE:X86)"	[$WIN32]
+		$TargetMachine						"MachineX64 (/MACHINE:X64)"	[$WIN64]
+		// Suppress this pointless warning using the undocumented /ignore linker switch
+		// schemalib.lib(schemaclassinfo.obj) : warning LNK4221: This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
+		$AdditionalOptions					"$BASE /ignore:4221"
+		$AdditionalOptions					"$BASE $SRCDIR\lib\public\ftol3.obj" [$VS2013 && $WIN32 && !$DISABLE_FTOL3_OVERRIDE && !$SOURCESDK] // Work around CRT bug https://connect.microsoft.com/VisualStudio/feedback/details/806362/vc12-pollutes-the-floating-point-stack-when-casting-infinity-nan-to-unsigned-long#
 	}
 }
 
@@ -30,7 +45,13 @@ $Project "Client (CStrike)"
 	{
 		$File	"$SRCDIR\game\shared\handviewmodel_shared.cpp"
 		-$File	"$SRCDIR\game\shared\weapon_parse_default.cpp"
-		
+		$File	"c_baselesson.cpp"
+		$File	"c_baselesson.h"
+		$File	"c_gameinstructor.cpp"
+		$File	"c_gameinstructor.h"
+		$File	"c_mod_lesson_stubs.cpp"
+		$File	"hud_locator_target.cpp"
+		$File	"hud_locator_target.h"
 		$File	"c_team_objectiveresource.cpp"
 		$File	"c_team_objectiveresource.h"
 		$File	"c_team_train_watcher.cpp"

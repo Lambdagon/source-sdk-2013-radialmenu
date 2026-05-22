@@ -190,6 +190,11 @@ void CHudRadar::MsgFunc_UpdateRadar(bf_read &msg )
 
 bool CHudRadar::ShouldDraw()
 {
+
+	// For L4D we don't need the radar - Vvis :3 
+	
+	return false;
+
 	C_CSPlayer *pPlayer = C_CSPlayer::GetLocalCSPlayer();
 	
 	//=============================================================================

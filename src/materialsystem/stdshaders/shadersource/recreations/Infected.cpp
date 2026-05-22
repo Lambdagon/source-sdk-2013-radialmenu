@@ -6,7 +6,7 @@
 //	Purpose of this File :	'Infected' Shader for Models. Recreation of the L4D2 Shader
 //
 //==========================================================================//
-#if 0
+
 // Commonly Shared Definitions, Defines and Data for all Shaders
 #include "../../cpp_lux_shared.h"
 
@@ -42,9 +42,9 @@ public:
 	BlendType_t m_nBlendType = BT_NONE;
 	bool m_bIsFullyOpaque = false;
 
-	InfectedContext(CBaseShader* pShader)
-		: m_SemiStaticCmds(pShader),
-		m_StaticCmds(pShader)
+	InfectedContext(IMaterialVar** ppParams)
+		: m_SemiStaticCmds(ppParams),
+		m_StaticCmds(ppParams)
 	{
 	}
 };
@@ -395,7 +395,7 @@ SHADER_INIT
 // Virtual Void Override for Context Data
 InfectedContext* CreateMaterialContextData() override
 {
-	return new InfectedContext(this);
+	return new InfectedContext(NULL);
 }
 
 SHADER_DRAW
@@ -571,7 +571,7 @@ SHADER_DRAW
 //		StaticCmds.End();
 
 		// Set the Buffer back to its original ( Empty ) State
-		SemiStaticCmds.Reset(this);
+		SemiStaticCmds.Reset(params);
 
 		// Instruct the Buffer to set an End Point
 		SemiStaticCmds.End();
@@ -583,7 +583,7 @@ SHADER_DRAW
 	if (MaterialVarsChanged())
 	{
 		// Set the Buffer back to its original ( Empty ) State
-		SemiStaticCmds.Reset(this);
+		SemiStaticCmds.Reset(params);
 
 		//==========================================================================//
 		// Bind StandardTextures
@@ -910,4 +910,3 @@ SHADER_DRAW
 	Draw();
 }
 END_SHADER
-#endif

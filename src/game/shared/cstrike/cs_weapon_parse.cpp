@@ -87,6 +87,9 @@ WeaponNameInfo s_weaponNameInfo[] =
 	{ WEAPON_ASSAULTSUIT,		"weapon_assaultsuit" },
 	{ WEAPON_NVG,				"weapon_nvg" },
 	{ WEAPON_MOLOTOV,				"weapon_molotov" },
+	{ WEAPON_COLA_BOTTLES,		"weapon_cola_bottles" },
+	{ WEAPON_GASCAN,				"weapon_gascan" },
+	{ WEAPON_PAIN_PILLS,				"weapon_pain_pills" },
 
 	{ WEAPON_NONE,				"weapon_none" },
 };

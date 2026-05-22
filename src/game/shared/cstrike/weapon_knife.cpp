@@ -179,6 +179,9 @@ CREATE_SIMPLE_WEAPON_TABLE(SmokerClaw, weapon_smoker_claw);
 CREATE_SIMPLE_WEAPON_TABLE(ChargerClaw, weapon_charger_claw);
 CREATE_SIMPLE_WEAPON_TABLE(JockeyClaw, weapon_jockey_claw);
 CREATE_SIMPLE_WEAPON_TABLE(SpitterClaw, weapon_spitter_claw);
+CREATE_SIMPLE_WEAPON_TABLE(GasCan, weapon_gascan);
+CREATE_SIMPLE_WEAPON_TABLE(ColaBottles, weapon_cola_bottles);
+CREATE_SIMPLE_WEAPON_TABLE(Pills, weapon_pain_pills);
 
 static bool IsGhostSpecialInfected( CCSPlayer *player )
 {
@@ -851,7 +854,7 @@ void CBoomerClaw::PrimaryAttack()
 	if ( !CanStartVomit() )
 		return;
 
-	owner->Vocalize("Vomit.Use", 3.0f, 0.0f);
+	owner->VocalizeRawSound("Vomit.Use", 3.0f, 0.0f);
 	m_flVomitEndTime = gpGlobals->curtime + duration;
 	m_flNextVomitAllowedTime = gpGlobals->curtime + interval;
 	m_flNextVomitBlobTime = gpGlobals->curtime;
@@ -908,7 +911,7 @@ void CSpitterClaw::PrimaryAttack()
 	if ( !CanStartSpit() )
 		return;
 
-	owner->Vocalize( "SpitterZombie.Spit", 3.0f, 0.0f );
+	owner->VocalizeRawSound( "SpitterZombie.Spit", 3.0f, 0.0f );
 	owner->m_flStamina = 0.0f;
 
 	SpitterRandomSurvivorWarnIncoming( owner );
@@ -1063,12 +1066,12 @@ void CHunterClaw::PrimaryAttack()
 						m_bIsPouncing = true;
 
 						if (gpGlobals->curtime > owner->m_nextVocalizeTime)
-							owner->Vocalize("HunterZombie.Pounce", 1.5f, 1.5f);
+							owner->VocalizeRawSound("HunterZombie.Pounce", 1.5f, 1.5f);
 					}
 					else
 					{
 						if (gpGlobals->curtime > owner->m_nextVocalizeTime)
-							owner->Vocalize("HunterZombie.Lunge", 1.5f, 1.5f);
+							owner->VocalizeRawSound("HunterZombie.Lunge", 1.5f, 1.5f);
 					}
 					m_flNextPrimaryAttack = gpGlobals->curtime + 0.2f;
 				}
@@ -1102,12 +1105,12 @@ void CHunterClaw::PrimaryAttack()
 		m_bIsPouncing = true;
 
 		if (gpGlobals->curtime > owner->m_nextVocalizeTime)
-			owner->Vocalize("HunterZombie.Pounce", 1.5f, 1.5f);
+			owner->VocalizeRawSound("HunterZombie.Pounce", 1.5f, 1.5f);
 	}
 	else
 	{
 		if (gpGlobals->curtime > owner->m_nextVocalizeTime)
-			owner->Vocalize("HunterZombie.Lunge", 1.5f, 1.5f);
+			owner->VocalizeRawSound("HunterZombie.Lunge", 1.5f, 1.5f);
 	}
 
 	// Cooldowns are applied on landing (touching ground) so hunters can't chain-lunge as they land.
@@ -1164,7 +1167,7 @@ void CHunterClaw::ItemPostFrame()
 					return;
 				}
 
-				owner->Vocalize( "HunterZombie.LungeLand" );
+				owner->VocalizeRawSound( "HunterZombie.LungeLand" );
 
 				m_bIsLunging = false;
 				m_bIsPouncing = false;
@@ -1225,7 +1228,7 @@ void CHunterClaw::ItemPostFrame()
 								CTakeDamageInfo info( owner, owner, damage, DMG_SLASH | DMG_NEVERGIB );
 								target->TakeDamage( info );
 
-								owner->Vocalize( "HunterZombie.Pounce.Hit", 3.0f, 0.0f );
+								owner->VocalizeRawSound( "HunterZombie.Pounce.Hit", 3.0f, 0.0f );
 								m_bDidPounceHit = true;
 
 								owner->StartPounce( target );
@@ -1276,7 +1279,7 @@ void CHunterClaw::ItemPostFrame()
 							CTakeDamageInfo info( owner, owner, damage, DMG_SLASH | DMG_NEVERGIB );
 							victim->TakeDamage( info );
 
-							owner->Vocalize( "HunterZombie.Pounce.Hit", 3.0f, 0.0f );
+							owner->VocalizeRawSound( "HunterZombie.Pounce.Hit", 3.0f, 0.0f );
 							m_bDidPounceHit = true;
 
 #ifndef CLIENT_DLL
@@ -1810,4 +1813,124 @@ void CKnife::ItemPostFrame( void )
 bool CKnife::CanDrop()
 {
 	return false;
+}
+
+// Gas Can and Cola Bottles are just for show, no functionality.
+CGasCan::CGasCan()
+{
+}
+
+void CGasCan::PrimaryAttack()
+{
+	return;
+}
+void CGasCan::SecondaryAttack()
+{
+	return BaseClass::SecondaryAttack();
+}
+bool CGasCan::MyTouch(CCSPlayer* pPlayer)
+{
+	if (!pPlayer)
+		return false;
+
+#ifdef GAME_DLL
+	pPlayer->Weapon_Equip(this);
+	pPlayer->Weapon_Switch(this);
+#endif
+	return true;
+}
+bool CGasCan::Holster( CBaseCombatWeapon *pSwitchingTo )
+{
+#ifdef GAME_DLL
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+
+	if ( pPlayer )
+	{
+		pPlayer->Weapon_Drop(this, NULL, NULL);
+		return false;
+	}
+#endif
+
+	return BaseClass::Holster( pSwitchingTo );
+}
+
+CColaBottles::CColaBottles()
+{
+}
+
+void CColaBottles::PrimaryAttack()
+{
+	return;
+}
+void CColaBottles::SecondaryAttack()
+{
+	return BaseClass::SecondaryAttack();
+}
+bool CColaBottles::MyTouch(CCSPlayer* pPlayer)
+{
+	if (!pPlayer)
+		return false;
+#ifdef GAME_DLL
+	pPlayer->Weapon_Equip(this);
+	pPlayer->Weapon_Switch(this);
+#endif
+	return true;
+}
+bool CColaBottles::Holster(CBaseCombatWeapon* pSwitchingTo)
+{
+#ifdef GAME_DLL
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+	if (pPlayer)
+	{
+		pPlayer->Weapon_Drop(this, NULL, NULL);
+		return false;
+	}
+#endif
+
+	return BaseClass::Holster(pSwitchingTo);
+}
+
+// Pills here! - Vvis :3 
+
+CPills::CPills()
+{
+
+}
+
+void CPills::PrimaryAttack()
+{
+#ifdef GAME_DLL
+	CCSPlayer* pPlayer = GetPlayerOwner();
+
+	if ( !pPlayer )
+		return;
+
+	if (gpGlobals->curtime < m_flNextPrimaryAttack)
+		return;
+
+	if (pPlayer->GetHealth() >= 90)
+	{
+		m_flNextPrimaryAttack = gpGlobals->curtime + 0.5f;
+		return;
+	}
+
+	SendWeaponAnim( ACT_VM_USE_PAINPILLS );
+
+	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+
+	const int nHealAmount = 50;
+
+	int nNewHealth = MIN(pPlayer->GetHealth() + nHealAmount, pPlayer->GetMaxHealth());
+	pPlayer->SetHealth(nNewHealth);
+
+	m_flNextPrimaryAttack = gpGlobals->curtime + 1.0f;
+
+	pPlayer->Weapon_Drop(this, NULL, NULL);
+	
+#endif
+}
+void CPills::SecondaryAttack()
+{
+	return BaseClass::SecondaryAttack();
 }
