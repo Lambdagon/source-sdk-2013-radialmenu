@@ -241,7 +241,7 @@ CHudElement::CHudElement( const char *pElementName )
 	m_bIsParentedToClientDLLRootPanel = false;
 
 	// Make this for all hud elements, but when its a bit safer
-#if defined( TF_CLIENT_DLL ) || defined( DOD_DLL )
+#if defined( TF_CLIENT_DLL ) || defined( DOD_DLL ) || defined( CSTRIKE_DLL )
 	RegisterForRenderGroup( "global" );
 #endif
 }
@@ -385,7 +385,7 @@ DECLARE_MESSAGE(gHUD, SendAudio);
 CHud::CHud()
 {
 	SetDefLessFunc( m_RenderGroups );
-
+	m_bSkipClear = false;
 	m_flScreenShotTime = -1;
 }
 
@@ -394,6 +394,8 @@ CHud::CHud()
 //-----------------------------------------------------------------------------
 void CHud::Init( void )
 {
+	DevMsg(1, "[CL] CHud Init called\n");
+	HudIcons().Init();
 	HOOK_HUD_MESSAGE( gHUD, ResetHUD );
 	
 #ifdef CSTRIKE_DLL
@@ -418,7 +420,7 @@ void CHud::Init( void )
 	KeyValues *kv = new KeyValues( "layout" );
 	if ( kv )
 	{
-		if ( kv->LoadFromFile( filesystem, "scripts/HudLayout.res" ) )
+		if ( kv->LoadFromFile( filesystem, "scripts/HudLayout_fc.res", "MOD" ) )
 		{
 			int numelements = m_HudList.Size();
 
@@ -429,7 +431,6 @@ void CHud::Init( void )
 				vgui::Panel *pPanel = dynamic_cast<vgui::Panel*>(element);
 				if ( !pPanel )
 				{
-					Assert( false );
 					Msg( "Non-vgui hud element %s\n", m_HudList[i]->GetName() );
 					continue;
 				}
@@ -437,15 +438,13 @@ void CHud::Init( void )
 				KeyValues *key = kv->FindKey( pPanel->GetName(), false );
 				if ( !key )
 				{
-					Assert( false );
-					Msg( "Hud element '%s' doesn't have an entry '%s' in scripts/HudLayout.res\n", m_HudList[i]->GetName(), pPanel->GetName() );
+					Msg( "Hud element '%s' doesn't have an entry '%s' in scripts/HudLayout_fc.res\n", m_HudList[i]->GetName(), pPanel->GetName() );
 				}
 
 				// Note:  When a panel is parented to the module root, it's "parent" is returned as NULL.
 				if ( !element->IsParentedToClientDLLRootPanel() && 
 					 !pPanel->GetParent() )
 				{
-					Assert( false );
 					DevMsg( "Hud element '%s'/'%s' doesn't have a parent\n", m_HudList[i]->GetName(), pPanel->GetName() );
 				}
 			}
@@ -462,6 +461,9 @@ void CHud::Init( void )
 
 	// check to see if we have sprites for this res; if not, step down
 	LoadHudTextures( textureList, "scripts/hud_textures", NULL );
+	LoadHudTextures( textureList, "scripts/instructor_textures", NULL );
+	LoadHudTextures( textureList, "scripts/instructor_modtextures", NULL );
+	LoadHudTextures( textureList, "scripts/instructor_textures_hl2", NULL );
 	LoadHudTextures( textureList, "scripts/mod_textures", NULL );
 
 	int c = textureList.Count();
@@ -519,6 +521,8 @@ void CHud::Shutdown( void )
 //-----------------------------------------------------------------------------
 void CHud::LevelInit( void )
 {
+	DevMsg(1, "[CL] CHud LevelInit called\n");
+	float flStartInit = engine->Time();
 	// Tell all the registered hud elements to LevelInit
 	for ( int i = 0; i < m_HudList.Size(); i++ )
 	{
@@ -533,6 +537,8 @@ void CHud::LevelInit( void )
 		group->bHidden = false;
 		group->m_pLockingElements.Purge();
 	}
+
+	DevMsg(1, "[CL] CHud LevelInit finished in %f seconds\n", engine->Time() - flStartInit);
 }
 
 //-----------------------------------------------------------------------------
@@ -813,6 +819,9 @@ void CHud::RefreshHudTextures()
 
 	// check to see if we have sprites for this res; if not, step down
 	LoadHudTextures( textureList, "scripts/hud_textures", NULL );
+	LoadHudTextures( textureList, "scripts/instructor_textures", NULL );
+	LoadHudTextures( textureList, "scripts/instructor_modtextures", NULL );
+	LoadHudTextures( textureList, "scripts/instructor_textures_hl2", NULL );
 	LoadHudTextures( textureList, "scripts/mod_textures", NULL );
 
 	// fix up all the texture icons first
@@ -867,6 +876,41 @@ void CHud::RefreshHudTextures()
 			icon->rc.left = 0;
 			icon->rc.right = vgui::surface()->GetCharacterWidth( icon->hFont, icon->cCharacterInFont );
 			icon->rc.bottom = vgui::surface()->GetFontTall( icon->hFont );
+		}
+	}
+}
+
+CON_COMMAND(reload_hudicon, "")
+{
+	if (args.ArgC())
+		gHUD.LoadIcons((uint32)V_atoi64(args.Arg(1)));
+	else
+		gHUD.LoadIcons(1);
+}
+
+void CHud::LoadIcons(int iType)
+{
+	DevMsg(1, "[CL] CHud LoadIcons %i\n", iType);
+	vgui::HScheme scheme = vgui::scheme()->GetScheme("ClientScheme");
+	if (iType)
+		scheme = vgui::scheme()->GetScheme("HudScheme");
+	for (int i = m_Icons.First(); m_Icons.IsValidIndex(i); i = m_Icons.Next(i))
+	{
+		CHudTexture *icon = m_Icons[i];
+		if (!icon)
+			continue;
+
+		// Update file
+		if (icon->bRenderUsingFont)
+		{
+			if (vgui::scheme()->GetIScheme(scheme)->GetFont(icon->szTextureFile, true))
+				icon->hFont = vgui::scheme()->GetIScheme(scheme)->GetFont(icon->szTextureFile, true);
+			else
+				icon->hFont = vgui::scheme()->GetIScheme(vgui::scheme()->GetScheme("ClientScheme"))->GetFont(icon->szTextureFile, true);
+			icon->rc.top = 0;
+			icon->rc.left = 0;
+			icon->rc.right = vgui::surface()->GetCharacterWidth(icon->hFont, icon->cCharacterInFont);
+			icon->rc.bottom = vgui::surface()->GetFontTall(icon->hFont);
 		}
 	}
 }
@@ -966,6 +1010,10 @@ bool CHud::IsHidden( int iHudFlags )
 		iHideHud = hidehud.GetInt();
 	}
 
+	// Statically always allow chat (breaks too many UI elements in MP)
+	if (iHudFlags & HIDEHUD_CHAT)
+		return false;
+
 	// Everything hidden?
 	if ( iHideHud & HIDEHUD_ALL )
 		return true;
@@ -979,7 +1027,7 @@ bool CHud::IsHidden( int iHudFlags )
 		return true;
 
 	// Hide all HUD elements during screenshot if the user's set hud_freezecamhide ( TF2 )
-#if defined( TF_CLIENT_DLL )
+#if defined( TF_CLIENT_DLL ) 
 	extern bool IsTakingAFreezecamScreenshot();
 	extern ConVar hud_freezecamhide;
 
@@ -1019,11 +1067,11 @@ bool CHud::LockRenderGroup( int iGroupIndex, CHudElement *pLocker /* = NULL */ )
 	if ( !DoesRenderGroupExist(iGroupIndex) )
 		return false;
 
-	int iRenderGroup = m_RenderGroups.Find( iGroupIndex );
+	int i = m_RenderGroups.Find( iGroupIndex );
 
-	Assert( m_RenderGroups.IsValidIndex( iRenderGroup ) );
+	Assert( m_RenderGroups.IsValidIndex(i) );
 
-	CHudRenderGroup *group = m_RenderGroups.Element( iRenderGroup );
+	CHudRenderGroup *group = m_RenderGroups.Element(i);
 
 	Assert( group );
 
@@ -1039,7 +1087,7 @@ bool CHud::LockRenderGroup( int iGroupIndex, CHudElement *pLocker /* = NULL */ )
 			bool bFound = false;
 			// See if we have it locked already
 			int iNumLockers = group->m_pLockingElements.Count();
-			for ( int i=0;i<iNumLockers;i++ )
+			for ( i=0;i<iNumLockers;i++ )
 			{
 				if ( pLocker == group->m_pLockingElements.Element(i) )
 				{
@@ -1068,11 +1116,11 @@ bool CHud::UnlockRenderGroup( int iGroupIndex, CHudElement *pLocker /* = NULL */
 	if ( !DoesRenderGroupExist(iGroupIndex) )
 		return false;
 
-	int iRenderGroup = m_RenderGroups.Find( iGroupIndex );
+	int i = m_RenderGroups.Find( iGroupIndex );
 
-	Assert( m_RenderGroups.IsValidIndex( iRenderGroup ) );
+	Assert( m_RenderGroups.IsValidIndex(i) );
 
-	CHudRenderGroup *group = m_RenderGroups.Element( iRenderGroup );
+	CHudRenderGroup *group = m_RenderGroups.Element(i);
 
 	if ( group )
 	{
@@ -1084,7 +1132,7 @@ bool CHud::UnlockRenderGroup( int iGroupIndex, CHudElement *pLocker /* = NULL */
 		}
 
 		int iNumLockers = group->m_pLockingElements.Count();
-		for ( int i=0;i<iNumLockers;i++ )
+		for ( i=0;i<iNumLockers;i++ )
 		{
 			if ( pLocker == group->m_pLockingElements.Element(i) )
 			{
@@ -1178,8 +1226,11 @@ bool CHud::DoesRenderGroupExist( int iGroupIndex )
 //-----------------------------------------------------------------------------
 void CHud::UpdateHud( bool bActive )
 {
-	// clear the weapon bits.
-	gHUD.m_iKeyBits &= (~(IN_WEAPON1|IN_WEAPON2));
+	if (!gHUD.m_bSkipClear)
+	{
+		// clear the weapon bits.
+		gHUD.m_iKeyBits &= (~(IN_WEAPON1 | IN_WEAPON2));
+	}
 
 	g_pClientMode->Update();
 
@@ -1200,3 +1251,230 @@ CON_COMMAND_F( testhudanim, "Test a hud element animation.\n\tArguments: <anim n
 	g_pClientMode->GetViewportAnimationController()->StartAnimationSequence( args[1] );
 }
 
+CHudIcons::CHudIcons() :
+	m_bHudTexturesLoaded(false)
+{
+}
+
+CHudIcons::~CHudIcons()
+{
+	int c = m_Icons.Count();
+	for (int i = c - 1; i >= 0; i--)
+	{
+		CHudTexture* tex = m_Icons[i];
+		g_HudTextureMemoryPool.Free(tex);
+	}
+	m_Icons.Purge();
+}
+
+void CHudIcons::Init()
+{
+	if (m_bHudTexturesLoaded)
+		return;
+
+	m_bHudTexturesLoaded = true;
+	CUtlDict< CHudTexture*, int >	textureList;
+
+	// check to see if we have sprites for this res; if not, step down
+	LoadHudTextures(textureList, "scripts/hud_textures", NULL);
+	LoadHudTextures(textureList, "scripts/mod_textures", NULL);
+
+	LoadHudTextures(textureList, "scripts/instructor_textures", NULL);
+	LoadHudTextures(textureList, "scripts/instructor_modtextures", NULL);
+	LoadHudTextures(textureList, "scripts/instructor_textures_hl2", NULL);
+
+	int c = textureList.Count();
+	for (int index = 0; index < c; index++)
+	{
+		CHudTexture* tex = textureList[index];
+		AddSearchableHudIconToList(*tex);
+	}
+
+	FreeHudTextureList(textureList);
+}
+
+void CHudIcons::Shutdown()
+{
+	m_bHudTexturesLoaded = false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CHudTexture* CHudIcons::AddUnsearchableHudIconToList(CHudTexture& texture)
+{
+	// These names are composed based on the texture file name
+	char composedName[512];
+
+	if (texture.bRenderUsingFont)
+	{
+		Q_snprintf(composedName, sizeof(composedName), "%s_c%i",
+			texture.szTextureFile, texture.cCharacterInFont);
+	}
+	else
+	{
+		Q_snprintf(composedName, sizeof(composedName), "%s_%i_%i_%i_%i",
+			texture.szTextureFile, texture.rc.left, texture.rc.top, texture.rc.right, texture.rc.bottom);
+	}
+
+	CHudTexture* icon = GetIcon(composedName);
+	if (icon)
+	{
+		return icon;
+	}
+
+	CHudTexture* newTexture = (CHudTexture*)g_HudTextureMemoryPool.Alloc();
+	*newTexture = texture;
+
+	SetupNewHudTexture(newTexture);
+
+	int idx = m_Icons.Insert(composedName, newTexture);
+	return m_Icons[idx];
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CHudTexture* CHudIcons::AddSearchableHudIconToList(CHudTexture& texture)
+{
+	CHudTexture* icon = GetIcon(texture.szShortName);
+	if (icon)
+	{
+		return icon;
+	}
+
+	CHudTexture* newTexture = (CHudTexture*)g_HudTextureMemoryPool.Alloc();
+	*newTexture = texture;
+
+	SetupNewHudTexture(newTexture);
+
+	int idx = m_Icons.Insert(texture.szShortName, newTexture);
+	return m_Icons[idx];
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: returns a pointer to an icon in the list
+//-----------------------------------------------------------------------------
+CHudTexture* CHudIcons::GetIcon(const char* szIcon)
+{
+	int i = m_Icons.Find(szIcon);
+	if (i == m_Icons.InvalidIndex())
+		return NULL;
+
+	return m_Icons[i];
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Gets texture handles for the hud icon
+//-----------------------------------------------------------------------------
+void CHudIcons::SetupNewHudTexture(CHudTexture* t)
+{
+	if (t->bRenderUsingFont)
+	{
+		vgui::HScheme scheme = vgui::scheme()->GetScheme("ClientScheme");
+		t->hFont = vgui::scheme()->GetIScheme(scheme)->GetFont(t->szTextureFile, true);
+		t->rc.top = 0;
+		t->rc.left = 0;
+		t->rc.right = vgui::surface()->GetCharacterWidth(t->hFont, t->cCharacterInFont);
+		t->rc.bottom = vgui::surface()->GetFontTall(t->hFont);
+	}
+	else
+	{
+		// Set up texture id and texture coordinates
+		t->textureId = vgui::surface()->CreateNewTextureID();
+		vgui::surface()->DrawSetTextureFile(t->textureId, t->szTextureFile, false, false);
+
+		int wide, tall;
+		vgui::surface()->DrawGetTextureSize(t->textureId, wide, tall);
+
+		t->texCoords[0] = (float)(t->rc.left + 0.5f) / (float)wide;
+		t->texCoords[1] = (float)(t->rc.top + 0.5f) / (float)tall;
+		t->texCoords[2] = (float)(t->rc.right - 0.5f) / (float)wide;
+		t->texCoords[3] = (float)(t->rc.bottom - 0.5f) / (float)tall;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CHudIcons::RefreshHudTextures()
+{
+	if (!m_bHudTexturesLoaded)
+	{
+		Assert(0);
+		return;
+	}
+
+	CUtlDict< CHudTexture*, int >	textureList;
+
+	// check to see if we have sprites for this res; if not, step down
+	LoadHudTextures(textureList, "scripts/hud_textures", NULL);
+	LoadHudTextures(textureList, "scripts/mod_textures", NULL);
+
+	LoadHudTextures(textureList, "scripts/instructor_textures", NULL);
+	LoadHudTextures(textureList, "scripts/instructor_modtextures", NULL);
+	LoadHudTextures(textureList, "scripts/instructor_textures_hl2", NULL);
+
+	// fix up all the texture icons first
+	int c = textureList.Count();
+	for (int index = 0; index < c; index++)
+	{
+		CHudTexture* tex = textureList[index];
+		Assert(tex);
+
+		CHudTexture* icon = GetIcon(tex->szShortName);
+		if (!icon)
+			continue;
+
+		// Update file
+		Q_strncpy(icon->szTextureFile, tex->szTextureFile, sizeof(icon->szTextureFile));
+
+		if (!icon->bRenderUsingFont)
+		{
+			// Update subrect
+			icon->rc = tex->rc;
+
+			// Keep existing texture id, but now update texture file and texture coordinates
+			vgui::surface()->DrawSetTextureFile(icon->textureId, icon->szTextureFile, false, false);
+
+			// Get new texture dimensions in case it changed
+			int wide, tall;
+			vgui::surface()->DrawGetTextureSize(icon->textureId, wide, tall);
+
+			// Assign coords
+			icon->texCoords[0] = (float)(icon->rc.left + 0.5f) / (float)wide;
+			icon->texCoords[1] = (float)(icon->rc.top + 0.5f) / (float)tall;
+			icon->texCoords[2] = (float)(icon->rc.right - 0.5f) / (float)wide;
+			icon->texCoords[3] = (float)(icon->rc.bottom - 0.5f) / (float)tall;
+		}
+	}
+
+	FreeHudTextureList(textureList);
+
+	// fixup all the font icons
+	vgui::HScheme scheme = vgui::scheme()->GetScheme("ClientScheme");
+	for (int i = m_Icons.First(); m_Icons.IsValidIndex(i); i = m_Icons.Next(i))
+	{
+		CHudTexture* icon = m_Icons[i];
+		if (!icon)
+			continue;
+
+		// Update file
+		if (icon->bRenderUsingFont)
+		{
+			icon->hFont = vgui::scheme()->GetIScheme(scheme)->GetFont(icon->szTextureFile, true);
+			icon->rc.top = 0;
+			icon->rc.left = 0;
+			icon->rc.right = vgui::surface()->GetCharacterWidth(icon->hFont, icon->cCharacterInFont);
+			icon->rc.bottom = vgui::surface()->GetFontTall(icon->hFont);
+		}
+	}
+}
+
+
+static CHudIcons g_HudIcons;
+
+CHudIcons& HudIcons()
+{
+	return g_HudIcons;
+}

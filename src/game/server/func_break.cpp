@@ -186,6 +186,9 @@ BEGIN_DATADESC( CBreakable )
 	DEFINE_FIELD( m_hPhysicsAttacker, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_flLastPhysicsInfluenceTime, FIELD_TIME ),
 
+	// L4D Recreation - Vvis :3 
+	DEFINE_KEYFIELD(m_iBreakableType, FIELD_INTEGER, "BreakableType"),
+
 END_DATADESC()
 
 IMPLEMENT_AUTO_LIST( IBreakablePropAutoList );
@@ -833,6 +836,41 @@ int CBreakable::OnTakeDamage( const CTakeDamageInfo &info )
 	{
 		m_bTookPhysicsDamage = false;
 		return 1;
+	}
+
+	// Recreated this bit from Left 4 Dead. - Vvis :3 
+	if (m_iBreakableType != 0)
+	{
+		CBaseEntity* pAttacker = info.GetAttacker();
+		if (pAttacker)
+		{
+			//const char *attackerClass = pAttacker->GetClassname();
+
+			if (m_iBreakableType == 1)
+			{
+				// Only allow damage from infected
+				if (!FClassnameIs(pAttacker, "npc_infected") &&
+					!FClassnameIs(pAttacker, "infected")
+					&& !FClassnameIs(pAttacker, "npc_tank")
+					&& !FClassnameIs(pAttacker, "tank"))
+				{
+					return 1;
+				}
+			}
+			else if (m_iBreakableType == 2)
+			{
+				// Only allow damage from tanks
+				if (!FClassnameIs(pAttacker, "npc_tank") &&
+					!FClassnameIs(pAttacker, "tank"))
+				{
+					return 1;
+				}
+			}
+		}
+		else
+		{
+			return 1;
+		}
 	}
 
 	if (!IsBreakable())

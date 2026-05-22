@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -25,7 +25,9 @@ class CBaseEntity;
 	#define CChargerClaw C_ChargerClaw
 	#define CJockeyClaw C_JockeyClaw
 	#define CSpitterClaw C_SpitterClaw
-
+	#define CGasCan C_GasCan
+	#define CColaBottles C_ColaBottles
+	#define CPills C_Pills
 #endif
 
 
@@ -222,6 +224,52 @@ private:
 #ifndef CLIENT_DLL
 	float m_flNextSpitAllowedTime;
 #endif
+};
+
+class CGasCan : public CWeaponCSBase
+{
+public:
+	DECLARE_CLASS(CGasCan, CWeaponCSBase);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	CGasCan();
+	bool MyTouch(CCSPlayer* pPlayer);
+	bool Holster(CBaseCombatWeapon* pSwitchingTo);
+	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_GASCAN; }
+
+	virtual void PrimaryAttack() OVERRIDE;
+	virtual void SecondaryAttack() OVERRIDE;
+};
+
+class CColaBottles : public CWeaponCSBase
+{
+public:
+	DECLARE_CLASS(CColaBottles, CWeaponCSBase);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	CColaBottles();
+	bool MyTouch(CCSPlayer* pPlayer);
+	bool Holster(CBaseCombatWeapon* pSwitchingTo);
+	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_COLA_BOTTLES; }
+
+	virtual void PrimaryAttack() OVERRIDE;
+	virtual void SecondaryAttack() OVERRIDE;
+};
+
+class CPills : public CWeaponCSBase
+{
+public:
+	DECLARE_CLASS(CPills, CWeaponCSBase);
+	DECLARE_NETWORKCLASS();
+	DECLARE_PREDICTABLE();
+
+	CPills();
+	virtual CSWeaponID GetWeaponID(void) const { return WEAPON_PAIN_PILLS; }
+
+	virtual void PrimaryAttack() OVERRIDE;
+	virtual void SecondaryAttack() OVERRIDE;
 };
 
 #endif // WEAPON_KNIFE_H

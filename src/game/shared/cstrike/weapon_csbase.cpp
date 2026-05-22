@@ -137,6 +137,7 @@ WeaponAliasInfo s_weaponAliasInfo[] =
 	{ WEAPON_NVG,				"nvg" },
 	{ WEAPON_MOLOTOV,				"molotov" },
 
+
 	{ WEAPON_NONE,				"none" },
 };
 

@@ -164,6 +164,8 @@ protected:
 
 	float			m_explodeRadius;
 
+	// L4D Recreation - Vvis :3
+	int				m_iBreakableType;
 public:
 	// IPlayerPickupVPhysics
 	virtual void OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason );

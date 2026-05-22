@@ -416,6 +416,7 @@ public:
 	virtual void			PackDeadPlayerItems( void );
 	virtual void			RemoveAllItems( bool removeSuit );
 	bool					IsDead() const;
+	virtual	CBaseCombatCharacter *ActivePlayerCombatCharacter( void ) { return this; }
 #ifdef CSTRIKE_DLL
 	virtual bool			IsRunning( void ) const	{ return false; } // bot support under cstrike (AR)
 #endif

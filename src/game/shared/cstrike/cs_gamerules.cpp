@@ -57,7 +57,7 @@
 	#include "replay/iserverreplaycontext.h"
 	#include "replay/ireplaysessionrecorder.h"
 #endif // REPLAY_ENABLED
-
+#include "terror/info_director.h"
 #endif
 
 
@@ -306,12 +306,6 @@ static void BuildSurvivorSpawnPointsIfNeeded()
 
 	CBaseEntity *pEnt = NULL;
 	while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_player_terrorist" ) ) != NULL )
-	{
-		s_vecSurvivorSpawnPoints.AddToTail( pEnt->GetAbsOrigin() );
-	}
-
-	pEnt = NULL;
-	while ( ( pEnt = gEntList.FindEntityByClassname( pEnt, "info_survivor_position" ) ) != NULL )
 	{
 		s_vecSurvivorSpawnPoints.AddToTail( pEnt->GetAbsOrigin() );
 	}
@@ -1318,7 +1312,6 @@ static bool FindFallbackPlayerSpawnPosition( CBasePlayer *pPlayer, int team, Vec
 	const char *anchorClasses[] =
 	{
 		primaryClass,
-		"info_survivor_position",
 		secondaryClass,
 		"info_player_start",
 		"info_player_teamspawn",
@@ -1403,9 +1396,6 @@ static Vector GetBackgroundInfectedAnchor( void )
 
 	// Fall back to standard spawnpoints if any exist (background maps may omit these).
 	if ( PickRandomSpawnAnchor( "info_player_terrorist", &anchor ) )
-		return anchor;
-
-	if ( PickRandomSpawnAnchor( "info_survivor_position", &anchor ) )
 		return anchor;
 
 	if ( PickRandomSpawnAnchor( "info_player_counterterrorist", &anchor ) )
@@ -3132,7 +3122,6 @@ static CViewVectors g_CSViewVectors(
 
 #ifndef CLIENT_DLL
 LINK_ENTITY_TO_CLASS(info_player_terrorist, CPointEntity);
-LINK_ENTITY_TO_CLASS(info_survivor_position, CPointEntity);
 LINK_ENTITY_TO_CLASS(info_survivor_rescue, CPointEntity);
 LINK_ENTITY_TO_CLASS(info_player_counterterrorist,CPointEntity);
 LINK_ENTITY_TO_CLASS(info_player_logo,CPointEntity);
@@ -3327,6 +3316,7 @@ ConVar cl_autohelp(
 		"player",
 		"point_viewcontrol",
 		"point_viewcontrol_multiplayer",
+		"point_viewcontrol_survivor",
 		"scene_manager",
 		"shadow_control",
 		"sky_camera",
@@ -6846,6 +6836,10 @@ ConVar cl_autohelp(
 		//=============================================================================
 		// HPE_END
 		//=============================================================================
+
+
+		if (g_pDirector)
+			g_pDirector->m_OnGameplayStart.FireOutput(NULL, g_pDirector);
 	}
 
 	void CCSGameRules::GiveC4()
@@ -7604,19 +7598,7 @@ ConVar cl_autohelp(
 			}
 
 			ent = NULL;
-			while ((ent = gEntList.FindEntityByClassname(ent, "info_survivor_position")) != NULL)
-			{
-				if (IsSpawnPointValid(ent, NULL))
-				{
-					m_iSpawnPointCount_Terrorist++;
-				}
-				else
-				{
-					Warning("Invalid survivor spawnpoint at (%.1f,%.1f,%.1f)\n",
-						ent->GetAbsOrigin()[0], ent->GetAbsOrigin()[2], ent->GetAbsOrigin()[2]);
-				}
-			}
-
+			
 			while ( ( ent = gEntList.FindEntityByClassname( ent, "info_player_counterterrorist" ) ) != NULL )
 			{
 				if ( IsSpawnPointValid( ent, NULL ) ) 
@@ -7655,17 +7637,6 @@ ConVar cl_autohelp(
 		}
 
 		ent = NULL;
-		while ( ( ent = gEntList.FindEntityByClassname( ent, "info_survivor_position" ) ) != NULL )
-		{
-			if ( IsSpawnPointValid( ent, NULL ) )
-			{
-				NDebugOverlay::Box( ent->GetAbsOrigin(), VEC_HULL_MIN, VEC_HULL_MAX, 0, 255, 0, 200, 600 );
-			}
-			else
-			{
-				NDebugOverlay::Box( ent->GetAbsOrigin(), VEC_HULL_MIN, VEC_HULL_MAX, 255, 0, 0, 200, 600);
-			}
-		}
 
 		while ( ( ent = gEntList.FindEntityByClassname( ent, "info_player_counterterrorist" ) ) != NULL )
 		{
@@ -10231,5 +10202,7 @@ bool IsTakingAFreezecamScreenshot()
 {
 	return false;
 }
+
+
 
 #endif

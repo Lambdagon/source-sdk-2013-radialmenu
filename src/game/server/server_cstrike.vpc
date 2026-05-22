@@ -28,6 +28,8 @@ $Project "Server (CStrike)"
 {
 	$Folder	"Source Files"
 	{
+		$File	"cvisibilitymonitor.cpp"
+		$File	"cvisibilitymonitor.h"
 		$File	"$SRCDIR\game\shared\handviewmodel_shared.cpp"
 		$File	"AI_ConCommands.cpp"
 		$File	"hl2\Func_Monitor.cpp"
@@ -43,7 +45,7 @@ $Project "Server (CStrike)"
 		$File	"$SRCDIR\game\shared\teamplayroundbased_gamerules.cpp"
 		$File	"monstermaker.cpp"
 		$File	"monstermaker.h"
-
+		$File	"env_instructor_hint.cpp"
 		$Folder	"HL2 DLL (exclusive)"
 		{
 			$File	"$SRCDIR\game\shared\episodic\achievements_ep1.cpp"
@@ -481,9 +483,14 @@ $Project "Server (CStrike)"
 			
 			$Folder	"TERROR"
 			{
+				$file	"terror\prop_health_cabinet.cpp"
+				$file	"terror\info_zombie_spawn.cpp"
+				$file	"terror\info_zombie_spawn.h"
+				$file	"terror\prop_car_alarm.cpp"
 				$File	"func_elevator.cpp"
 				$File	"func_elevator.h"
 				$File	"terror\info_director.cpp"
+				$File	"terror\info_director.h"
 				$File	"terror\npc_infected.cpp"
 				$File	"terror\weapon_scripted_spawn.cpp"
 				$File	"terror\inferno.cpp"

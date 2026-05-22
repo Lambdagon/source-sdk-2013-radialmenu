@@ -251,3 +251,22 @@ void CParticleSystem::ReadControlPointEnts( void )
 		m_hControlPointEnts.Set( i, pPointEnt );
 	}
 }
+
+// Simple dummy ent. - Vvis :3 
+class CInfoParticleTarget : public CPointEntity
+{
+public:
+	DECLARE_CLASS(CInfoParticleTarget, CBaseEntity);
+	DECLARE_DATADESC();
+
+	void Spawn() override
+	{
+		SetSolid(SOLID_NONE);
+		AddEffects(EF_NODRAW);
+	}
+};
+
+LINK_ENTITY_TO_CLASS(info_particle_target, CInfoParticleTarget);
+
+BEGIN_DATADESC(CInfoParticleTarget)
+END_DATADESC()
