@@ -373,6 +373,8 @@ public:
 	ICSPlayerAnimState *GetPlayerAnimState() { return m_PlayerAnimState; }
 	Class_T			Classify(void);
 
+	const char* GetSurvivorName() const;
+
 	virtual bool StartReplayMode( float fDelay, float fDuration, int iEntity );
 	virtual void StopReplayMode();
 	virtual void PlayUseDenySound();
