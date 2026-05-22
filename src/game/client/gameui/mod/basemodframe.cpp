@@ -74,7 +74,11 @@ CBaseModFrame::CBaseModFrame( vgui::Panel *parent, const char *panelName, bool o
 	Frame::SetTitle("", false);
 	m_LblTitle = new Label(this, "LblTitle", "");
 
-	Q_snprintf(m_ResourceName, sizeof( m_ResourceName ), "Resource/UI/BaseModUI/%s.res", panelName);
+#ifdef CSTRIKE_DLL
+	Q_snprintf(m_ResourceName, sizeof(m_ResourceName), "Resource/UI/l4d360ui/%s.res", panelName);
+#else
+	Q_snprintf(m_ResourceName, sizeof(m_ResourceName), "Resource/UI/BaseModUI/%s.res", panelName);
+#endif
 
 	m_NavBack = NULL;
 	m_bCanNavBack = false;
