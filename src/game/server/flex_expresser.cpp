@@ -226,7 +226,7 @@ CFlexExpresser * CFlexExpresser::AsFlexExpresser( CBaseEntity *pEntity )
 {
 	if ( pEntity )
 	{
-		if ( pEntity->ClassMatches( MAKE_STRING("prop_talker") ) )
+		if ( pEntity->ClassMatches( MAKE_STRING("prop_talker") ) || pEntity->ClassMatches( MAKE_STRING("func_orator") ) )
 		{
 			return static_cast< CFlexExpresser * >(pEntity);
 		}
@@ -245,3 +245,4 @@ DEFINE_KEYFIELD( m_flThenAnyMaxDist, FIELD_FLOAT, "maxThenAnyDispatchDist" ),
 END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( prop_talker , CFlexExpresser ); 
+LINK_ENTITY_TO_CLASS( func_orator , CFlexExpresser ); 

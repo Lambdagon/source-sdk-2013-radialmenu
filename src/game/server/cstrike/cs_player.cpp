@@ -992,6 +992,22 @@ Class_T  CCSPlayer::Classify(void)
 	}
 	return CLASS_NONE;
 }
+const char* CCSPlayer::GetSurvivorName() const
+{
+	switch (GetSurvivorClass())
+	{
+	case 0:
+		return (survivor_set.GetInt() == 1) ? "Bill" : "Nick";
+	case 1:
+		return (survivor_set.GetInt() == 1) ? "Francis" : "Coach";
+	case 2:
+		return (survivor_set.GetInt() == 1) ? "Louis" : "Ellis";
+	case 3:
+		return (survivor_set.GetInt() == 1) ? "Zoey" : "Rochelle";
+	}
+
+	return "Survivor";
+}
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -2212,6 +2228,14 @@ void CCSPlayer::Spawn()
 
 		}
 		s_iNextSurvivor++;
+	}
+
+	if (IsBot() && GetTeamNumber() == TEAM_TERRORIST)
+	{
+		const char* name = GetSurvivorName();
+
+		SetPlayerName(name);
+		engine->SetFakeClientConVarValue(edict(), "name", name);
 	}
 }
 
