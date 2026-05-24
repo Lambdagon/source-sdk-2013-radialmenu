@@ -52,6 +52,7 @@
 #include "../vgui/nb_header_footer.h"
 #include "cdll_client_int.h"
 #include "steam/steam_api.h"
+#include "vgamesettings.h"
 //Originally in vgui_int. Moved for vgui swarm!!!!
 //#include "IMyPanel.h"
 
@@ -299,6 +300,9 @@ CBaseModFrame* CBaseModPanel::OpenWindow(const WINDOW_TYPE & wt, CBaseModFrame *
 			m_Frames[wt] = new Video(this, "Video");
 			break;
 
+		case WT_GAMESETTINGS:
+			m_Frames[wt] = new GameSettings(this, "GameSettings");
+			break;
 
 		default:
 			Assert( false );	// unknown window type

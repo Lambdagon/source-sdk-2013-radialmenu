@@ -153,6 +153,7 @@ $Project
 					$File    "gameui\mod\vtransitionscreen.h"
 					$File    "gameui\mod\vvideo.h"
 					$File    "gameui\mod\vvoteoptions.h"
+					$File    "gameui\mod\vgamesettings.h"
 				}
 				$File    "gameui\mod\basemodframe.cpp" \
 						 "gameui\mod\basemodpanel.cpp" \
@@ -179,7 +180,8 @@ $Project
 						 "gameui\mod\vspinnercontrol.cpp" \
 						 "gameui\mod\vtransitionscreen.cpp" \
 						 "gameui\mod\vvideo.cpp" \
-						 "gameui\mod\vvoteoptions.cpp"
+						 "gameui\mod\vvoteoptions.cpp" \
+						 "gameui\mod\vgamesettings.cpp"
 					{
 						$Configuration
 						{

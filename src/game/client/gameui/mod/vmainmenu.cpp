@@ -181,9 +181,34 @@ void MainMenu::OnCommand( const char *command )
 		}
 		CBaseModPanel::GetSingleton().OpenWindow(WT_AUDIOVIDEO, this, true );
 	}
-	else if (!Q_strcmp(command, "Srcbox_Singleplayer_Menu"))
+	else if (!Q_strcmp(command, "CreateGame"))
 	{
-		engine->ClientCmd("srcbox_singleplayer");
+		KeyValues* pSettings = new KeyValues("settings");
+
+		KeyValues* pSystem = pSettings->FindKey("system", true);
+		pSystem->SetString("network", "LIVE");
+		pSystem->SetString("access", "public");
+
+		KeyValues* pGame = pSettings->FindKey("game", true);
+
+		const char* szGameMode = "campaign";
+
+		pGame->SetString("mode", szGameMode);
+		pGame->SetString("campaign", "jacob");
+		pGame->SetString("mission", "asi-jac1-landingbay_01");
+		pGame->SetString("difficulty", "normal");
+
+		if (StringHasPrefix(szGameMode, "team"))
+		{
+			pSystem->SetString("netflag", "teamlobby");
+		}
+
+		KeyValues* pOptions = pSettings->FindKey("options", true);
+		pOptions->SetString("action", "create");
+
+		CBaseModPanel::GetSingleton().PlayUISound(UISOUND_ACCEPT);
+		CBaseModPanel::GetSingleton().CloseAllWindows();
+		CBaseModPanel::GetSingleton().OpenWindow(WT_GAMESETTINGS, NULL, true, pSettings);
 	}
 	else if (!Q_strcmp(command, "NewGameDialog"))
 	{
@@ -210,13 +235,15 @@ void MainMenu::OnCommand( const char *command )
 			}
 
 			engine->ClientCmd("OpenQuitDialog");
-		} else {
+		} 
+		else 
+		{
 			GenericConfirmation* confirmation =
 				static_cast<GenericConfirmation*>(CBaseModPanel::GetSingleton().OpenWindow(WT_GENERICCONFIRMATION, this, false));
 
 			GenericConfirmation::Data_t data;
 
-			data.pWindowTitle = "#Srcbox_GameTitle";
+			data.pWindowTitle = "#L4D360UI_MainMenu_Quit_Confirm";
 			data.pMessageText = "#L4D360UI_MainMenu_Quit_ConfirmMsg";
 
 			data.bOkButtonEnabled = true;

@@ -476,8 +476,6 @@ void LoadingProgress::SetPosterData( KeyValues *pMissionInfo, KeyValues *pChapte
 	RearrangeNames( pMissionInfo->GetString( "poster/character_order", NULL ), pPlayerNames );
 
 	Q_snprintf( m_szGameMode, sizeof( m_szGameMode ), "#L4D360UI_Loading_GameMode_%s", pszGameMode );
-	//todo: get this localized to the specific game mode in srcbox
-	//Q_snprintf(m_szGameMode, sizeof(m_szGameMode), "#Srcbox_Loading_Gamemode_sandbox");
 }
 
 //rearrange names to match the poster character order... sigh..

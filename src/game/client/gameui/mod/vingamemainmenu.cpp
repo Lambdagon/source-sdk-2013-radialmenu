@@ -400,10 +400,6 @@ void InGameMainMenu::PerformLayout( void )
 		{
 			pVoteButton->SetText( "#L4D360UI_InGameMainMenu_CallAVote" );
 		}
-		else
-		{
-			pVoteButton->SetText( "#srcbox_singleplayer_menu_gmm" );
-		}
 		SetControlEnabled( "BtnCallAvote", true );
 	}
 	//SetControlEnabled( "BtnCallAVote", bCanVote );
