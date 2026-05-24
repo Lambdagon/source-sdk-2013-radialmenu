@@ -30,33 +30,6 @@ enum NB_Background_Style
 	NB_BACKGROUND_NONE,
 };
 
-class IVideoMaterial;
-
-class CBackgroundMovie
-{
-public:
-	CBackgroundMovie();
-	~CBackgroundMovie();
-
-	void Update();
-	void SetCurrentMovie( const char *szFilename );
-	int SetTextureMaterial();
-	void ClearCurrentMovie();
-
-	float MaxU() { if (m_flMaxU == 0) return 1.0f; return m_flMaxU; }
-	float MaxV() { if (m_flMaxV == 0) return 1.0f; return m_flMaxV; }
-	float AspectRatio() { return m_flAspectRatio; }
-private:
-	float m_flMaxU, m_flMaxV, m_flAspectRatio;
-	IVideoMaterial* m_pMaterial;
-
-	int m_nTextureID;
-	char m_szCurrentMovie[ MAX_PATH ];
-	int m_nLastGameState;
-};
-
-CBackgroundMovie* BackgroundMovie();
-
 class CNB_Header_Footer : public vgui::EditablePanel
 {
 	DECLARE_CLASS_SIMPLE( CNB_Header_Footer, vgui::EditablePanel );

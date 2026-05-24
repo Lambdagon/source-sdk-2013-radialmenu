@@ -42,7 +42,7 @@ BaseClass( parent, panelName )
 
 	m_bDirty = false;
 
-	LoadControlSettings( "Resource/UI/BaseModUI/SliderControl.res" );
+	LoadControlSettings( "Resource/UI/l4d360ui/SliderControl.res" );
 }
 
 SliderControl::~SliderControl()

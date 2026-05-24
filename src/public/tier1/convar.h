@@ -22,6 +22,7 @@
 #include "tier1/utlstring.h"
 #include "icvar.h"
 #include "color.h"
+
 #ifdef _WIN32
 #define FORCEINLINE_CVAR FORCEINLINE
 #elif POSIX
@@ -136,13 +137,16 @@ public:
 	// Returns the DLL identifier
 	virtual CVarDLLIdentifier_t	GetDLLIdentifier() const;
 
-protected:
-	virtual void				CreateBase( const char *pName, const char *pHelpString = 0, 
-									int flags = 0 );
-
+	// Moved these convars from protected to public so we can use em in our menu_background.cpp
+	virtual void				CreateBase(const char *pName,const char *pHelpString = 0,
+									int flags = 0);
 	// Used internally by OneTimeInit to initialize/shutdown
 	virtual void				Init();
 	void						Shutdown();
+
+
+protected:
+	
 
 	// Internal copy routine ( uses new operator from correct module )
 	char						*CopyString( const char *from );
@@ -283,6 +287,13 @@ public:
 	// Invoke the function
 	virtual void Dispatch( const CCommand &command );
 
+	union
+	{
+		FnCommandCallbackVoid_t m_fnCommandCallbackV1;
+		FnCommandCallback_t m_fnCommandCallback;
+		ICommandCallback *m_pCommandCallback;
+	};
+
 private:
 	// NOTE: To maintain backward compat, we have to be very careful:
 	// All public virtual methods must appear in the same order always
@@ -293,13 +304,14 @@ private:
 	// in mod code.
 
 	// Call this function when executing the command
-	union
+	/*union
 	{
 		FnCommandCallbackVoid_t m_fnCommandCallbackV1;
 		FnCommandCallback_t m_fnCommandCallback;
 		ICommandCallback *m_pCommandCallback; 
-	};
-
+	};*/
+	// Allow late modification of the completion callback.
+public:
 	union
 	{
 		FnCommandCompletionCallback	m_fnCompletionCallback;
@@ -307,6 +319,7 @@ private:
 	};
 
 	bool m_bHasCompletionCallback : 1;
+
 	bool m_bUsingNewCommandCallback : 1;
 	bool m_bUsingCommandCallbackInterface : 1;
 };
@@ -356,7 +369,7 @@ public:
 	// Retrieve value
 	FORCEINLINE_CVAR float			GetFloat( void ) const;
 	FORCEINLINE_CVAR int			GetInt( void ) const;
-	FORCEINLINE_CVAR Color GetColor( void ) const;
+	FORCEINLINE_CVAR Color			GetColor( void ) const;
 	FORCEINLINE_CVAR bool			GetBool() const {  return !!GetInt(); }
 	FORCEINLINE_CVAR char const	   *GetString( void ) const;
 
@@ -383,6 +396,8 @@ public:
 
 	FORCEINLINE_CVAR bool		IsCompetitiveRestricted() const;
 	bool						SetCompetitiveMode( bool bCompetitive );
+
+	void						SetFlags( int flags );
 
 private:
 	// Called by CCvar when the value of a var is changing.
@@ -433,7 +448,7 @@ private:
 	// Values
 	float						m_fValue;
 	int							m_nValue;
-
+public:
 	// Min/Max values
 	bool						m_bHasMin;
 	float						m_fMinVal;
@@ -475,10 +490,10 @@ FORCEINLINE_CVAR int ConVar::GetInt( void ) const
 // Purpose: Return ConVar value as a color
 // Output : Color
 //-----------------------------------------------------------------------------
-FORCEINLINE_CVAR Color ConVar::GetColor(void) const
+FORCEINLINE_CVAR Color ConVar::GetColor( void ) const 
 {
-	unsigned char* pColorElement = ((unsigned char*)&m_pParent->m_nValue);
-	return Color(pColorElement[0], pColorElement[1], pColorElement[2], pColorElement[3]);
+	unsigned char *pColorElement = ((unsigned char *)&m_pParent->m_nValue);
+	return Color( pColorElement[0], pColorElement[1], pColorElement[2], pColorElement[3] );
 }
 
 //-----------------------------------------------------------------------------
@@ -508,6 +523,15 @@ FORCEINLINE_CVAR bool ConVar::IsCompetitiveRestricted() const
 	return bHasCompSettings || !( bClientCanAdjust || bInternalUseOnly );
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : flags - 
+//-----------------------------------------------------------------------------
+FORCEINLINE_CVAR void ConVar::SetFlags(int flags)
+{
+	m_pParent->m_nFlags = flags;
+	m_nFlags = flags;
+}
 
 //-----------------------------------------------------------------------------
 // Used to read/write convars that already exist (replaces the FindVar method)
@@ -549,6 +573,7 @@ private:
 	ConVar *m_pConVarState;
 };
 
+
 //-----------------------------------------------------------------------------
 // Did we find an existing convar of that name?
 //-----------------------------------------------------------------------------
@@ -582,6 +607,16 @@ FORCEINLINE_CVAR float ConVarRef::GetFloat( void ) const
 FORCEINLINE_CVAR int ConVarRef::GetInt( void ) const 
 {
 	return m_pConVarState->m_nValue;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Return ConVar value as a color
+// Output : Color
+//-----------------------------------------------------------------------------
+FORCEINLINE_CVAR Color ConVarRef::GetColor( void ) const 
+{
+	unsigned char *pColorElement = ((unsigned char *)&m_pConVarState->m_nValue);
+	return Color( pColorElement[0], pColorElement[1], pColorElement[2], pColorElement[3] );
 }
 
 //-----------------------------------------------------------------------------
@@ -748,6 +783,18 @@ private:
    static void name( const CCommand &args ); \
    static ConCommand name##_command( #name, name, description ); \
    static void name( const CCommand &args )
+
+#ifdef CLIENT_DLL
+	#define CON_COMMAND_SHARED( name, description ) \
+		static void name( const CCommand &args ); \
+		static ConCommand name##_command_client( #name "_client", name, description ); \
+		static void name( const CCommand &args )
+#else
+	#define CON_COMMAND_SHARED( name, description ) \
+		static void name( const CCommand &args ); \
+		static ConCommand name##_command( #name, name, description ); \
+		static void name( const CCommand &args )
+#endif
 
 #define CON_COMMAND_F( name, description, flags ) \
    static void name( const CCommand &args ); \

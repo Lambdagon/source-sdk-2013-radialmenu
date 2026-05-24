@@ -9,6 +9,7 @@
 
 #include "basemodui.h"
 #include "VFlyoutMenu.h"
+#include "menu_background.h"
 #ifdef GAMPADUI
 #include "../../../gamepadui/gamepadui_frame.h"
 #include "../../../gamepadui/gamepadui_button.h"
@@ -34,6 +35,11 @@ public:
 	virtual void OnNotifyChildFocus( vgui::Panel* child );
 	virtual void OnFlyoutMenuClose( vgui::Panel* flyTo );
 	virtual void OnFlyoutMenuCancelled();
+
+	void StartMainMenuVideo();
+	void StopMainMenuVideo();
+
+	class CMainMenu* m_pMainMenuPanel;
 
 protected:
 	virtual void ApplySchemeSettings(vgui::IScheme *pScheme);

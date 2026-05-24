@@ -109,7 +109,7 @@ CBaseModPanel::CBaseModPanel(): BaseClass(0, "CBaseModPanel"),
 	// needed to allow engine to exec startup commands (background map signal is 1 frame behind) 
 	m_DelayActivation = 3;
 
-	m_UIScheme = vgui::scheme()->LoadSchemeFromFileEx( 0, "resource/SwarmSchemeNew.res", "SwarmScheme" );
+	m_UIScheme = vgui::scheme()->LoadSchemeFromFileEx( 0, "resource/l4d360uischeme.res", "SwarmScheme" );
 	// Below is a different testing scheme that uses the old BaseModUI scheme file
 	//m_UIScheme = vgui::scheme()->LoadSchemeFromFileEx(0, " resource/SourceScheme.res", "SwarmScheme");
 	SetScheme( m_UIScheme );
@@ -140,6 +140,7 @@ CBaseModPanel::CBaseModPanel(): BaseClass(0, "CBaseModPanel"),
 	m_flMovieFadeInTime = 0.0f;
 	m_pBackgroundMaterial = NULL;
 	m_pBackgroundTexture = NULL;
+
 }
 
 //=============================================================================
@@ -1201,41 +1202,6 @@ void CBaseModPanel::PaintBackground()
 		{
 			ActivateBackgroundEffects();
 
-			if ( BackgroundMovie() )
-			{
-				BackgroundMovie()->Update();
-				if ( BackgroundMovie()->SetTextureMaterial() != -1 )
-				{
-					surface()->DrawSetColor( 255, 255, 255, 255 );
-					int x, y, w, h;
-					GetBounds( x, y, w, h );
-
-					// center, aspect ratio
-					int width_at_ratio = h * BackgroundMovie()->AspectRatio();
-					x = ( w * 0.5f ) - ( width_at_ratio * 0.5f );
-					width_at_ratio /= BackgroundMovie()->MaxU();
-					h /= BackgroundMovie()->MaxV();
-
-					surface()->DrawTexturedRect( x, y, x + width_at_ratio, y + h );
-
-					if ( !m_flMovieFadeInTime )
-					{
-						// do the fade a little bit after the movie starts (needs to be stable)
-						// the product overlay will fade out
-						m_flMovieFadeInTime	= Plat_FloatTime() + TRANSITION_TO_MOVIE_DELAY_TIME;
-					}
-
-					float flFadeDelta = RemapValClamped( Plat_FloatTime(), m_flMovieFadeInTime, m_flMovieFadeInTime + TRANSITION_TO_MOVIE_FADE_TIME, 1.0f, 0.0f );
-					if ( flFadeDelta > 0.0f )
-					{
-						if ( !m_pBackgroundMaterial )
-						{
-							PrepareStartupGraphic();
-						}
-						DrawStartupGraphic( flFadeDelta );
-					}
-				}
-			}
 		}
 	}
 }

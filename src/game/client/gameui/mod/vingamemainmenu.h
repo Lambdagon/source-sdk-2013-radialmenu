@@ -32,6 +32,11 @@ public:
 	virtual void PerformLayout();
 	virtual void Unpause();
 
+	void StartMainMenuVideo();
+	void StopMainMenuVideo();
+
+	class CMainMenu* m_pMainMenuPanel;
+
 	//flyout menu listener
 	virtual void OnNotifyChildFocus( vgui::Panel* child );
 	virtual void OnFlyoutMenuClose( vgui::Panel* flyTo );

@@ -68,6 +68,7 @@ $Project
 				$File    "gameui\urlbutton.h"
 				$File    "gameui\vcontrolslistpanel.h"
 				$File    "gameui\vguisystemmoduleloader.h"
+				$File    "gameui\menu_background.h"
 			}
 			$File    "gameui\backgroundmenubutton.cpp" \
 					 "gameui\basesavegamedialog.cpp" \
@@ -91,6 +92,7 @@ $Project
 					 "gameui\loadingdialog.cpp" \
 					 "gameui\loadingtippanel.cpp" \
 					 "gameui\logofile.cpp" \
+					 "gameui\menu_background.cpp" \
 					 "gameui\modinfo.cpp" \
 					 "gameui\mousemessageforwardingpanel.cpp" \
 					 "gameui\multiplayeradvanceddialog.cpp" \

@@ -1231,6 +1231,7 @@ bool CHLClient::ReplayPostInit()
 	return false;
 #endif
 }
+void SwapDisconnectCommand();
 
 //-----------------------------------------------------------------------------
 // Purpose: Called after client & server DLL are loaded and all systems initialized
@@ -1271,6 +1272,8 @@ void CHLClient::PostInit()
 		r_lightmap_bicubic.SetValue( info.m_nMaxDXSupportLevel >= 95 || ( info.m_nMaxDXSupportLevel >= 90 && IsLinux() ) );
 		r_lightmap_bicubic_set.SetValue( true );
 	}
+	SwapDisconnectCommand();
+
 }
 
 //-----------------------------------------------------------------------------

@@ -92,6 +92,8 @@ MainMenu::MainMenu(Panel* parent, const char* panelName) :
 	//pGameBackground->SetShouldScaleImage(1);
 	//pGameBackground->SetScaleAmount(1.48);
 
+	// Main menu panel, which will handle the video background
+	m_pMainMenuPanel = new CMainMenu(this, "BackgroundVideo");
 }
 
 //=============================================================================
@@ -124,6 +126,12 @@ MainMenu::~MainMenu()
 	if (m_DrawLogoText2)
 		free(m_DrawLogoText2);
 
+	if (m_pMainMenuPanel && m_pMainMenuPanel->IsVisible())
+	{
+		m_pMainMenuPanel->StopVideo();
+		m_pMainMenuPanel->SetVisible(false);
+		ConColorMsg(Color(255, 0, 0, 255), "MainMenu: Stopping video\n");
+	}
 }
 
 // Re-open the main menu. Required to replication
@@ -468,6 +476,12 @@ void MainMenu::OnOpen()
 
 	SetFooterState();
 
+	if (m_pMainMenuPanel && !m_pMainMenuPanel->IsVisible())
+	{
+		m_pMainMenuPanel->StartVideo();
+		m_pMainMenuPanel->SetVisible(true);
+		ConColorMsg(Color(255, 0, 0, 255), "MainMenu: Starting video\n");
+	}
 }
 
 //=============================================================================

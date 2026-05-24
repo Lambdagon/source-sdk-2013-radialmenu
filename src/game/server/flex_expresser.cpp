@@ -117,6 +117,7 @@ void CFlexExpresser::Think( void )
 
 void CFlexExpresser::InputSpeakResponseConcept( inputdata_t &inputdata )
 {
+#ifndef CSTRIKE_DLL
 	const char *pInputString = STRING(inputdata.value.StringID());
 	// if no params, early out
 	if (!pInputString || *pInputString == 0)
@@ -206,6 +207,7 @@ void CFlexExpresser::InputSpeakResponseConcept( inputdata_t &inputdata )
 	outputmodifiers[outWritten] = 0;
 
 	Speak( buf, outWritten > 0 ? outputmodifiers : NULL );
+#endif
 }
 
 // does nothing. It's important that it does nothing because if it 
