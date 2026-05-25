@@ -30,8 +30,6 @@ public:
 	void InputReleaseSurvivorPositions(inputdata_t& inputdata);
 
 	void StartScriptedSurvivorPositions(bool bLock);
-	bool SurvivorNameMatches(CCSPlayer* pPlayer, const char* pszTargetName);
-	void TeleportSurvivorToPosition(CCSPlayer* pPlayer, class CInfoSurvivorPosition* pPos, bool bLock);
 
 	void InputEndCustomScriptedStage(inputdata_t& inputdata);
 
@@ -60,6 +58,7 @@ public:
 	void InputDisableTankFrustration(inputdata_t& inputdata);
 
 	void DoSurvivorPositionTeleport(bool bLock);
+	void TeleportSurvivorToPosition(CCSPlayer* pPlayer, CSurvivorPosition* pPos, bool bLock);
 	int  CountSurvivorsAlive();
 	void SurvivorPositionRetryThink(void);
 

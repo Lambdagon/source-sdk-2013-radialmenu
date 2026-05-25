@@ -7,6 +7,7 @@
 #include "cbase.h"
 #include "info_director.h"
 #include "cs_player.h"
+#include "cs_gamerules.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -14,54 +15,6 @@
 CInfoDirector* g_pDirector = NULL;
 
 LINK_ENTITY_TO_CLASS( info_director, CInfoDirector );
-
-// ======================
-// CInfoSurvivorPosition
-// ======================
-
-class CInfoSurvivorPosition : public CPointEntity
-{
-public:
-    DECLARE_CLASS( CInfoSurvivorPosition, CPointEntity );
-    DECLARE_DATADESC();
-
-    void Spawn( void );
-    void Precache( void );
-
-    string_t m_iszSurvivorName;
-    int      m_iOrder;
-    string_t m_iszSurvivorIntroSequence;
-    string_t m_iszGameMode;
-    string_t m_iszSurvivorConcept;
-    bool     m_bHideWeapons;
-
-    Vector GetSurvivorPosition() const { return GetAbsOrigin(); }
-    QAngle GetSurvivorAngles()   const { return GetAbsAngles(); }
-};
-
-LINK_ENTITY_TO_CLASS( info_survivor_position, CInfoSurvivorPosition );
-
-BEGIN_DATADESC( CInfoSurvivorPosition )
-    DEFINE_KEYFIELD( m_iszSurvivorName,          FIELD_STRING, "SurvivorName" ),
-    DEFINE_KEYFIELD( m_iOrder,                   FIELD_INTEGER, "Order" ),
-    DEFINE_KEYFIELD( m_iszSurvivorIntroSequence, FIELD_STRING, "SurvivorIntroSequence" ),
-    DEFINE_KEYFIELD( m_iszGameMode,              FIELD_STRING, "GameMode" ),
-    DEFINE_KEYFIELD( m_iszSurvivorConcept,       FIELD_STRING, "SurvivorConcept" ),
-    DEFINE_KEYFIELD( m_bHideWeapons,             FIELD_BOOLEAN, "HideWeapons" ),
-END_DATADESC()
-
-void CInfoSurvivorPosition::Spawn( void )
-{
-    Precache();
-    SetMoveType( MOVETYPE_NONE );
-    SetSolid( SOLID_NONE );
-    AddEffects( EF_NODRAW );
-}
-
-void CInfoSurvivorPosition::Precache( void )
-{
-    
-}
 
 // ======================
 // CInfoDirector
@@ -224,70 +177,54 @@ int CInfoDirector::CountSurvivorsAlive()
     return count;
 }
 
-void CInfoDirector::DoSurvivorPositionTeleport( bool bLock )
+void CInfoDirector::DoSurvivorPositionTeleport(bool bLock)
 {
-    CBaseEntity *pEntity = NULL;
-    while ( (pEntity = gEntList.FindEntityByClassname( pEntity, "info_survivor_position" )) != NULL )
-    {
-        CInfoSurvivorPosition *pPos = dynamic_cast<CInfoSurvivorPosition*>(pEntity);
-        if ( !pPos ) continue;
+    CBaseEntity* pEntity = NULL;
 
-        for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+    while ((pEntity = gEntList.FindEntityByClassname(
+        pEntity,
+        "info_survivor_position")) != NULL)
+    {
+        CSurvivorPosition* pPos =
+            dynamic_cast<CSurvivorPosition*>(pEntity);
+
+        if (!pPos)
+            continue;
+
+        for (int i = 1; i <= gpGlobals->maxClients; i++)
         {
-            CCSPlayer *pPlayer = ToCSPlayer( UTIL_PlayerByIndex(i) );
-            if ( !pPlayer || !pPlayer->IsAlive() || pPlayer->GetTeamNumber() != TEAM_SURVIVOR )
+            CCSPlayer* pPlayer =
+                ToCSPlayer(UTIL_PlayerByIndex(i));
+
+            if (!pPlayer)
                 continue;
 
-            if ( SurvivorNameMatches( pPlayer, STRING(pPos->m_iszSurvivorName) ) )
+            if (!pPlayer->IsAlive())
+                continue;
+
+            if (pPlayer->GetTeamNumber() != TEAM_SURVIVOR)
+                continue;
+
+            if (pPos->MatchesPlayer(pPlayer))
             {
-                TeleportSurvivorToPosition( pPlayer, pPos, bLock );
+                TeleportSurvivorToPosition(
+                    pPlayer,
+                    pPos,
+                    bLock
+                );
+
+                pPos->m_hPlayer = pPlayer;
+
                 break;
             }
         }
     }
 }
 
-extern ConVar survivor_set;
-
-bool CInfoDirector::SurvivorNameMatches( CCSPlayer *pPlayer, const char *pszTargetName )
-{
-    if ( !pPlayer || !pszTargetName || pszTargetName[0] == '\0' )
-        return false;
-
-    int survivorClass = pPlayer->GetSurvivorClass();
-    bool isL4D1 = (survivor_set.GetInt() == 1);
-
-    // Official L4D names
-    if ( isL4D1 )
-    {
-        if ( survivorClass == 0 && Q_stricmp( pszTargetName, "NamVet" ) == 0 ) return true;
-        if ( survivorClass == 1 && Q_stricmp( pszTargetName, "Biker" ) == 0 ) return true;
-        if ( survivorClass == 2 && Q_stricmp( pszTargetName, "Manager" ) == 0 ) return true;
-        if ( survivorClass == 3 && Q_stricmp( pszTargetName, "TeenGirl" ) == 0 ) return true;
-    }
-    else
-    {
-        if ( survivorClass == 0 && Q_stricmp( pszTargetName, "Gambler" ) == 0 ) return true;
-        if ( survivorClass == 1 && Q_stricmp( pszTargetName, "Coach" ) == 0 ) return true;
-        if ( survivorClass == 2 && Q_stricmp( pszTargetName, "Mechanic" ) == 0 ) return true;
-        if ( survivorClass == 3 && Q_stricmp( pszTargetName, "Producer" ) == 0 ) return true;
-    }
-
-    // Friendly names
-    if ( Q_stricmp( pszTargetName, "bill" ) == 0 )    return (isL4D1 && survivorClass == 0);
-    if ( Q_stricmp( pszTargetName, "zoey" ) == 0 )    return (isL4D1 && survivorClass == 3);
-    if ( Q_stricmp( pszTargetName, "francis" ) == 0 ) return (isL4D1 && survivorClass == 1);
-    if ( Q_stricmp( pszTargetName, "louis" ) == 0 )   return (isL4D1 && survivorClass == 2);
-
-    if ( Q_stricmp( pszTargetName, "nick" ) == 0 )    return (!isL4D1 && survivorClass == 0);
-    if ( Q_stricmp( pszTargetName, "coach" ) == 0 )   return (!isL4D1 && survivorClass == 1);
-    if ( Q_stricmp( pszTargetName, "ellis" ) == 0 )   return (!isL4D1 && survivorClass == 2);
-    if ( Q_stricmp( pszTargetName, "rochelle" ) == 0 )return (!isL4D1 && survivorClass == 3);
-
-    return false;
-}
-
-void CInfoDirector::TeleportSurvivorToPosition( CCSPlayer *pPlayer, CInfoSurvivorPosition *pPos, bool bLock )
+void CInfoDirector::TeleportSurvivorToPosition(
+    CCSPlayer *pPlayer,
+    CSurvivorPosition *pPos,
+    bool bLock )
 {
     if ( !pPlayer || !pPos ) return;
 
@@ -371,3 +308,4 @@ void CInfoDirector::InputDisableTankFrustration(inputdata_t& inputdata)
 {
     // TODO: Implement 
 }
+

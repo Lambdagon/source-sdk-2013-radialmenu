@@ -1531,7 +1531,43 @@ static void ListenServerHostAutoJoinThink( CCSGameRules *rules )
 		}
 	}
 }
+bool CCSGameRules::SurvivorNameMatches(CCSPlayer* pPlayer, const char* pszTargetName)
+{
+	if (!pPlayer || !pszTargetName || pszTargetName[0] == '\0')
+		return false;
 
+	int survivorClass = pPlayer->GetSurvivorClass();
+	bool isL4D1 = (survivor_set.GetInt() == 1);
+
+	// Official L4D names
+	if (isL4D1)
+	{
+		if (survivorClass == 0 && Q_stricmp(pszTargetName, "NamVet") == 0) return true;
+		if (survivorClass == 1 && Q_stricmp(pszTargetName, "Biker") == 0) return true;
+		if (survivorClass == 2 && Q_stricmp(pszTargetName, "Manager") == 0) return true;
+		if (survivorClass == 3 && Q_stricmp(pszTargetName, "TeenGirl") == 0) return true;
+	}
+	else
+	{
+		if (survivorClass == 0 && Q_stricmp(pszTargetName, "Gambler") == 0) return true;
+		if (survivorClass == 1 && Q_stricmp(pszTargetName, "Coach") == 0) return true;
+		if (survivorClass == 2 && Q_stricmp(pszTargetName, "Mechanic") == 0) return true;
+		if (survivorClass == 3 && Q_stricmp(pszTargetName, "Producer") == 0) return true;
+	}
+
+	// Friendly names
+	if (Q_stricmp(pszTargetName, "bill") == 0)    return (isL4D1 && survivorClass == 0);
+	if (Q_stricmp(pszTargetName, "zoey") == 0)    return (isL4D1 && survivorClass == 3);
+	if (Q_stricmp(pszTargetName, "francis") == 0) return (isL4D1 && survivorClass == 1);
+	if (Q_stricmp(pszTargetName, "louis") == 0)   return (isL4D1 && survivorClass == 2);
+
+	if (Q_stricmp(pszTargetName, "nick") == 0)    return (!isL4D1 && survivorClass == 0);
+	if (Q_stricmp(pszTargetName, "coach") == 0)   return (!isL4D1 && survivorClass == 1);
+	if (Q_stricmp(pszTargetName, "ellis") == 0)   return (!isL4D1 && survivorClass == 2);
+	if (Q_stricmp(pszTargetName, "rochelle") == 0)return (!isL4D1 && survivorClass == 3);
+
+	return false;
+}
 bool CCSGameRules::FindSpecialInfectedSpawnPos( CCSPlayer *survivor, Vector *outPos, QAngle *outAngles ) const
 {
 	if ( !survivor || !outPos || !outAngles )
@@ -10205,4 +10241,90 @@ bool IsTakingAFreezecamScreenshot()
 
 
 
+#endif
+
+IMPLEMENT_NETWORKCLASS_ALIASED(SurvivorPosition, DT_SurvivorPosition)
+
+BEGIN_NETWORK_TABLE(CSurvivorPosition, DT_SurvivorPosition)
+#ifdef CLIENT_DLL
+RecvPropInt(RECVINFO(m_order))
+#else
+SendPropInt(SENDINFO(m_order))
+#endif
+END_NETWORK_TABLE()
+
+#ifdef GAME_DLL
+BEGIN_DATADESC(CSurvivorPosition)
+DEFINE_INPUTFUNC(FIELD_STRING, "SetViewControl", InputSetViewControl),
+
+DEFINE_KEYFIELD(m_iszSurvivorName, FIELD_STRING, "SurvivorName"),
+DEFINE_KEYFIELD(m_order, FIELD_INTEGER, "Order")
+END_DATADESC()
+
+LINK_ENTITY_TO_CLASS(info_survivor_position, CSurvivorPosition)
+#endif
+
+void CSurvivorPosition::Spawn(void)
+{
+	BaseClass::Spawn();
+}
+
+#ifdef GAME_DLL
+void CSurvivorPosition::Precache(void)
+{
+
+}
+
+bool CSurvivorPosition::MatchesPlayer(CCSPlayer* pPlayer)
+{
+	if (!pPlayer)
+		return false;
+
+	if (m_iszSurvivorName == NULL_STRING)
+		return false;
+
+	return CSGameRules()->SurvivorNameMatches(
+		pPlayer,
+		STRING(m_iszSurvivorName)
+	);
+}
+
+void CSurvivorPosition::InputSetViewControl(inputdata_t& inputdata)
+{
+	AssertMsg1(m_hPlayer, "Survivor position %s has no player", STRING(m_iszSurvivorName));
+	//AssertMsg( m_hPlayer != UTIL_GetListenServerHost(), "Try controlling the player" );
+	if (m_hPlayer)
+	{
+		const char* name = inputdata.value.String();
+		CBaseEntity* pViewEntity = gEntList.FindEntityByName(NULL, name);
+
+		//AssertMsg( m_hPlayer != UTIL_GetListenServerHost(), "Found player" );
+		if (pViewEntity)
+		{
+			variant_t dummy;
+			pViewEntity->AcceptInput("Enable", m_hPlayer, NULL, dummy, 0);
+			//AssertMsg( m_hPlayer != UTIL_GetListenServerHost(), "Controlling the player" );
+		}
+	}
+}
+
+int CSurvivorPosition::UpdateTransmitState(void)
+{
+	return CBaseEntity::SetTransmitState(FL_EDICT_ALWAYS);
+}
+
+#endif
+#include "debugoverlay_shared.h"
+#ifdef CLIENT_DLL
+void CSurvivorPosition::ClientThink(void)
+{
+	// Some debugoverlay code would be here, but that shouldn't matter much
+
+	Vector origin = WorldSpaceCenter(); // WorldSpaceCenter may not be correct
+	QAngle angles = GetRenderAngles(); // May not be accurate either
+
+	Vector mins(-10, -10, -10);
+	Vector maxs(10, 10, 10);
+	debugoverlay->AddBoxOverlay(origin, mins, maxs, angles, 255, 50, 50, 255, 0.01);
+}
 #endif

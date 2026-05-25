@@ -4952,6 +4952,8 @@ Returns the entity to spawn at
 USES AND SETS GLOBAL g_pLastSpawn
 ============
 */
+#include "cs_player.h"
+#include "cs_gamerules.h"
 CBaseEntity *CBasePlayer::EntSelectSpawnPoint()
 {
 	CBaseEntity *pSpot;
@@ -4960,16 +4962,25 @@ CBaseEntity *CBasePlayer::EntSelectSpawnPoint()
 	player = edict();
 
 // choose a info_player_deathmatch point
-	if (g_pGameRules->IsCoOp())
+	CCSPlayer* pCSPlayer = ToCSPlayer(this);
+
+	if (pCSPlayer)
 	{
-		pSpot = gEntList.FindEntityByClassname( g_pLastSpawn, "info_player_coop");
-		if ( pSpot )
-			goto ReturnSpot;
-		pSpot = gEntList.FindEntityByClassname( g_pLastSpawn, "info_player_start");
-		if ( pSpot ) 
-			goto ReturnSpot;
+		CSurvivorPosition* pSurvivorPos = NULL;
+
+		while ((pSurvivorPos =
+			(CSurvivorPosition*)gEntList.FindEntityByClassname(
+				pSurvivorPos,
+				"info_survivor_position")) != NULL)
+		{
+			if (pSurvivorPos->MatchesPlayer(pCSPlayer))
+			{
+				pSpot = pSurvivorPos;
+				goto ReturnSpot;
+			}
+		}
 	}
-	else if ( g_pGameRules->IsDeathmatch() )
+	if ( g_pGameRules->IsDeathmatch() )
 	{
 		pSpot = g_pLastSpawn;
 		// Randomize the start spot

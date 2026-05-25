@@ -84,6 +84,41 @@ public:
 };
 
 
+#ifdef CLIENT_DLL
+#define CSurvivorPosition C_SurvivorPosition
+#endif
+
+class CSurvivorPosition : public CBaseEntity
+{
+public:
+	DECLARE_CLASS(CSurvivorPosition, CBaseEntity);
+	DECLARE_NETWORKCLASS()
+
+#ifdef GAME_DLL
+	DECLARE_DATADESC()
+
+	virtual void Precache(void);
+	virtual int UpdateTransmitState(void);
+
+	void InputSetViewControl(inputdata_t& inputdata);
+
+	bool MatchesPlayer(CCSPlayer* pPlayer);
+#endif
+
+	virtual void Spawn(void);
+
+#ifdef CLIENT_DLL
+	virtual void ClientThink(void);
+#endif
+
+	CNetworkVar(int, m_order);
+
+#ifdef GAME_DLL
+	EHANDLE m_hPlayer;
+	string_t m_iszSurvivorName;
+#endif
+};
+
 class CCSGameRules : public CTeamplayRoundBasedRules
 {
 public:
@@ -148,7 +183,7 @@ public:
 	virtual CBaseCombatWeapon *GetNextBestWeapon( CBaseCombatCharacter *pPlayer, CBaseCombatWeapon *pCurrentWeapon );
 
 	virtual const unsigned char *GetEncryptionKey( void ) { return (unsigned char *)"d7NSuLq2"; } // both the client and server need this key
-
+	bool SurvivorNameMatches(CCSPlayer* pPlayer, const char* pszTargetName);
 #ifdef CLIENT_DLL
 
 	DECLARE_CLIENTCLASS_NOBASE(); // This makes datatables able to access our private vars.
