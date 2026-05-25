@@ -190,21 +190,7 @@ void MainMenu::OnCommand( const char *command )
 		pSystem->SetString("access", "public");
 
 		KeyValues* pGame = pSettings->FindKey("game", true);
-
-		const char* szGameMode = "campaign";
-
-		pGame->SetString("mode", szGameMode);
-		pGame->SetString("campaign", "jacob");
-		pGame->SetString("mission", "asi-jac1-landingbay_01");
-		pGame->SetString("difficulty", "normal");
-
-		if (StringHasPrefix(szGameMode, "team"))
-		{
-			pSystem->SetString("netflag", "teamlobby");
-		}
-
-		KeyValues* pOptions = pSettings->FindKey("options", true);
-		pOptions->SetString("action", "create");
+		pGame->SetString("mode", "campaign");
 
 		CBaseModPanel::GetSingleton().PlayUISound(UISOUND_ACCEPT);
 		CBaseModPanel::GetSingleton().CloseAllWindows();
@@ -509,6 +495,9 @@ void MainMenu::OnOpen()
 		m_pMainMenuPanel->SetVisible(true);
 		ConColorMsg(Color(255, 0, 0, 255), "MainMenu: Starting video\n");
 	}
+
+	g_pVGuiLocalize->AddFile("Resource/l4d2_%language%.txt");
+	g_pVGuiLocalize->AddFile("Resource/gameui_%language%.txt");
 }
 
 //=============================================================================

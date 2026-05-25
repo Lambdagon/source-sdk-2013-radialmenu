@@ -1,6 +1,6 @@
 //========= Copyright © 1996-2008, Valve Corporation, All rights reserved. ============//
 //
-// Purpose: Simplified Game Settings Panel (No Matchmaking)
+// Purpose: Game Settings menu with campaign selection via scripts/campaigns.txt
 //
 //=====================================================================================//
 #include "cbase.h"
@@ -14,6 +14,7 @@
 #include "vgui_controls/ImagePanel.h"
 #include "nb_header_footer.h"
 #include "fmtstr.h"
+#include "filesystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -21,6 +22,59 @@
 using namespace vgui;
 using namespace BaseModUI;
 
+static void WriteServerCFG(KeyValues* pSettings)
+{
+    FileHandle_t f = filesystem->Open("cfg/l4dserver.cfg", "w", "MOD");
+
+    if (!f)
+    {
+        Msg("Failed to open l4dserver.cfg for writing\n");
+        return;
+    }
+
+    const char* difficulty = pSettings->GetString("game/difficulty", "normal");
+    int ff = pSettings->GetInt("game/hardcoreFF", 0);
+    int onslaught = pSettings->GetInt("game/onslaught", 0);
+
+    filesystem->FPrintf(f, "mp_gamemode %s\n", pSettings->GetString("game/mode", "campaign"));
+    filesystem->FPrintf(f, "z_difficulty %s\n", difficulty);
+    filesystem->FPrintf(f, "ff_damage_reduction_bullets %d\n", ff);
+    filesystem->FPrintf(f, "onslaught_enabled %d\n", onslaught);
+
+    filesystem->Close(f);
+}
+struct CommandCampaignMap_t
+{
+    const char* command;
+    const char* campaign;
+};
+
+static CommandCampaignMap_t g_CommandCampaignMap[] =
+{
+    { "cmd_campaign_L4D2C1",  "Dead Center" },
+    { "cmd_campaign_L4D2C2",  "Dark Carnival" },
+    { "cmd_campaign_L4D2C3",  "Swamp Fever" },
+    { "cmd_campaign_L4D2C4",  "Hard Rain" },
+    { "cmd_campaign_L4D2C5",  "The Parish" },
+    { "cmd_campaign_L4D2C6",  "The Passing" },
+    { "cmd_campaign_L4D2C7",  "The Sacrifice" },
+    { "cmd_campaign_L4D2C8",  "No Mercy" },
+    { "cmd_campaign_L4D2C9",  "Crash Course" },
+    { "cmd_campaign_L4D2C10", "Death Toll" },
+    { "cmd_campaign_L4D2C11", "Dead Air" },
+    { "cmd_campaign_L4D2C12", "Blood Harvest" },
+    { "cmd_campaign_L4D2C13", "Cold Stream" },
+};
+const char* ResolveCampaignFromCommand(const char* cmd)
+{
+    for (int i = 0; i < ARRAYSIZE(g_CommandCampaignMap); i++)
+    {
+        if (!Q_stricmp(g_CommandCampaignMap[i].command, cmd))
+            return g_CommandCampaignMap[i].campaign;
+    }
+
+    return NULL;
+}
 //=============================================================================
 GameSettings::GameSettings( vgui::Panel *parent, const char *panelName ) :
     BaseClass( parent, panelName, true, false ),
@@ -36,9 +90,9 @@ GameSettings::GameSettings( vgui::Panel *parent, const char *panelName ) :
 {
     m_pHeaderFooter = new CNB_Header_Footer( this, "HeaderFooter" );
     m_pHeaderFooter->SetTitle( "" );
-    m_pHeaderFooter->SetHeaderEnabled( false );
-    m_pHeaderFooter->SetGradientBarEnabled( true );
-    m_pHeaderFooter->SetGradientBarPos( 140, 190 );
+    //m_pHeaderFooter->SetHeaderEnabled( false );
+    //m_pHeaderFooter->SetGradientBarEnabled( true );
+    //m_pHeaderFooter->SetGradientBarPos( 140, 190 );
 
     m_pTitle = new vgui::Label( this, "Title", "" );
 
@@ -46,10 +100,25 @@ GameSettings::GameSettings( vgui::Panel *parent, const char *panelName ) :
     SetProportional( true );
     SetLowerGarnishEnabled( true );
     SetCancelButtonEnabled( true );
+
+    m_pCampaignsKV = NULL;
+
+    m_pCampaignsKV = new KeyValues("Campaigns");
+    if (!m_pCampaignsKV->LoadFromFile(filesystem, "scripts/campaigns.txt", "MOD"))
+    {
+        Msg("ERROR: Failed to load scripts/campaigns.txt\n");
+        m_pCampaignsKV->deleteThis();
+        m_pCampaignsKV = NULL;
+    }
 }
 
 GameSettings::~GameSettings()
 {
+    if (m_pCampaignsKV)
+    {
+        m_pCampaignsKV->deleteThis();
+        m_pCampaignsKV = NULL;
+    }
 }
 
 void GameSettings::SetDataSettings( KeyValues *pSettings )
@@ -98,6 +167,31 @@ void GameSettings::Activate()
 
 void GameSettings::OnCommand(const char *command)
 {
+    const char* campaign = ResolveCampaignFromCommand(command);
+    if (campaign)
+    {
+        m_pSettings->SetString("game/campaign", campaign);
+
+        if (m_pCampaignsKV)
+        {
+            KeyValues* pCamp = m_pCampaignsKV->FindKey(campaign);
+            if (pCamp)
+            {
+                KeyValues* pMaps = pCamp->FindKey("maps");
+                if (pMaps && pMaps->GetFirstSubKey())
+                {
+                    const char* firstMap = pMaps->GetFirstSubKey()->GetName();
+                    m_pSettings->SetString("game/mission", firstMap);
+
+                    Msg("Campaign '%s' selected -> First map: %s\n", campaign, firstMap);
+                }
+            }
+        }
+
+        UpdateSelectMissionButton();
+        UpdateMissionImage();
+    }
+
     if ( V_strcmp( command, "cmd_gametype_campaign" ) == 0 )
     {
         m_pSettings->SetString( "game/mode", "campaign" );
@@ -117,6 +211,18 @@ void GameSettings::OnCommand(const char *command)
     else if ( V_strcmp( command, "StartGame" ) == 0 )
     {
         Navigate();
+    }
+    else if (V_strcmp(command, "Back") == 0)
+    {
+        CBaseModPanel::GetSingleton().OpenWindow(WT_MAINMENU, this, false);
+
+        GameSettings* self =
+            static_cast<GameSettings*>(CBaseModPanel::GetSingleton().GetWindow(WT_GAMESETTINGS));
+
+        if (self)
+        {
+            self->Close();
+        }
     }
     else if ( const char *szDifficultyValue = StringAfterPrefix( command, "#L4D360UI_Difficulty_" ) )
     {
@@ -138,9 +244,63 @@ void GameSettings::OnCommand(const char *command)
 
 void GameSettings::Navigate()
 {
-    CBaseModPanel::GetSingleton().PlayUISound( UISOUND_ACCEPT );
-    Msg( "GameSettings: Starting game with current settings...\n" );
-    // Add your launch logic here later
+	if ( !m_pSettings )
+	{
+		Msg( "GameSettings: No settings, aborting start.\n" );
+		return;
+	}
+
+	CBaseModPanel::GetSingleton().PlayUISound( UISOUND_ACCEPT );
+
+	Msg( "GameSettings: Starting game...\n" );
+
+	KeyValues *pLaunch = new KeyValues( "LaunchGame" );
+
+	KeyValues *pGame = pLaunch->FindKey( "game", true );
+	KeyValues *pSystem = pLaunch->FindKey( "system", true );
+
+	pGame->SetString( "mode", m_pSettings->GetString( "game/mode", "campaign" ) );
+	pGame->SetString( "campaign", m_pSettings->GetString( "game/campaign", "jacob" ) );
+	pGame->SetString( "mission", m_pSettings->GetString( "game/mission", "c1m1_hotel" ) );
+	pGame->SetString( "difficulty", m_pSettings->GetString( "game/difficulty", "normal" ) );
+
+	pGame->SetInt( "hardcoreFF", m_pSettings->GetInt( "game/hardcoreFF", 0 ) );
+	pGame->SetInt( "onslaught", m_pSettings->GetInt( "game/onslaught", 0 ) );
+
+	pSystem->SetString( "network", m_pSettings->GetString( "system/network", "LIVE" ) );
+	pSystem->SetString( "access", m_pSettings->GetString( "system/access", "public" ) );
+
+	FileHandle_t f = filesystem->Open("cfg/l4dserver.cfg", "w", "MOD");
+	if ( f )
+	{
+		filesystem->FPrintf(f, "sv_cheats 0\n");
+		filesystem->FPrintf(f, "mp_gamemode %s\n", pGame->GetString("mode", "campaign"));
+		filesystem->FPrintf(f, "z_difficulty %s\n", pGame->GetString("difficulty", "normal"));
+		filesystem->FPrintf(f, "ff_damage_reduction_bullets %d\n", pGame->GetInt("hardcoreFF", 0));
+		filesystem->FPrintf(f, "onslaught_enabled %d\n", pGame->GetInt("onslaught", 0));
+		filesystem->Close(f);
+	}
+	else
+	{
+		Msg("Failed to write cfg/l4dserver.cfg\n");
+	}
+
+	const char *mode = pGame->GetString("mode", "campaign");
+	const char *map = pGame->GetString("mission", "");
+
+
+	if ( !Q_stricmp(mode, "campaign") && (!map || !*map) )
+	{
+		map = "";
+	}
+
+	Msg("Launching map: %s (mode: %s)\n", map, mode);
+
+	engine->ClientCmd(VarArgs("map %s; exec l4dserver\n", map));
+
+	CBaseModPanel::GetSingleton().CloseAllWindows();
+
+	pLaunch->deleteThis();
 }
 
 void GameSettings::ApplySchemeSettings( vgui::IScheme *pScheme )
@@ -175,12 +335,12 @@ void GameSettings::OnKeyCodePressed( KeyCode code )
 void GameSettings::UpdateFooter()
 {
     CBaseModFooterPanel *footer = BaseModUI::CBaseModPanel::GetSingleton().GetFooterPanel();
-    if ( footer )
+   /* if ( footer )
     {
         footer->SetButtons( FB_ABUTTON | FB_BBUTTON, FF_AB_ONLY, false );
         footer->SetButtonText( FB_ABUTTON, "#L4D360UI_Select" );
         footer->SetButtonText( FB_BBUTTON, "#L4D360UI_Cancel" );
-    }
+    }*/
 }
 
 // Stubs
@@ -192,7 +352,8 @@ void GameSettings::UpdateMissionImage()
     ImagePanel* img = dynamic_cast<ImagePanel*>( FindChildByName( "ImgLevelImage" ) );
     if ( img )
     {
-        const char *szMission = m_pSettings->GetString( "game/mission", "asi-jac1-landingbay01" );
+        const char *szMission = m_pSettings->GetString( "game/mission", "c1m1_hotel" );
+		ConColorMsg(Color(255, 0, 0, 255), "Updating mission image: %s\n", szMission);
         img->SetImage( VarArgs( "maps/%s", szMission ) );
     }
 }
@@ -205,6 +366,7 @@ void GameSettings::UpdateSelectMissionButton()
     if ( !btn ) return;
 
     const char *mode = m_pSettings->GetString( "game/mode", "campaign" );
+	ConColorMsg(Color(255, 0, 0, 255), "Updating select mission button text for mode: %s\n", mode);
     btn->SetText( !Q_stricmp( mode, "campaign" ) ? "#ASUI_Select_Campaign" : "#ASUI_Select_Mission" );
 }
 
@@ -220,7 +382,7 @@ void GameSettings::OnClose()
 
 void GameSettings::OnFlyoutMenuClose( vgui::Panel* flyTo )
 {
-    UpdateFooter();
+    //UpdateFooter();
     UpdateMissionImage();
     UpdateSelectMissionButton();
 }

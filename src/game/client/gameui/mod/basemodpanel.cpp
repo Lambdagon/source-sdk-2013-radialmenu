@@ -98,6 +98,7 @@ CBaseModPanel::CBaseModPanel(): BaseClass(0, "CBaseModPanel"),
 	m_CFactoryBasePanel = this;
 
 	g_pVGuiLocalize->AddFile( "Resource/basemodui_%language%.txt");
+	g_pVGuiLocalize->AddFile("Resource/l4d360ui_%language%.txt");
 
 	m_LevelLoading = false;
 	

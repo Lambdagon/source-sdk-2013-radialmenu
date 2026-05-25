@@ -49,10 +49,14 @@ protected:
 
 protected:
 	void UpdateMissionImage();
+	void PopulateMissionDropdown();
+	const char* GetCampaignFromMission(const char* mission);
 	int CountChaptersInCurrentCampaign();
 
 	void SelectNetworkAccess( char const *szNetworkType, char const *szAccessType );
 	void DoCustomMatch( char const *szGameState );
+
+	void PopulateChapterDropdown(const char* campaignName);
 
 	void UpdateSelectMissionButton();
 	void ShowMissionSelect();
@@ -60,6 +64,10 @@ protected:
 
 private:
 	void UpdateFooter();
+
+	KeyValues* m_pCampaignsKV;
+	DropDownMenu* m_drpMission = nullptr;
+	DropDownMenu* m_drpChapter = nullptr;
 
 	KeyValues *m_pSettings;
 	KeyValues::AutoDelete m_autodelete_pSettings;
