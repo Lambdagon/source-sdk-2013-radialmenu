@@ -114,12 +114,24 @@ public:
 	void Spawn( void );
 	void MultiTouch( CBaseEntity *pOther );
 	void MultiWaitOver( void );
-	void ActivateMultiTrigger(CBaseEntity *pActivator);
+	void ActivateMultiTrigger( CBaseEntity *pActivator );
+
+	virtual void StartTouch( CBaseEntity *pOther );
+	virtual void EndTouch( CBaseEntity *pOther );
+
+	bool IsEntireTeamTouching();
+	void CheckEntireTeamTouch();
 
 	DECLARE_DATADESC();
 
 	// Outputs
 	COutputEvent m_OnTrigger;
+
+	int m_iEntireTeam;
+	bool m_bEntireTeamTouching;
+
+	COutputEvent m_OnEntireTeamStartTouch;
+	COutputEvent m_OnEntireTeamEndTouch;
 };
 
 // Global list of triggers that care about weapon fire

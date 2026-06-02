@@ -928,11 +928,17 @@ LINK_ENTITY_TO_CLASS( trigger_multiple, CTriggerMultiple );
 BEGIN_DATADESC( CTriggerMultiple )
 
 	// Function Pointers
-	DEFINE_FUNCTION(MultiTouch),
-	DEFINE_FUNCTION(MultiWaitOver ),
+	DEFINE_KEYFIELD( m_iEntireTeam, FIELD_INTEGER, "entireteam" ),
 
 	// Outputs
-	DEFINE_OUTPUT(m_OnTrigger, "OnTrigger")
+	DEFINE_FIELD( m_bEntireTeamTouching, FIELD_BOOLEAN ),
+
+	DEFINE_FUNCTION( MultiTouch ),
+	DEFINE_FUNCTION( MultiWaitOver ),
+
+	DEFINE_OUTPUT( m_OnTrigger, "OnTrigger" ),
+	DEFINE_OUTPUT( m_OnEntireTeamStartTouch, "OnEntireTeamStartTouch" ),
+	DEFINE_OUTPUT( m_OnEntireTeamEndTouch, "OnEntireTeamEndTouch" )
 
 END_DATADESC()
 
@@ -947,16 +953,86 @@ void CTriggerMultiple::Spawn( void )
 
 	InitTrigger();
 
-	if (m_flWait == 0)
+	if ( m_flWait == 0 )
 	{
-		m_flWait = 0.2;
+		m_flWait = 0.2f;
 	}
 
-	ASSERTSZ(m_iHealth == 0, "trigger_multiple with health");
+	m_bEntireTeamTouching = false;
+
+	ASSERTSZ( m_iHealth == 0, "trigger_multiple with health" );
+
 	SetTouch( &CTriggerMultiple::MultiTouch );
 }
 
+void CTriggerMultiple::StartTouch(CBaseEntity* pOther)
+{
+	BaseClass::StartTouch(pOther);
 
+	if (m_iEntireTeam != 0)
+	{
+		CheckEntireTeamTouch();
+	}
+}
+void CTriggerMultiple::EndTouch(CBaseEntity* pOther)
+{
+	BaseClass::EndTouch(pOther);
+
+	if (m_iEntireTeam != 0)
+	{
+		CheckEntireTeamTouch();
+	}
+}
+bool CTriggerMultiple::IsEntireTeamTouching()
+{
+	if (m_iEntireTeam == 0)
+		return false;
+
+	int totalPlayers = 0;
+	int touchingPlayers = 0;
+
+	for (int i = 1; i <= gpGlobals->maxClients; ++i)
+	{
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+		if (!pPlayer)
+			continue;
+
+		if (!pPlayer->IsAlive())
+			continue;
+
+		if (pPlayer->GetTeamNumber() != m_iEntireTeam)
+			continue;
+
+		totalPlayers++;
+
+		if (IsTouching(pPlayer))
+		{
+			touchingPlayers++;
+		}
+	}
+
+	return (totalPlayers > 0 && touchingPlayers == totalPlayers);
+}
+void CTriggerMultiple::CheckEntireTeamTouch()
+{
+	bool bTouching = IsEntireTeamTouching();
+
+	if (bTouching == m_bEntireTeamTouching)
+		return;
+
+	m_bEntireTeamTouching = bTouching;
+
+	if (bTouching)
+	{
+		m_OnEntireTeamStartTouch.FireOutput(NULL, this);
+		UTIL_ClientPrintAll(HUD_PRINTTALK, "Entire team is touching the trigger!\n");
+	}
+	else
+	{
+		m_OnEntireTeamEndTouch.FireOutput(NULL, this);
+	}
+}
 //-----------------------------------------------------------------------------
 // Purpose: Touch function. Activates the trigger.
 // Input  : pOther - The thing that touched us.
